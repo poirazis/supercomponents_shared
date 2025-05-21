@@ -1,0 +1,57 @@
+{
+  "name": "@supercomponents/shared",
+  "version": "1.0.0",
+  "description": "Shared Svelte components library",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "svelte": "src/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./src/index.js",
+      "default": "./dist/index.js"
+    },
+    "./SuperButton": {
+      "types": "./dist/SuperButton/index.d.ts",
+      "svelte": "./src/lib/SuperButton/SuperButton.svelte",
+      "default": "./dist/SuperButton/index.js"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "bun run vite build",
+    "watch": "bun run vite build --watch",
+    "dev": "bun run vite",
+    "prepare": "bun run build"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "author": "Michael Poirazi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/supercomponents-shared.git"
+  },
+  "keywords": [
+    "svelte",
+    "components",
+    "ui",
+    "supercomponents"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "svelte": "^4.2.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.0.1",
+    "@sveltejs/package": "^2.2.6",
+    "svelte": "^4.2.19",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  }
+}
