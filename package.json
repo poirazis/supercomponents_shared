@@ -64,10 +64,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "bun run vite build",
-    "watch": "bun run vite build --watch",
-    "dev": "bun run vite",
-    "prepare": "bun run build"
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "dev": "vite",
+    "prepare": "npm run build"
   },
   "files": [
     "dist",
