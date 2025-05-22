@@ -3,19 +3,27 @@ name: Publish to npm
 on:
   push:
     branches: [ main ]
-
+    tags: [ 'v*.*.*' ]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Required for getting tags
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org'
+          scope: '@poirazis'
+          
+      - name: Verify version
+        run: |
+          npm version --no-git-tag-version
+          echo "Version: $(npm pkg get version)"
           
       - name: Install dependencies
         run: npm ci
@@ -23,12 +31,26 @@ jobs:
       - name: Build
         run: npm run build
         
+      - name: Generate release notes
+        run: |
+          npx conventional-changelog -p angular -i CHANGELOG.md -s
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog"
+        
       - name: Configure npm
         run: |
           npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
-          npm config set @supercomponents:registry=https://registry.npmjs.org/
+          npm config set @poirazis:registry=https://registry.npmjs.org/
         
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          npm publish --access public
+          git tag v$(npm pkg get version)
+          git push origin --tags
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Cleanup
+        run: |
+          rm -rf node_modules
+          npm cache clean --force
