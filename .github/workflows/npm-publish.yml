@@ -39,8 +39,6 @@ jobs:
       - name: Publish to npm
         run: |
           npm publish --access public
-          git tag v$(npm pkg get version)
-          git push origin --tags
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
