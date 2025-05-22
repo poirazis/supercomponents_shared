@@ -9,13 +9,57 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "svelte": "./src/index.js",
+      "svelte": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./SuperTable/SuperTable.css": "./src/lib/SuperTable/SuperTable.css",
     "./SuperButton": {
       "types": "./dist/SuperButton/index.d.ts",
       "svelte": "./src/lib/SuperButton/SuperButton.svelte",
       "default": "./dist/SuperButton/index.js"
+    },
+    "./SuperFieldLabel": {
+      "types": "./dist/SuperFieldLabel/index.d.ts",
+      "svelte": "./src/lib/SuperFieldLabel/SuperFieldLabel.svelte",
+      "default": "./dist/SuperFieldLabel/index.js"
+    },
+    "./SuperList": {
+      "types": "./dist/SuperList/index.d.ts",
+      "svelte": "./src/lib/SuperList/SuperList.svelte",
+      "default": "./dist/SuperList/index.js"
+    },
+    "./SuperPopover": {
+      "types": "./dist/SuperPopover/index.d.ts",
+      "svelte": "./src/lib/SuperPopover/SuperPopover.svelte",
+      "default": "./dist/SuperPopover/index.js"
+    },
+    "./SuperTable": {
+      "types": "./dist/SuperTable/index.d.ts",
+      "svelte": "./src/lib/SuperTable/SuperTable.svelte",
+      "default": "./dist/SuperTable/index.js"
+    },
+    "./SuperTableCells": {
+      "types": "./dist/SuperTableCells/index.d.ts",
+      "svelte": "./src/lib/SuperTableCells/index.js",
+      "default": "./dist/SuperTableCells/index.js"
+    },
+    "./SuperTableColumn": {
+      "types": "./dist/SuperTableColumn/index.d.ts",
+      "svelte": "./src/lib/SuperTableColumn/index.js",
+      "default": "./dist/SuperTableColumn/index.js"
+    },
+    "./SuperTree": {
+      "types": "./dist/SuperTree/index.d.ts",
+      "svelte": "./src/lib/SuperTree/SuperTree.svelte",
+      "default": "./dist/SuperTree/index.js"
+    },
+    "./Actions": {
+      "types": "./dist/Actions/index.d.ts",
+      "default": "./dist/Actions/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "default": "./dist/constants.js"
     }
   },
   "scripts": {
@@ -47,11 +91,27 @@
   "peerDependencies": {
     "svelte": "^4.2.0"
   },
+  "dependencies": {
+    "@sveltejs/svelte-virtual-list": "^3.0.1",
+    "date-picker-svelte": "^2.16.0",
+    "svelte-dnd-action": "^0.9.61",
+    "svelte-fsm": "^1.2.0",
+    "svelte-portal": "^2.2.1",
+    "svelte-virtual-list": "^3.0.1",
+    "shortid": "^2.2.17"
+  },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^3.0.1",
-    "@sveltejs/package": "^2.2.6",
-    "svelte": "^4.2.19",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10"
-  }
+    "@sveltejs/package": "^2.3.11",
+    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@tsconfig/svelte": "^5.0.4",
+    "sass": "^1.89.0",
+    "svelte": "^4.2.20",
+    "svelte-check": "^3.8.6",
+    "svelte-preprocess": "^5.1.4",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19"
+  },
+  "trustedDependencies": [
+    "svelte-preprocess"
+  ]
 }

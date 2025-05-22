@@ -25,4 +25,6 @@ jobs:
       - name: Publish to npm
         run: npm publish --access public
         env:
+          # You need to set NPM_TOKEN in your GitHub repository secrets
+          # Go to your repo -> Settings -> Secrets -> New repository secret
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

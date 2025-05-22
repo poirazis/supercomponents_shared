@@ -5,37 +5,37 @@
   export let size = "M";
   export let menuItem = false;
   export let menuAlign = "right";
-  export let icon;
-  export let iconAfterText;
+  export let icon = undefined;
+  export let iconAfterText = undefined;
   export let text = "";
-  export let quiet;
-  export let selected;
-  export let disabled;
-  export let onClick;
+  export let quiet = undefined;
+  export let selected = undefined;
+  export let disabled = undefined;
+  export let onClick = undefined;
   export let buttonClass = "actionButton";
   export let type = "primary";
 
   export let actionsMode = "normal";
-  export let condition;
-  export let loopSource;
-  export let loopDelay;
-  export let loopEvent;
+  export let condition = undefined; // For backward compatibility
+  export let loopSource = undefined;
+  export let loopDelay = 0;
+  export let loopEvent = undefined;
   export let timerDuration = 60;
 
-  export let fullWidth;
-  export let iconOnly;
+  export let fullWidth = undefined;
+  export let iconOnly = undefined;
 
   // Events
-  export let onTimer;
-  export let onLoopStart;
-  export let onLoopEnd;
-  export let onTrueCondition;
-  export let onFalseCondition;
+  export let onTimer = undefined;
+  export let onLoopStart = undefined;
+  export let onLoopEnd = undefined;
+  export let onTrueCondition = undefined;
+  export let onFalseCondition = undefined;
 
   $: loop = safeParse(loopSource);
 
-  let working;
-  let ui_timer;
+  let working = false;
+  let ui_timer = undefined;
   let elapsed = 0;
 
   async function handleClick() {
@@ -64,7 +64,7 @@
   }
 
   const safeParse = (input) => {
-    if (!input) return;
+    if (!input) return undefined;
 
     let res = [];
     try {
