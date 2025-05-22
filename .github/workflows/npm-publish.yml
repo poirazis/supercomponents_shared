@@ -31,12 +31,6 @@ jobs:
       - name: Build
         run: npm run build
         
-      - name: Generate release notes
-        run: |
-          npx conventional-changelog -p angular -i CHANGELOG.md -s
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog"
-        
       - name: Configure npm
         run: |
           npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
