@@ -1,4 +1,4 @@
-# @supercomponents/shared
+# @poirazis/supercomponents-shared
 
 A library of shared Svelte components that can be individually imported.
 
