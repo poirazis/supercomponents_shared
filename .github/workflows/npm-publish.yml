@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
 
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -22,9 +23,12 @@ jobs:
       - name: Build
         run: npm run build
         
+      - name: Configure npm
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+          npm config set @supercomponents:registry=https://registry.npmjs.org/
+        
       - name: Publish to npm
         run: npm publish --access public
         env:
-          # You need to set NPM_TOKEN in your GitHub repository secrets
-          # Go to your repo -> Settings -> Secrets -> New repository secret
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
