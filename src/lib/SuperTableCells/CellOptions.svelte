@@ -23,7 +23,6 @@
   let timer;
   let picker;
   let search;
-  let value_dom;
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
@@ -161,6 +160,8 @@
       _enter() {},
       focus(e) {
         if (!cellOptions.readonly && !cellOptions.disabled) {
+          // Open the popup if the focus in came from a TAB
+          editorState.open();
           return "Editing";
         }
       },
@@ -170,7 +171,6 @@
         originalValue = JSON.stringify(
           Array.isArray(value) ? value : value ? [value] : []
         );
-        if (controlType != "inputSelect") editorState.open();
         dispatch("enteredit");
       },
       _exit() {
@@ -205,7 +205,6 @@
   let editorState = fsm("Closed", {
     "*": {
       close() {
-        value_dom?.focus();
         return "Closed";
       },
       toggleOption(idx) {
@@ -258,11 +257,9 @@
         } else {
           filteredOptions = $options;
           search = false;
-          value_dom.focus();
         }
       },
       toggle() {
-        value_dom?.focus();
         return "Closed";
       },
       handleInputKeyboard(e) {
@@ -386,6 +383,7 @@
 <div
   bind:this={anchor}
   class="superCell"
+  tabindex={cellOptions?.disabled ? "-1" : "0"}
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inEdit
   class:disabled
@@ -397,6 +395,9 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
+  on:focusin={cellState.focus}
+  on:focusout={cellState.focusout}
+  on:keydown={editorState.handleKeyboard}
 >
   {#if icon}
     <i class={icon + " icon"} />
@@ -450,12 +451,7 @@
       class="value"
       class:with-icon={icon}
       class:placeholder={isEmpty}
-      tabindex={cellOptions?.disabled ? "-1" : "0"}
-      bind:this={value_dom}
-      on:focusin={cellState.focus}
-      on:focusout={cellState.focusout}
-      on:keydown={editorState.handleKeyboard}
-      on:mousedown={inEdit ? editorState.toggle : () => {}}
+      on:mousedown={inEdit ? editorState.toggle : null}
     >
       {#if isEmpty}
         <span>{placeholder}</span>
@@ -504,6 +500,7 @@
     useAnchorWidth
     maxHeight={400}
     open={$editorState == "Open"}
+    on:close={editorState.close}
   >
     <div
       bind:this={picker}

@@ -106,6 +106,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
+
         i {
           display: none;
         }

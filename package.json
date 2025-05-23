@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.0.0",
+  "version": "0.0.3",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
@@ -19,9 +19,14 @@
       "default": "./dist/SuperButton/index.js"
     },
     "./SuperFieldLabel": {
-      "types": "./dist/SuperFieldLabel/index.d.ts",
-      "svelte": "./src/lib/SuperFieldLabel/SuperFieldLabel.svelte",
-      "default": "./dist/SuperFieldLabel/index.js"
+      "types": "./dist/SuperFiel/index.d.ts",
+      "svelte": "./src/lib/SuperField/SuperFieldLabel.svelte",
+      "default": "./dist/SuperField/index.js"
+    },
+    "./SuperField": {
+      "types": "./dist/SuperField/index.d.ts",
+      "svelte": "./src/lib/SuperField/SuperField.svelte",
+      "default": "./dist/SuperField/index.js"
     },
     "./SuperList": {
       "types": "./dist/SuperList/index.d.ts",

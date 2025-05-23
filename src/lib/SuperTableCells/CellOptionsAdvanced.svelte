@@ -4,6 +4,7 @@
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import SuperList from "../SuperList/SuperList.svelte";
   import CellSkeleton from "./CellSkeleton.svelte";
+  import "./CellCommon.css";
   const dispatch = createEventDispatcher();
   const { API, QueryUtils, fetchData, memo, derivedMemo } = getContext("sdk");
 
@@ -612,6 +613,7 @@
     gap: 0.25rem;
     align-items: center;
     cursor: pointer;
+    padding: 0 0.5rem;
     &.focused {
       background-color: var(--spectrum-global-color-gray-200) !important;
       color: var(--spectrum-global-color-gray-800);

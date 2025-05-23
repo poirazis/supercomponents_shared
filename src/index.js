@@ -4,7 +4,7 @@
 export { default as SuperButton } from "./lib/SuperButton/SuperButton.svelte";
 
 // Form components
-export { default as SuperFieldLabel } from "./lib/SuperFieldLabel/SuperFieldLabel.svelte";
+export { default as SuperField } from "./lib/SuperField/SuperField.svelte";
 
 // List components
 export { default as SuperList } from "./lib/SuperList/SuperList.svelte";
@@ -23,7 +23,7 @@ export { default as SuperTree } from "./lib/SuperTree/SuperTree.svelte";
 export * from "./lib/SuperTableCells/index.js";
 
 // Re-export constants
-export { defaultOperatorMap } from "./lib/SuperTable/constants";
+export { defaultOperatorMap } from "./lib/SuperTable/constants.js";
 
 // Export Actions (JavaScript functions)
 export * from "./lib/Actions/index.js";

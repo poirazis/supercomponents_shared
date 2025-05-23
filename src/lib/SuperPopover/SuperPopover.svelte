@@ -26,7 +26,7 @@
   export let showPopover = true;
   export let clickOutsideOverride = false;
 
-  export let ignoreAnchor = false;
+  export let ignoreAnchor = true;
 
   export let popup;
 
