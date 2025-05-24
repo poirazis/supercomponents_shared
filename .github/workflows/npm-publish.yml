@@ -26,8 +26,9 @@ jobs:
           echo "Version: $(npm pkg get version)"
           
       - name: Install dependencies
-        run: npm ci
-        
+        run: |
+          npm ci --include=dev
+          
       - name: Build
         run: npm run build
         
@@ -42,18 +43,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Cleanup
-        run: |
-          rm -rf node_modules
-          npm cache clean --force
-          
       - name: Get package version
         id: version
         run: |
-          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
           
       - name: Pack the npm package
-        run: npm pack
+        run: |
+          npm ci --only=prod
+          npm pack
         
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
