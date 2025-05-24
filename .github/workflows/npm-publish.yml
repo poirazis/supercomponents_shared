@@ -2,8 +2,8 @@ name: Publish to npm
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*.*.*' ]
+    branches: [main]
+    tags: ["v*.*.*"]
 
 jobs:
   publish:
@@ -11,32 +11,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Required for getting tags
-      
+          fetch-depth: 0 # Required for getting tags
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
-          registry-url: 'https://registry.npmjs.org'
-          scope: '@poirazis'
-          
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@poirazis"
+
       - name: Verify version
         run: |
           npm version --no-git-tag-version
           echo "Version: $(npm pkg get version)"
-          
+
       - name: Install dependencies
         run: |
-          npm ci --include=dev
-          
+          npm install -g npm@latest
+          npm install --no-package-lock --no-save vite@latest
+          npm ci
+
       - name: Build
-        run: npm run build
-        
+        run: |
+          npx vite build
+
       - name: Configure npm
         run: |
           npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
           npm config set @poirazis:registry=https://registry.npmjs.org/
-        
+
       - name: Publish to npm
         run: |
           npm publish --access public
@@ -54,7 +57,7 @@ jobs:
         run: |
           npm ci --only=prod
           npm pack
-        
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
