@@ -1,72 +1,11 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "0.0.3",
+  "version": "1.0.1",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "svelte": "src/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "svelte": "./src/index.ts",
-      "default": "./dist/index.js"
-    },
-    "./SuperTable/SuperTable.css": "./src/lib/SuperTable/SuperTable.css",
-    "./SuperButton": {
-      "types": "./dist/SuperButton/index.d.ts",
-      "svelte": "./src/lib/SuperButton/SuperButton.svelte",
-      "default": "./dist/SuperButton/index.js"
-    },
-    "./SuperFieldLabel": {
-      "types": "./dist/SuperFiel/index.d.ts",
-      "svelte": "./src/lib/SuperField/SuperFieldLabel.svelte",
-      "default": "./dist/SuperField/index.js"
-    },
-    "./SuperField": {
-      "types": "./dist/SuperField/index.d.ts",
-      "svelte": "./src/lib/SuperField/SuperField.svelte",
-      "default": "./dist/SuperField/index.js"
-    },
-    "./SuperList": {
-      "types": "./dist/SuperList/index.d.ts",
-      "svelte": "./src/lib/SuperList/SuperList.svelte",
-      "default": "./dist/SuperList/index.js"
-    },
-    "./SuperPopover": {
-      "types": "./dist/SuperPopover/index.d.ts",
-      "svelte": "./src/lib/SuperPopover/SuperPopover.svelte",
-      "default": "./dist/SuperPopover/index.js"
-    },
-    "./SuperTable": {
-      "types": "./dist/SuperTable/index.d.ts",
-      "svelte": "./src/lib/SuperTable/SuperTable.svelte",
-      "default": "./dist/SuperTable/index.js"
-    },
-    "./SuperTableCells": {
-      "types": "./dist/SuperTableCells/index.d.ts",
-      "svelte": "./src/lib/SuperTableCells/index.js",
-      "default": "./dist/SuperTableCells/index.js"
-    },
-    "./SuperTableColumn": {
-      "types": "./dist/SuperTableColumn/index.d.ts",
-      "svelte": "./src/lib/SuperTableColumn/index.js",
-      "default": "./dist/SuperTableColumn/index.js"
-    },
-    "./SuperTree": {
-      "types": "./dist/SuperTree/index.d.ts",
-      "svelte": "./src/lib/SuperTree/SuperTree.svelte",
-      "default": "./dist/SuperTree/index.js"
-    },
-    "./Actions": {
-      "types": "./dist/Actions/index.d.ts",
-      "default": "./dist/Actions/index.js"
-    },
-    "./constants": {
-      "types": "./dist/constants.d.ts",
-      "default": "./dist/constants.js"
-    }
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "vite build",

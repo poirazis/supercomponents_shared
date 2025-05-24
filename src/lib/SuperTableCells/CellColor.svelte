@@ -309,66 +309,92 @@
   }
 
   /* Preview Swatch Styles */
+  /* Spectrum CSS Swatch styles */
   .preview-swatch {
     position: relative;
-    transition: border-color 130ms ease-in-out;
+    transition:
+      transform 100ms ease-in-out,
+      box-shadow 100ms ease-in-out;
+    box-sizing: border-box;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    background: var(--spectrum-global-color-gray-50);
 
     &.circle {
       border-radius: 50%;
     }
+
+    &:hover {
+      cursor: pointer;
+    }
   }
-  .preview-swatch:hover:not(.readonly) {
-    cursor: pointer;
-  }
+
   .preview-fill {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
     position: absolute;
     top: 0;
     left: 0;
     display: grid;
     place-items: center;
-    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: inherit;
+    border: 1px solid transparent;
+    padding: 4px;
+
     &.circle {
       border-radius: 50%;
     }
   }
+
   .preview-fill.placeholder {
-    &.circle {
-      border-radius: 50%;
-    }
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    --squareSize: 8px;
-    --squareColor: var(--spectrum-global-color-gray-200);
+    --spectrum-swatch-checkerboard-light: var(--spectrum-global-color-gray-300);
+
     background-color: var(--spectrum-global-color-gray-50);
     background-image: linear-gradient(
         45deg,
-        var(--squareColor) 25%,
+        var(--spectrum-swatch-checkerboard-light) 25%,
         transparent 25%
       ),
       linear-gradient(
-        135deg,
-        var(--spectrum-global-color-gray-200) 25%,
+        -45deg,
+        var(--spectrum-swatch-checkerboard-light) 25%,
         transparent 25%
       ),
-      linear-gradient(45deg, transparent 75%, var(--squareColor) 75%),
-      linear-gradient(135deg, transparent 75%, var(--squareColor) 75%);
-    background-size: calc(2 * var(--squareSize)) calc(2 * var(--squareSize));
+      linear-gradient(
+        45deg,
+        transparent 75%,
+        var(--spectrum-swatch-checkerboard-light) 75%
+      ),
+      linear-gradient(
+        -45deg,
+        transparent 75%,
+        var(--spectrum-swatch-checkerboard-light) 75%
+      );
+    background-size: 20px 20px;
     background-position:
       0 0,
-      var(--squareSize) 0,
-      var(--squareSize) calc(-1 * var(--squareSize)),
-      0 calc(-1 * var(--squareSize));
+      0 10px,
+      10px -10px,
+      -10px 0px;
   }
+
+  /* Size variants */
+  .size--XS {
+    width: 16px;
+    height: 16px;
+  }
+
   .size--S {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
+
   .size--M {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
   }
+
   .size--L {
     width: 48px;
     height: 48px;

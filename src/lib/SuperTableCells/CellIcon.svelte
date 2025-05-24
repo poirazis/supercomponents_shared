@@ -322,7 +322,7 @@
     height: 32px;
     border: 1px solid var(--spectrum-global-color-gray-300);
     border-radius: 4px;
-    background-color: var(--spectrum-global-color-gray-75);
+    background-color: var(--spectrum-global-color-gray-50);
     cursor: pointer;
     font-size: 1rem;
     transition: all 0.2s ease-in-out;
@@ -483,6 +483,7 @@
     border-radius: 4px;
     cursor: pointer;
     color: var(--spectrum-global-color-gray-700);
+    border: 1px solid var(--spectrum-global-color-gray-100);
     width: 32px;
     height: 32px;
     box-sizing: border-box;

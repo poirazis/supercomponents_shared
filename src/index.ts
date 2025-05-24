@@ -5,7 +5,6 @@ export { default as SuperButton } from "./lib/SuperButton/SuperButton.svelte";
 
 // Form components
 export { default as SuperField } from "./lib/SuperField/SuperField.svelte";
-export { default as SuperFieldLabel } from "./lib/SuperField/SuperFieldLabel.svelte";
 
 // List components
 export { default as SuperList } from "./lib/SuperList/SuperList.svelte";
