@@ -1,14 +1,67 @@
 <script lang="ts">
   import { setContext, getContext } from "svelte";
   import type { Readable, Writable } from "svelte/store";
-  import { derived, get, writable } from "svelte/store";
-  const { createValidatorFromConstraints } = getContext("sdk");
-  import type { FieldSchema, FieldType, UIFieldValidationRule } from "./types";
+  import { get } from "svelte/store";
+  import type {
+    DataFetchDatasource,
+    FieldSchema,
+    FieldType,
+    Table,
+    TableSchema,
+    UIFieldValidationRule,
+  } from "@budibase/types";
+
+  // Local utility functions
+  const generateUUID = (): string => {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
+  const deepClone = <T,>(obj: T): T => {
+    if (obj === null || typeof obj !== "object") return obj;
+    if (Array.isArray(obj)) {
+      return obj.map((item) => deepClone(item)) as T;
+    }
+    const cloned = {} as T;
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloned[key] = deepClone(obj[key]);
+      }
+    }
+    return cloned;
+  };
+
+  const getDeep = (obj: Record<string, any> | undefined, path: string): any => {
+    if (!obj) return undefined;
+    return path.split(".").reduce((current, key) => {
+      return current && typeof current === "object" ? current[key] : undefined;
+    }, obj);
+  };
+
+  const setDeep = (
+    obj: Record<string, any>,
+    path: string,
+    value: any
+  ): void => {
+    const keys = path.split(".");
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!current[key] || typeof current[key] !== "object") {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    current[keys[keys.length - 1]] = value;
+  };
 
   type FieldInfo<T = any> = {
     name: string;
     step: number;
-    type: FieldType;
+    type: `${FieldType}`;
     fieldState: {
       fieldId: string;
       value: T;
@@ -17,7 +70,7 @@
       readonly: boolean;
       validator: ((_value: T) => string | null) | null;
       error: string | null | undefined;
-      lastUpdate: number;
+      lastUpdate: number | null;
     };
     fieldApi: {
       setValue(_value: T): void;
@@ -27,53 +80,50 @@
     fieldSchema: FieldSchema | {};
   };
 
-  export let dataSource: any | undefined = undefined;
+  export let dataSource: DataFetchDatasource | undefined = undefined;
   export let disabled: boolean = false;
   export let readonly: boolean = false;
   export let initialValues: Record<string, any> | undefined = undefined;
   export let size: "Medium" | "Large" | undefined = undefined;
-  export let schema: Record<string, FieldSchema> | undefined = undefined;
-  export let definition: any | undefined = undefined;
+  export let schema: TableSchema | undefined = undefined;
+  export let definition: Table | undefined = undefined;
   export let disableSchemaValidation: boolean = false;
   export let editAutoColumns: boolean = false;
-
-  // For internal use only, to disable context when being used with standalone fields
   export let provideContext: boolean = true;
-
-  // We export this store so that when we remount the inner form we can still
-  // persist what step we're on
   export let currentStep: Writable<number>;
 
   const component = getContext("component");
-  const { styleable, Provider, ActionTypes } = getContext("sdk");
+  const {
+    Provider,
+    ActionTypes,
+    createValidatorFromConstraints,
+    memo,
+    derivedMemo,
+  } = getContext("sdk");
 
   let fields: Writable<FieldInfo>[] = [];
-  const formState = writable({
+  const formState = memo({
     values: {},
     errors: {},
     valid: true,
-    dirty: false,
     currentStep: get(currentStep),
   });
 
-  // Reactive derived stores to derive form state from field array
   $: values = deriveFieldProperty(fields, (f) => f.fieldState.value);
   $: errors = deriveFieldProperty(fields, (f) => f.fieldState.error);
+
   $: enrichments = deriveBindingEnrichments(fields);
   $: valid = !Object.values($errors).some((error) => error != null);
-  // Track if any field has been modified from its default value
-  $: dirty = derived(
-    fields,
-    (fieldsValue) => fieldsValue.some((field) => {
-      const { value, defaultValue } = field.fieldState;
-      // Compare current value with default value to determine if field is dirty
-      // Using JSON.stringify for deep comparison of objects and arrays
-      return JSON.stringify(value) !== JSON.stringify(defaultValue);
-    })
-  );
+  $: dirty = derivedMemo(fields, (fieldValues) => {
+    return fieldValues.some((field) => {
+      const { fieldState } = field;
+      const initial =
+        getDeep(initialValues, field.name) ?? fieldState.defaultValue;
+      return fieldState.lastUpdate != null && fieldState.value !== initial;
+    });
+  });
 
-  // Derive whether the current form step is valid
-  $: currentStepValid = derived(
+  $: currentStepValid = derivedMemo(
     [currentStep, ...fields],
     ([currentStepValue, ...fieldsValue]) => {
       return !fieldsValue
@@ -82,25 +132,19 @@
     }
   );
 
-  // Update form state store from derived stores
   $: {
     formState.set({
       values: $values,
       errors: $errors,
       valid,
-      dirty: $dirty,
       currentStep: $currentStep,
     });
   }
 
-  // Derive value of whole form
   $: formValue = deriveFormValue(initialValues, $values, $enrichments);
 
-  // Create data context to provide
   $: dataContext = {
     ...formValue,
-
-    // These static values are prefixed to avoid clashes with actual columns
     __value: formValue,
     __valid: valid,
     __dirty: $dirty,
@@ -108,13 +152,11 @@
     __currentStepValid: $currentStepValid,
   };
 
-  // Generates a derived store from an array of fields, comprised of a map of
-  // extracted values from the field array
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
     getProp: (_field: FieldInfo) => any
   ) => {
-    return derived(fieldStores, (fieldValues) => {
+    return derivedMemo(fieldStores, (fieldValues) => {
       return fieldValues.reduce(
         (map, field) => ({ ...map, [field.name]: getProp(field) }),
         {}
@@ -122,10 +164,8 @@
     });
   };
 
-  // Derives any enrichments which need to be made so that bindings work for
-  // special data types like attachments
   const deriveBindingEnrichments = (fieldStores: Readable<FieldInfo>[]) => {
-    return derived(fieldStores, (fieldValues) => {
+    return derivedMemo(fieldStores, (fieldValues) => {
       const enrichments: Record<string, string> = {};
       fieldValues.forEach((field) => {
         if (field.type === "attachment") {
@@ -141,16 +181,13 @@
     });
   };
 
-  // Derive the overall form value and deeply set all field paths so that we
-  // can support things like JSON fields.
   const deriveFormValue = (
     initialValues: Record<string, any> | undefined,
     values: Record<string, any>,
     enrichments: Record<string, string>
   ) => {
-    let formValue = cloneDeep(initialValues || {});
+    let formValue = deepClone(initialValues || {});
 
-    // We need to sort the keys to avoid a JSON field overwriting a nested field
     const sortedFields = Object.entries(values || {})
       .map(([key, value]) => {
         const field = getField(key);
@@ -164,29 +201,24 @@
         return a.lastUpdate - b.lastUpdate;
       });
 
-    // Merge all values and enrichments into a single value
     sortedFields.forEach(({ key, value }) => {
-      deepSet(formValue, key, value);
+      setDeep(formValue, key, value);
     });
     Object.entries(enrichments || {}).forEach(([key, value]) => {
-      deepSet(formValue, key, value);
+      setDeep(formValue, key, value);
     });
     return formValue;
   };
 
-  // Searches the field array for a certain field
   const getField = (name: string) => {
     return fields.find((field) => get(field).name === name)!;
   };
 
-  // Sanitises a value by ensuring it doesn't contain any invalid data
   const sanitiseValue = (
     value: any,
     schema: FieldSchema | undefined,
-    type: FieldType
+    type: `${FieldType}`
   ) => {
-    // Check arrays - remove any values not present in the field schema and
-    // convert any values supplied to strings
     if (Array.isArray(value) && type === "array" && schema) {
       const options = schema?.constraints?.inclusion || [];
       return value
@@ -209,7 +241,6 @@
       if (!field) {
         return;
       }
-      // Create validation function based on field schema
       const schemaConstraints = disableSchemaValidation
         ? null
         : schema?.[field]?.constraints;
@@ -220,36 +251,26 @@
         definition
       );
 
-      // Sanitise the default value to ensure it doesn't contain invalid data
       defaultValue = sanitiseValue(defaultValue, schema?.[field], type);
 
-      // If we've already registered this field then keep some existing state
-      let initialValue = deepGet(initialValues, field) ?? defaultValue;
+      let initialValue = getDeep(initialValues, field) ?? defaultValue;
       let initialError = null;
-      let fieldId = `id-${uuid()}`;
+      let fieldId = `id-${generateUUID()}`;
       const existingField = getField(field);
       if (existingField) {
         const { fieldState } = get(existingField);
         fieldId = fieldState.fieldId;
-
-        // Determine the initial value for this field, reusing the current
-        // value if one exists
         if (fieldState.value != null && fieldState.value !== "") {
           initialValue = fieldState.value;
         }
-
-        // If this field has already been registered and we previously had an
-        // error set, then re-run the validator to see if we can unset it
         if (fieldState.error) {
           initialError = validator?.(initialValue);
         }
       }
 
-      // Auto columns are always disabled
       const isAutoColumn = !!schema?.[field]?.autocolumn;
 
-      // Construct field info
-      const fieldInfo = writable<FieldInfo>({
+      const fieldInfo = memo<FieldInfo>({
         name: field,
         type,
         step: step || 1,
@@ -263,13 +284,12 @@
             readonly || fieldReadOnly || (schema?.[field] as any)?.readonly,
           defaultValue,
           validator,
-          lastUpdate: Date.now(),
+          lastUpdate: null,
         },
         fieldApi: makeFieldApi(field),
         fieldSchema: schema?.[field] ?? {},
       });
 
-      // Add this field
       if (existingField) {
         const otherFields = fields.filter((info) => get(info).name !== field);
         fields = [...otherFields, fieldInfo];
@@ -283,8 +303,6 @@
       const stepFields = fields.filter(
         (field) => get(field).step === get(currentStep)
       );
-      // We want to validate every field (even if validation fails early) to
-      // ensure that all fields are populated with errors if invalid
       let valid = true;
       let hasScrolled = false;
       stepFields.forEach((field) => {
@@ -299,7 +317,6 @@
       return valid;
     },
     reset: () => {
-      // Reset the form by resetting each individual field
       fields.forEach((field) => {
         get(field).fieldApi.reset();
       });
@@ -344,20 +361,16 @@
     },
   };
 
-  // Creates an API for a specific field
   const makeFieldApi = (field: string) => {
-    // Sets the value for a certain field and invokes validation
     const setValue = (value: any, skipCheck = false) => {
       const fieldInfo = getField(field);
       const { fieldState } = get(fieldInfo);
       const { validator } = fieldState;
 
-      // Skip if the value is the same
       if (!skipCheck && fieldState.value === value) {
         return false;
       }
 
-      // Update field state
       const error = validator?.(value);
       fieldInfo.update((state) => {
         state.fieldState.value = value;
@@ -369,23 +382,19 @@
       return true;
     };
 
-    // Clears the value of a certain field back to the default value
     const reset = () => {
       const fieldInfo = getField(field);
       const { fieldState } = get(fieldInfo);
       const newValue = fieldState.defaultValue;
 
-      // Update field state
       fieldInfo.update((state) => {
         state.fieldState.value = newValue;
         state.fieldState.error = null;
-        state.fieldState.lastUpdate = Date.now();
+        state.fieldState.lastUpdate = null;
         return state;
       });
     };
 
-    // We don't want to actually remove the field state when deregistering, just
-    // remove any errors and validation
     const deregister = () => {
       const fieldInfo = getField(field);
       fieldInfo.update((state) => {
@@ -395,14 +404,11 @@
       });
     };
 
-    // Updates the disabled state of a certain field
     const setDisabled = (fieldDisabled: boolean) => {
       const fieldInfo = getField(field);
 
-      // Auto columns are always disabled
       const isAutoColumn = !!schema?.[field]?.autocolumn;
 
-      // Update disabled state
       fieldInfo.update((state) => {
         state.fieldState.disabled = disabled || fieldDisabled || isAutoColumn;
         return state;
@@ -415,7 +421,6 @@
       setDisabled,
       deregister,
       validate: () => {
-        // Validate the field by force setting the same value again
         const fieldInfo = getField(field);
         setValue(get(fieldInfo).fieldState.value, true);
         return !get(fieldInfo).fieldState.error;
@@ -423,19 +428,13 @@
     };
   };
 
-  // Provide form state and api for full control by children
   setContext("form", {
     formState,
     formApi,
-
-    // Datasource is needed by attachment fields to be able to upload files
-    // to the correct table ID
     dataSource,
   });
 
-  // Provide form step context so that forms without any step components
-  // register their fields to step 1
-  setContext("form-step", writable(1));
+  setContext("form-step", memo(1));
 
   const handleUpdateFieldValue = ({
     type,
@@ -474,7 +473,6 @@
     }
   };
 
-  // Action context to pass to children
   const actions = [
     { type: ActionTypes.ValidateForm, callback: formApi.validate },
     { type: ActionTypes.ClearForm, callback: formApi.reset },
@@ -483,76 +481,13 @@
     { type: ActionTypes.ScrollTo, callback: handleScrollToField },
   ];
 
-  // Helper functions
-  function uuid() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        var r = (Math.random() * 16) | 0,
-          v = c == "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      }
-    );
-  }
-
-  function cloneDeep(obj: any) {
-    if (obj === null || typeof obj !== "object") {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => cloneDeep(item));
-    }
-
-    const cloned: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        cloned[key] = cloneDeep(obj[key]);
-      }
-    }
-    return cloned;
-  }
-
-  function deepGet(obj: any, path: string) {
-    if (!obj) return undefined;
-    const parts = path.split(".");
-    let current = obj;
-
-    for (let i = 0; i < parts.length; i++) {
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-      current = current[parts[i]];
-    }
-
-    return current;
-  }
-
-  function deepSet(obj: any, path: string, value: any) {
-    if (!obj) return;
-    const parts = path.split(".");
-    let current = obj;
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
-      if (!current[part] || typeof current[part] !== "object") {
-        current[part] = {};
-      }
-      current = current[part];
-    }
-
-    current[parts[parts.length - 1]] = value;
-  }
+  $: console.log(dirty);
 </script>
 
 {#if provideContext}
   <Provider {actions} data={dataContext}>
-    <div class={size}>
-      <slot />
-    </div>
+    <slot />
   </Provider>
 {:else}
-  <div class={size}>
-    <slot />
-  </div>
+  <slot />
 {/if}
