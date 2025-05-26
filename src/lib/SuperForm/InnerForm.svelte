@@ -92,6 +92,9 @@
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
 
+  export let form 
+
+
   const component = getContext("component");
   const {
     Provider,
@@ -151,6 +154,12 @@
     __currentStep: $currentStep,
     __currentStepValid: $currentStepValid,
   };
+
+  $: form = {
+    formState,
+    formApi,
+    dataSource,
+  }
 
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
@@ -428,11 +437,7 @@
     };
   };
 
-  setContext("form", {
-    formState,
-    formApi,
-    dataSource,
-  });
+  $: setContext("form", form);
 
   setContext("form-step", memo(1));
 
@@ -481,7 +486,6 @@
     { type: ActionTypes.ScrollTo, callback: handleScrollToField },
   ];
 
-  $: console.log(dirty);
 </script>
 
 {#if provideContext}

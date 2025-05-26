@@ -28,6 +28,10 @@
   export let disableSchemaValidation: boolean = false;
   export let editAutoColumns: boolean = false;
 
+  // Export the full form API to be used by parents
+  export let form
+  export let row
+
   const context = getContext("context");
   const component = getContext("component");
   const { fetchDatasourceSchema, fetchDatasourceDefinition } =
@@ -46,6 +50,8 @@
   let loaded = false;
   let currentStep =
     getContext("current-step") || writable(getInitialFormStep());
+
+
 
   $: fetchSchema(dataSource);
   $: schemaKey = generateSchemaKey(schema);
@@ -71,6 +77,10 @@
     const dsType = dataSource?.type;
     if (dsType !== "table" && dsType !== "viewV2") {
       return {};
+    }
+
+    if ( row && dsType === "table" && row?.tableId === dataSource.tableId) {
+      return row;
     }
     for (let id of path.toReversed().slice(1)) {
       if (
@@ -110,11 +120,13 @@
     fields.sort();
     return fields.map((field) => `${field}:${schema[field].type}`).join("-");
   };
+
 </script>
 
 {#if loaded}
   {#key resetKey}
     <InnerForm
+      bind:form={form}
       {dataSource}
       {size}
       {disabled}
