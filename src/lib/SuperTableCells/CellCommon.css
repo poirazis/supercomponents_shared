@@ -206,6 +206,7 @@
   border: 1px solid var(--spectrum-global-color-gray-300);
   background: var(--spectrum-global-color-gray-50);
   min-height: 2rem;
+  max-height: 2rem;
 
   &:focus-within {
     border: 1px solid var(--spectrum-global-color-blue-400) !important;

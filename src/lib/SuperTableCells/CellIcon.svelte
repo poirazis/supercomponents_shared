@@ -180,7 +180,6 @@
   class:readonly
   on:click={!readonly
     ? () => {
-        console.log(open);
         open = !open;
       }
     : null}

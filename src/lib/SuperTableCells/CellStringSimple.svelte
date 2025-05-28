@@ -11,11 +11,11 @@
   };
 
   $: formattedValue =
-    !formattedValue && cellOptions?.template
+    cellOptions?.template
       ? processStringSync(cellOptions.template, {
           value,
         })
-      : formattedValue;
+      : undefined;;
 
   $: placeholder =
     cellOptions.readonly || cellOptions.disabled

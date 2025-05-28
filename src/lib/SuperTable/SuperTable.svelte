@@ -3,6 +3,7 @@
   import fsm from "svelte-fsm";
   import { writable } from "svelte/store";
 
+  import "./SuperTable.css";
   import {
     sizingMap,
     defaultOperatorMap,
@@ -290,11 +291,14 @@
   $: cumulativeHeights = derivedMemo(
     [stbRowMetadata, stbSettings],
     ([$meta, $settings]) => {
-      const defaultRowHeight = $settings.appearance?.rowHeight || 36; // Fallback if undefined
+      const defaultRowHeight = $settings.appearance?.rowHeight || 36;
       return $meta.map((_, i) =>
         $meta
           .slice(0, i + 1)
-          .reduce((sum, meta) => sum + (meta.height || defaultRowHeight), 0)
+          .reduce(
+            (sum, meta) => sum + Math.max(meta.height || defaultRowHeight, 0),
+            0
+          )
       );
     }
   );
@@ -703,11 +707,10 @@
         if (!rows?.length || !viewport || !$cumulativeHeights.length) return;
 
         const defaultRowHeight = $stbSettings.appearance.rowHeight;
-        let start = $stbVisibleRows?.length ? $stbVisibleRows[0] - 1 : 0;
-        start = Math.max(0, start); // Ensure start doesn't go negative
-        let end = 0;
+        let start = 0,
+          end = rows.length;
 
-        // Find start index using cumulativeHeights
+        // Find start index
         for (let i = 0; i < rows.length; i++) {
           if ($cumulativeHeights[i] > $stbScrollPos) {
             start = i;
@@ -715,45 +718,30 @@
           }
         }
 
-        // Find end index using cumulativeHeights
+        // Find end index
         for (let i = start; i < rows.length; i++) {
-          if (
-            $cumulativeHeights[i] >=
-            $stbScrollPos + maxBodyHeight - defaultRowHeight
-          ) {
+          if ($cumulativeHeights[i] >= $stbScrollPos + maxBodyHeight) {
             end = i + 1;
             break;
           }
         }
 
-        // Ensure all rows are included when at the bottom
-        end = end || rows.length;
-
         // Update visible rows
         $stbVisibleRows = $stbData?.rows
-          ?.slice(start, end)
+          .slice(start, end)
           .map((_, i) => i + start);
 
-        // Calculate scroll offset for rendering
+        // Calculate scroll offset
         const startHeight = start > 0 ? $cumulativeHeights[start - 1] : 0;
         $stbScrollOffset = $stbScrollPos - startHeight;
 
-        // Ensure offset doesn't exceed bounds at the end
-        if ($stbScrollPos >= scrollHeight - maxBodyHeight) {
-          $stbScrollPos = Math.max(0, scrollHeight - maxBodyHeight);
-          $stbScrollOffset = Math.min(
-            $stbScrollOffset,
-            maxBodyHeight - defaultRowHeight
-          );
-        }
-
-        // Fetch more rows if nearing the end of loaded data
+        // Fetch more rows if nearing the end
         if (fetchOnScroll && rows.length > 0) {
           const loadedHeight = $cumulativeHeights[rows.length - 1];
           const remainingHeight =
             loadedHeight - ($stbScrollPos + maxBodyHeight);
-          if (remainingHeight < maxBodyHeight && rows.length == _limit) {
-            stbState.fetchMoreRows.debounce(200, 100); // Debounced fetch call
+          if (remainingHeight < maxBodyHeight && rows.length === _limit) {
+            stbState.fetchMoreRows.debounce(200, 100); // Debounced fetch
           }
         }
       },
@@ -769,11 +757,7 @@
           scrollHeight > maxBodyHeight
             ? $stbScrollPos / (scrollHeight - maxBodyHeight)
             : 0;
-        $stbScrollOffset = Math.floor(
-          $stbScrollPos % $stbSettings.appearance.rowHeight
-        );
-
-        this.calculateRowBoundaries.debounce(1);
+        window.requestAnimationFrame(() => this.calculateRowBoundaries());
       },
       handleWheel(e) {
         if ($stbState == "Inserting") {
@@ -1194,8 +1178,6 @@
   $: console.log("Table Filters : ", stbColumnFilters);
   $: console.log("Table Settings : ", $stbSettings);
   */
-
-  $: console.log($stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

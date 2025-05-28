@@ -92,8 +92,7 @@
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
 
-  export let form 
-
+  export let form;
 
   const component = getContext("component");
   const {
@@ -105,10 +104,11 @@
   } = getContext("sdk");
 
   let fields: Writable<FieldInfo>[] = [];
-  const formState = memo({
+  export const formState = memo({
     values: {},
     errors: {},
     valid: true,
+    dirty: false,
     currentStep: get(currentStep),
   });
 
@@ -140,6 +140,7 @@
       values: $values,
       errors: $errors,
       valid,
+      dirty: $dirty,
       currentStep: $currentStep,
     });
   }
@@ -159,7 +160,7 @@
     formState,
     formApi,
     dataSource,
-  }
+  };
 
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
@@ -485,7 +486,6 @@
     { type: ActionTypes.UpdateFieldValue, callback: handleUpdateFieldValue },
     { type: ActionTypes.ScrollTo, callback: handleScrollToField },
   ];
-
 </script>
 
 {#if provideContext}

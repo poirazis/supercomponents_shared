@@ -30,6 +30,7 @@
 
   // Export the full form API to be used by parents
   export let form
+  export let formState
   export let row
 
   const context = getContext("context");
@@ -127,6 +128,7 @@
   {#key resetKey}
     <InnerForm
       bind:form={form}
+      bind:formState={formState}
       {dataSource}
       {size}
       {disabled}

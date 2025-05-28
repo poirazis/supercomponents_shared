@@ -34,12 +34,6 @@
   $: isSelected = $stbSelected.includes(id);
   $: hasChildren = $columnSettings.hasChildren > 0;
 
-  const getCellValue = (value) => {
-    return $columnSettings.template
-      ? processStringSync($columnSettings.template, { value })
-      : undefined;
-  };
-
   const patchRow = async (change) => {
     let patch = {
       ...row,
