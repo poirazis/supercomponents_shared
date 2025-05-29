@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { setContext, getContext } from "svelte";
+  import { setContext, getContext, createEventDispatcher } from "svelte";
   import type { Readable, Writable } from "svelte/store";
-  import { get } from "svelte/store";
+  import { derived, get, writable } from "svelte/store";
   import type {
     DataFetchDatasource,
     FieldSchema,
@@ -11,52 +11,7 @@
     UIFieldValidationRule,
   } from "@budibase/types";
 
-  // Local utility functions
-  const generateUUID = (): string => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
-
-  const deepClone = <T,>(obj: T): T => {
-    if (obj === null || typeof obj !== "object") return obj;
-    if (Array.isArray(obj)) {
-      return obj.map((item) => deepClone(item)) as T;
-    }
-    const cloned = {} as T;
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        cloned[key] = deepClone(obj[key]);
-      }
-    }
-    return cloned;
-  };
-
-  const getDeep = (obj: Record<string, any> | undefined, path: string): any => {
-    if (!obj) return undefined;
-    return path.split(".").reduce((current, key) => {
-      return current && typeof current === "object" ? current[key] : undefined;
-    }, obj);
-  };
-
-  const setDeep = (
-    obj: Record<string, any>,
-    path: string,
-    value: any
-  ): void => {
-    const keys = path.split(".");
-    let current = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
-      if (!current[key] || typeof current[key] !== "object") {
-        current[key] = {};
-      }
-      current = current[key];
-    }
-    current[keys[keys.length - 1]] = value;
-  };
+  const dispatch = createEventDispatcher();
 
   type FieldInfo<T = any> = {
     name: string;
@@ -70,7 +25,7 @@
       readonly: boolean;
       validator: ((_value: T) => string | null) | null;
       error: string | null | undefined;
-      lastUpdate: number | null;
+      lastUpdate: number;
     };
     fieldApi: {
       setValue(_value: T): void;
@@ -92,19 +47,11 @@
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
 
-  export let form;
-
-  const component = getContext("component");
-  const {
-    Provider,
-    ActionTypes,
-    createValidatorFromConstraints,
-    memo,
-    derivedMemo,
-  } = getContext("sdk");
+  const { Provider, ActionTypes, createValidatorFromConstraints } =
+    getContext("sdk");
 
   let fields: Writable<FieldInfo>[] = [];
-  export const formState = memo({
+  export const formState = writable({
     values: {},
     errors: {},
     valid: true,
@@ -114,19 +61,11 @@
 
   $: values = deriveFieldProperty(fields, (f) => f.fieldState.value);
   $: errors = deriveFieldProperty(fields, (f) => f.fieldState.error);
-
   $: enrichments = deriveBindingEnrichments(fields);
   $: valid = !Object.values($errors).some((error) => error != null);
-  $: dirty = derivedMemo(fields, (fieldValues) => {
-    return fieldValues.some((field) => {
-      const { fieldState } = field;
-      const initial =
-        getDeep(initialValues, field.name) ?? fieldState.defaultValue;
-      return fieldState.lastUpdate != null && fieldState.value !== initial;
-    });
-  });
+  $: dirty = deriveDirtyStatus(fields, initialValues);
 
-  $: currentStepValid = derivedMemo(
+  $: currentStepValid = derived(
     [currentStep, ...fields],
     ([currentStepValue, ...fieldsValue]) => {
       return !fieldsValue
@@ -156,17 +95,11 @@
     __currentStepValid: $currentStepValid,
   };
 
-  $: form = {
-    formState,
-    formApi,
-    dataSource,
-  };
-
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
     getProp: (_field: FieldInfo) => any
   ) => {
-    return derivedMemo(fieldStores, (fieldValues) => {
+    return derived(fieldStores, (fieldValues) => {
       return fieldValues.reduce(
         (map, field) => ({ ...map, [field.name]: getProp(field) }),
         {}
@@ -174,8 +107,21 @@
     });
   };
 
+  const deriveDirtyStatus = (
+    fieldStores: Readable<FieldInfo>[],
+    initialValues: Record<string, any> | undefined
+  ) => {
+    return derived(fieldStores, (fieldValues) => {
+      return fieldValues.some((field) => {
+        const initial =
+          deepGet(initialValues, field.name) ?? field.fieldState.defaultValue;
+        return field.fieldState.value !== initial;
+      });
+    });
+  };
+
   const deriveBindingEnrichments = (fieldStores: Readable<FieldInfo>[]) => {
-    return derivedMemo(fieldStores, (fieldValues) => {
+    return derived(fieldStores, (fieldValues) => {
       const enrichments: Record<string, string> = {};
       fieldValues.forEach((field) => {
         if (field.type === "attachment") {
@@ -196,8 +142,7 @@
     values: Record<string, any>,
     enrichments: Record<string, string>
   ) => {
-    let formValue = deepClone(initialValues || {});
-
+    let formValue = cloneDeep(initialValues || {});
     const sortedFields = Object.entries(values || {})
       .map(([key, value]) => {
         const field = getField(key);
@@ -212,10 +157,10 @@
       });
 
     sortedFields.forEach(({ key, value }) => {
-      setDeep(formValue, key, value);
+      deepSet(formValue, key, value);
     });
     Object.entries(enrichments || {}).forEach(([key, value]) => {
-      setDeep(formValue, key, value);
+      deepSet(formValue, key, value);
     });
     return formValue;
   };
@@ -263,9 +208,9 @@
 
       defaultValue = sanitiseValue(defaultValue, schema?.[field], type);
 
-      let initialValue = getDeep(initialValues, field) ?? defaultValue;
+      let initialValue = deepGet(initialValues, field) ?? defaultValue;
       let initialError = null;
-      let fieldId = `id-${generateUUID()}`;
+      let fieldId = `id-${uuid()}`;
       const existingField = getField(field);
       if (existingField) {
         const { fieldState } = get(existingField);
@@ -280,7 +225,7 @@
 
       const isAutoColumn = !!schema?.[field]?.autocolumn;
 
-      const fieldInfo = memo<FieldInfo>({
+      const fieldInfo = writable<FieldInfo>({
         name: field,
         type,
         step: step || 1,
@@ -294,7 +239,7 @@
             readonly || fieldReadOnly || (schema?.[field] as any)?.readonly,
           defaultValue,
           validator,
-          lastUpdate: null,
+          lastUpdate: Date.now(),
         },
         fieldApi: makeFieldApi(field),
         fieldSchema: schema?.[field] ?? {},
@@ -323,13 +268,13 @@
           hasScrolled = true;
         }
       });
-
       return valid;
     },
     reset: () => {
       fields.forEach((field) => {
         get(field).fieldApi.reset();
       });
+      dispatch("reset");
     },
     changeStep: ({
       type,
@@ -388,7 +333,7 @@
         state.fieldState.lastUpdate = Date.now();
         return state;
       });
-
+      dispatch("change", { field, value });
       return true;
     };
 
@@ -400,7 +345,7 @@
       fieldInfo.update((state) => {
         state.fieldState.value = newValue;
         state.fieldState.error = null;
-        state.fieldState.lastUpdate = null;
+        state.fieldState.lastUpdate = Date.now();
         return state;
       });
     };
@@ -416,9 +361,7 @@
 
     const setDisabled = (fieldDisabled: boolean) => {
       const fieldInfo = getField(field);
-
       const isAutoColumn = !!schema?.[field]?.autocolumn;
-
       fieldInfo.update((state) => {
         state.fieldState.disabled = disabled || fieldDisabled || isAutoColumn;
         return state;
@@ -438,9 +381,13 @@
     };
   };
 
-  $: setContext("form", form);
+  setContext("form", {
+    formState,
+    formApi,
+    dataSource,
+  });
 
-  setContext("form-step", memo(1));
+  setContext("form-step", writable(1));
 
   const handleUpdateFieldValue = ({
     type,
@@ -486,6 +433,65 @@
     { type: ActionTypes.UpdateFieldValue, callback: handleUpdateFieldValue },
     { type: ActionTypes.ScrollTo, callback: handleScrollToField },
   ];
+
+  // Generate a UUID (simplified version for brevity)
+  function uuid(): string {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  // Deep clone an object
+  function cloneDeep<T>(obj: T): T {
+    if (obj == null || typeof obj !== "object") {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(cloneDeep) as any;
+    }
+    const cloned: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloned[key] = cloneDeep(obj[key]);
+      }
+    }
+    return cloned;
+  }
+
+  // Get a value from an object using a dot-notation path
+  function deepGet(obj: any, path: string | string[]): any {
+    if (!obj || !path) {
+      return undefined;
+    }
+    const pathArray = Array.isArray(path) ? path : path.split(".");
+    let current = obj;
+    for (const key of pathArray) {
+      if (current == null) {
+        return undefined;
+      }
+      current = current[key];
+    }
+    return current;
+  }
+
+  // Set a value in an object using a dot-notation path
+  function deepSet(obj: any, path: string | string[], value: any): void {
+    if (!obj || !path) {
+      return;
+    }
+    const pathArray = Array.isArray(path) ? path : path.split(".");
+    let current = obj;
+    for (let i = 0; i < pathArray.length - 1; i++) {
+      const key = pathArray[i];
+      if (!current[key] || typeof current[key] !== "object") {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    current[pathArray[pathArray.length - 1]] = value;
+  }
 </script>
 
 {#if provideContext}

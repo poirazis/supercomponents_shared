@@ -29,9 +29,9 @@
   export let editAutoColumns: boolean = false;
 
   // Export the full form API to be used by parents
-  export let form
-  export let formState
-  export let row
+  export let form;
+  export let formState;
+  export let row;
 
   const context = getContext("context");
   const component = getContext("component");
@@ -51,8 +51,6 @@
   let loaded = false;
   let currentStep =
     getContext("current-step") || writable(getInitialFormStep());
-
-
 
   $: fetchSchema(dataSource);
   $: schemaKey = generateSchemaKey(schema);
@@ -80,7 +78,7 @@
       return {};
     }
 
-    if ( row && dsType === "table" && row?.tableId === dataSource.tableId) {
+    if (row && dsType === "table" && row?.tableId === dataSource.tableId) {
       return row;
     }
     for (let id of path.toReversed().slice(1)) {
@@ -121,14 +119,13 @@
     fields.sort();
     return fields.map((field) => `${field}:${schema[field].type}`).join("-");
   };
-
 </script>
 
 {#if loaded}
   {#key resetKey}
     <InnerForm
-      bind:form={form}
-      bind:formState={formState}
+      bind:form
+      bind:formState
       {dataSource}
       {size}
       {disabled}
@@ -139,6 +136,8 @@
       {disableSchemaValidation}
       {editAutoColumns}
       {currentStep}
+      on:change
+      on:reset
     >
       <slot />
     </InnerForm>
