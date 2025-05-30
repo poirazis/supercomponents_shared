@@ -74,6 +74,14 @@
     }
   );
 
+  // Offer the form as a bindable property so it can be puppeteered by parent components
+  export let form;
+  $: form = {
+    formState,
+    formApi,
+    dataSource,
+  };
+
   $: {
     formState.set({
       values: $values,
