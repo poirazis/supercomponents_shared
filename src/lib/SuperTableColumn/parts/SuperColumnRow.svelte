@@ -1,7 +1,13 @@
 <script>
-  import { getContext, createEventDispatcher, onMount, tick } from "svelte";
+  import {
+    getContext,
+    createEventDispatcher,
+    onMount,
+    tick,
+    onDestroy,
+  } from "svelte";
 
-  const { Provider, processStringSync, ContextScopes } = getContext("sdk");
+  const { Provider, ContextScopes } = getContext("sdk");
 
   const dispatch = createEventDispatcher();
   const columnSettings = getContext("stColumnOptions");
@@ -10,6 +16,7 @@
   const rowMetadata = getContext("stbRowMetadata");
   const stbHovered = getContext("stbHovered");
   const stbSelected = getContext("stbSelected");
+  const stbEditing = getContext("stbEditing");
   const stbAPI = getContext("stbAPI");
   const stbState = getContext("stbState");
   const stbMenuID = getContext("stbMenuID");
@@ -82,6 +89,12 @@
     } else return obj[path] ?? undefined;
   };
   onMount(() => (mounted = $columnSettings.superColumn));
+
+  onDestroy(() => {
+    if ($stbEditing == index) {
+      columnState.exitedit();
+    }
+  });
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

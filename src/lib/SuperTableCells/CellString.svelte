@@ -1,5 +1,10 @@
 <script>
-  import { createEventDispatcher, getContext, onMount } from "svelte";
+  import {
+    createEventDispatcher,
+    getContext,
+    onMount,
+    onDestroy,
+  } from "svelte";
   import fsm from "svelte-fsm";
   const dispatch = createEventDispatcher();
   const { processStringSync } = getContext("sdk");
@@ -28,6 +33,7 @@
       reset() {
         localValue = value;
         lastEdit = undefined;
+        return "View";
       },
     },
     View: {
@@ -108,6 +114,11 @@
       setTimeout(() => {
         cellState.focus();
       }, 50);
+  });
+
+  onDestroy(() => {
+    clearTimeout(timer);
+    cellState.reset();
   });
 </script>
 
