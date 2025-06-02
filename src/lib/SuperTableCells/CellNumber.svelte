@@ -28,15 +28,16 @@
       goTo(state: string) {
         return state;
       },
-      reset() {
-        localValue = value;
-        lastEdit = undefined;
-        return "View";
-      },
     },
     View: {
       _enter() {
         localValue = value;
+      },
+      reset() {
+        originalValue = value;
+        localValue = value;
+        lastEdit = undefined;
+        return "View";
       },
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
@@ -73,9 +74,14 @@
         return "View";
       },
       debounce(e: KeyboardEvent) {
-        if ((e.key.length === 1 && e.key !== "." && isNaN(Number(e.key)) && !e.ctrlKey) ||
-            e.keyCode == 32 ||
-            (e.key === "." && e.target.value.toString().indexOf(".") > -1)) {
+        if (
+          (e.key.length === 1 &&
+            e.key !== "." &&
+            isNaN(Number(e.key)) &&
+            !e.ctrlKey) ||
+          e.keyCode == 32 ||
+          (e.key === "." && e.target.value.toString().indexOf(".") > -1)
+        ) {
           e.preventDefault();
           return;
         }

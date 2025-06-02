@@ -970,7 +970,9 @@
     canInsert,
     $stbSortColumn,
     fetchOnScroll,
-    rowHeight
+    rowHeight,
+    $stbSortColumn,
+    $stbSortOrder
   );
 
   // Scroll to Top when filter changes
