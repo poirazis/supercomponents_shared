@@ -651,10 +651,8 @@
       init() {
         return "Init";
       },
-      async refresh() {
-        if (stbData.loaded) await stbData?.refresh();
-        this.enrichRows();
-        this.calculateRowBoundaries();
+      refresh() {
+        stbData?.refresh();
       },
       enrichRows() {},
       scrollToTop() {

@@ -27,6 +27,7 @@
   export let initialFormStep: string | number = 1;
   export let disableSchemaValidation: boolean = false;
   export let editAutoColumns: boolean = false;
+  export let provideContext: boolean = true;
 
   // Export the full form API to be used by parents
   export let form;
@@ -73,6 +74,7 @@
     if (type !== "Update") {
       return {};
     }
+
     const dsType = dataSource?.type;
     if (dsType !== "table" && dsType !== "viewV2") {
       return {};
@@ -136,6 +138,7 @@
       {disableSchemaValidation}
       {editAutoColumns}
       {currentStep}
+      {provideContext}
       on:change
       on:reset
     >

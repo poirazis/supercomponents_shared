@@ -1,20 +1,99 @@
-<script>
-  import { createEventDispatcher, getContext, onMount } from "svelte";
+<script lang="ts">
+  import {
+    createEventDispatcher,
+    getContext,
+    onDestroy,
+    onMount,
+  } from "svelte";
   import fsm from "svelte-fsm";
 
   const { processStringSync } = getContext("sdk");
   const context = getContext("context");
   const dispatch = createEventDispatcher();
 
-  export let value;
-  export let formattedValue;
-  export let cellOptions;
-  export let autofocus;
+  export let value: number | null;
+  export let formattedValue: string | undefined;
+  export let cellOptions: any;
+  export let autofocus: boolean;
 
-  let originalValue = value;
-  let inEdit;
-  let localValue = value;
-  let editor;
+  let originalValue: number | null = value;
+  let inEdit: boolean;
+  let localValue: number | null = value;
+  let editor: HTMLInputElement;
+  let lastEdit: Date | undefined;
+  let timer: ReturnType<typeof setTimeout>;
+
+  export let cellState = fsm(cellOptions.initialState ?? "View", {
+    "*": {
+      goTo(state: string) {
+        return state;
+      },
+      reset() {
+        localValue = value;
+        lastEdit = undefined;
+        return "View";
+      },
+    },
+    View: {
+      _enter() {
+        localValue = value;
+      },
+      focus() {
+        if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
+      },
+    },
+    Editing: {
+      _enter() {
+        originalValue = value;
+        editor?.focus();
+        dispatch("enteredit");
+      },
+      _exit() {
+        originalValue = undefined;
+        dispatch("exitedit");
+        dispatch("focusout");
+      },
+      clear() {
+        if (cellOptions.debounce) dispatch("change", null);
+        lastEdit = new Date();
+        localValue = null;
+      },
+      focusout(e: FocusEvent) {
+        this.submit();
+      },
+      submit() {
+        if (isDirty) {
+          dispatch("change", localValue);
+        }
+        return "View";
+      },
+      cancel() {
+        value = originalValue;
+        dispatch("cancel");
+        return "View";
+      },
+      debounce(e: KeyboardEvent) {
+        if ((e.key.length === 1 && e.key !== "." && isNaN(Number(e.key)) && !e.ctrlKey) ||
+            e.keyCode == 32 ||
+            (e.key === "." && e.target.value.toString().indexOf(".") > -1)) {
+          e.preventDefault();
+          return;
+        }
+        localValue = Number(e.target.value);
+        lastEdit = new Date();
+        if (cellOptions?.debounce) {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            dispatch("change", localValue);
+          }, cellOptions.debounce ?? 0);
+        }
+      },
+      handleKeyboard(e: KeyboardEvent) {
+        if (e.key == "Enter") this.submit();
+        if (e.key == "Escape") this.cancel();
+      },
+    },
+  });
 
   $: inEdit = $cellState == "Editing";
   $: inline = cellOptions.role == "inlineInput";
@@ -31,74 +110,10 @@
       ? ""
       : cellOptions.placeholder || "";
 
-  export let cellState = fsm(cellOptions.initialState ?? "View", {
-    "*": {
-      goTo(state) {
-        return state;
-      },
-    },
-    View: {
-      focus() {
-        if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
-      },
-    },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
-    Editing: {
-      _enter() {
-        originalValue = localValue;
-        editor?.focus();
-        dispatch("enteredit");
-      },
-      _exit() {
-        dispatch("exitedit");
-      },
-      focusout() {
-        if (isDirty && !cellOptions.debounce) dispatch("change", localValue);
+  $: cellState.reset(value);
 
-        dispatch("focusout");
-        return "View";
-      },
-      clear() {
-        if (cellOptions.debounce) dispatch("change", null);
-        localValue = null;
-      },
-      cancel() {
-        value = originalValue;
-      },
-    },
-  });
-
-  let timer;
-  const debounce = (e) => {
-    // Abort Invalid Keys
-    if (
-      (e.key.length === 1 && e.key !== "." && isNaN(e.key) && !e.ctrlKey) ||
-      e.keyCode == 32 ||
-      (e.key === "." && e.target.value.toString().indexOf(".") > -1)
-    ) {
-      e.preventDefault();
-      return;
-    }
-    if (cellOptions.debounce) {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        dispatch("change", localValue);
-      }, cellOptions.debounce ?? 0);
-    }
-  };
-
-  function focus(element) {
-    setTimeout(element?.focus(), 10);
+  function focus(element: HTMLElement) {
+    setTimeout(() => element?.focus(), 10);
   }
 
   onMount(() => {
@@ -107,6 +122,11 @@
         cellState.focus();
         editor?.focus();
       }, 30);
+  });
+
+  onDestroy(() => {
+    clearTimeout(timer);
+    cellState.reset();
   });
 </script>
 
@@ -148,8 +168,9 @@
           : "right "}
       placeholder={cellOptions?.placeholder}
       bind:value={localValue}
-      on:keydown={(e) => debounce(e)}
-      on:focusout={cellState.focusout}
+      on:keydown={(e) => cellState.debounce(e)}
+      on:focusout={(e) => cellState.focusout(e)}
+      on:keyup={(e) => cellState.handleKeyboard(e)}
       use:focus
     />
     <i class="ri-close-line clearIcon" on:mousedown|self={cellState.clear}> </i>

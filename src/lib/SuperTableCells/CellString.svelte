@@ -120,6 +120,14 @@
     clearTimeout(timer);
     cellState.reset();
   });
+
+  $: if (inEdit)
+    console.log(
+      "Entering edit mode for cell",
+      value,
+      localValue,
+      originalValue
+    );
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
