@@ -37,7 +37,7 @@
         originalValue = value;
         localValue = value;
         lastEdit = undefined;
-        return "View";
+        return cellOptions.initialState ?? "View";
       },
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
