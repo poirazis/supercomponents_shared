@@ -312,14 +312,15 @@
   /* Spectrum CSS Swatch styles */
   .preview-swatch {
     position: relative;
-    transition:
-      transform 100ms ease-in-out,
-      box-shadow 100ms ease-in-out;
     box-sizing: border-box;
     border-radius: 4px;
     overflow: hidden;
     border: 1px solid var(--spectrum-global-color-gray-300);
     background: var(--spectrum-global-color-gray-50);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &.circle {
       border-radius: 50%;
@@ -333,13 +334,9 @@
   .preview-fill {
     width: 100%;
     height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
     display: grid;
     place-items: center;
     border-radius: inherit;
-    border: 1px solid transparent;
     padding: 4px;
 
     &.circle {

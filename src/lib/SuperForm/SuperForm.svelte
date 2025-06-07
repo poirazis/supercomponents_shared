@@ -59,7 +59,8 @@
     actionType,
     dataSource,
     $component.path,
-    $context
+    $context,
+    row
   );
   $: resetKey = hashString(
     schemaKey + JSON.stringify(initialValues) + disabled + readonly

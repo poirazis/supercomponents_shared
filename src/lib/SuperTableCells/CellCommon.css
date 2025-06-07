@@ -222,20 +222,22 @@
   }
 
   &.disabled {
-    background-color: var(--spectrum-global-color-gray-200) !important;
+    background-color: var(--spectrum-global-color-gray-100) !important;
     color: var(--spectrum-global-color-gray-600) !important;
     cursor: not-allowed !important;
+
+    &:focus-within {
+      border: 1px dashed var(--spectrum-global-color-gray-500) !important;
+    }
   }
 
   &.readonly:not(.disabled) {
     background-color: var(--spectrum-global-color-gray-50);
-    border: 1px solid var(--spectrum-global-color-gray-50);
+    border: 1px solid var(--spectrum-global-color-gray-200);
     color: var(--spectrum-global-color-gray-700);
-    opacity: 0.9;
 
     &:focus-within {
-      border: 1px solid var(--spectrum-global-color-gray-200) !important;
-      opacity: 1;
+      border: 1px dashed var(--spectrum-global-color-blue-500) !important;
     }
   }
 

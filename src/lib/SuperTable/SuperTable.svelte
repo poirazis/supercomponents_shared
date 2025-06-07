@@ -47,6 +47,8 @@
 
   const context = getContext("context");
 
+  const component = getContext("component");
+
   // Internally used to appropriately enrich context
   // this is component.id of the wrapper component seen by budibase
   export let comp_id;
@@ -129,6 +131,7 @@
   const dataSourceStore = memo(datasource);
   const columnsStore = memo(columnList);
   const filterStore = memo(filter);
+
   $: dataSourceStore.set(datasource);
   $: filterStore.set(filter);
   $: columnsStore.set(columnList);
@@ -144,7 +147,7 @@
   // Internal Variables
   let timer;
 
-  let stbColumnFilters = [];
+  let stbColumnFilters = {};
   let highlighted;
   let scrollHeight;
   let clientHeight;
@@ -883,7 +886,7 @@
         isEmpty = !$stbData?.rows.length;
       },
       addFilter(filterObj) {
-        stbColumnFilters = [...stbColumnFilters, filterObj];
+        addQueryExtension(filterObj.id, QueryUtils.buildQuery([filterObj]));
         return "Filtered";
       },
       fetchMoreRows(size) {
@@ -895,21 +898,15 @@
       _enter() {},
       _exit() {},
       addFilter(filterObj) {
-        this.removeFilter(filterObj.id);
-        stbColumnFilters = [...stbColumnFilters, filterObj];
+        removeQueryExtension(filterObj.id);
+        addQueryExtension(filterObj.id, QueryUtils.buildQuery([filterObj]));
       },
       removeFilter(id) {
-        let pos = stbColumnFilters.find((x) => x.id == id);
-        if (pos) {
-          stbColumnFilters = stbColumnFilters.toSpliced(pos, 1);
-        }
+        removeQueryExtension(id);
       },
       clearFilter(id) {
-        let pos = stbColumnFilters.find((x) => x.id == id);
-        if (pos) {
-          stbColumnFilters = stbColumnFilters.toSpliced(pos, 1);
-        }
-        if (!stbColumnFilters.length) return "Idle";
+        removeQueryExtension(id);
+        return "Idle";
       },
       clear() {
         stbColumnFilters = [];
@@ -987,25 +984,10 @@
       ? "id"
       : "_id";
 
-  // Reactively set the Table Settings store
-
-  $: if (datasource.type == "provider") {
-    let dataProviderId = datasource.providerId;
-    let addExtension = getAction(
-      dataProviderId,
-      ActionTypes.AddDataProviderQueryExtension
-    );
-
-    let removeExtension = getAction(
-      dataProviderId,
-      ActionTypes.RemoveDataProviderQueryExtension
-    );
-  }
-
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: queryExtension = QueryUtils.buildQuery(stbColumnFilters);
-  $: query = extendQuery(defaultQuery, [queryExtension]);
+  $: queryExtensions = QueryUtils.buildQuery(stbColumnFilters);
+  $: query = extendQuery(defaultQuery, queryExtensions);
 
   $: stbData?.update({
     query,
@@ -1073,20 +1055,48 @@
       type: ActionTypes.RefreshDatasource,
       callback: () => stbData?.refresh(),
     },
+    {
+      type: ActionTypes.AddDataProviderQueryExtension,
+      callback: addQueryExtension,
+    },
+    {
+      type: ActionTypes.RemoveDataProviderQueryExtension,
+      callback: removeQueryExtension,
+    },
   ];
+
+  const addQueryExtension = (key, extension) => {
+    if (!key || !extension) {
+      return;
+    }
+    queryExtensions = { ...queryExtensions, [key]: extension };
+  };
+
+  const removeQueryExtension = (key) => {
+    if (!key) {
+      return;
+    }
+    const newQueryExtensions = { ...queryExtensions };
+    delete newQueryExtensions[key];
+    queryExtensions = newQueryExtensions;
+  };
 
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
-    hoveredRow: $stbData?.rows[$stbHovered],
     rows: $stbData?.rows,
     selectedRows: $stbData?.rows.filter((x) =>
       $stbSelected.includes(x[idColumn])
     ),
     selectedIds: $stbSelected,
+    id: $component.id,
     info: $stbData?.info,
-    datasource: datasource || {},
+    datasource: $dataSourceStore || {},
     schema: $stbSchema,
+    state: {
+      query: $stbData.query,
+    },
+    loaded: $stbData?.loaded,
     rowsLength: $stbData?.rows.length,
     pageNumber: $stbData?.pageNumber + 1,
     entitySingular,

@@ -47,7 +47,8 @@
 
   // Format JSON for display
   $: displayValue = (() => {
-    if (!normalizedValue || normalizedValue === "") return "";
+    if (!normalizedValue || (normalizedValue === "" && placeholder))
+      return placeholder;
     if (!validateJson(normalizedValue)) return "Invalid JSON";
     return cellOptions.multiline
       ? JSON.stringify(JSON.parse(normalizedValue), null, 2)
