@@ -8,6 +8,7 @@
   overflow: hidden;
   min-height: 360px;
   width: 240px;
+  --selection-color: var(--spectrum-global-color-gray-200);
 
   &.quiet {
     --selection-color: var(--spectrum-global-color-gray-200);
@@ -144,7 +145,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    color: var(--super-table-header-color);
+    color: var(--spectrum-global-color-gray-800);
   }
 }
 
@@ -217,7 +218,10 @@
   }
 
   &.is-selected {
-    background: var(--selection-color, var(--spectrum-global-color-blue-100));
+    background: var(
+      --selection-color,
+      var(--spectrum-global-color-blue-100)
+    ) !important;
   }
 
   &.isLast {

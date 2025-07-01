@@ -1,7 +1,12 @@
-<script>
+<script lang="ts">
   import { getContext, setContext, onDestroy, tick } from "svelte";
   import fsm from "svelte-fsm";
   import { writable } from "svelte/store";
+  import {
+    LogicalOperator,
+    EmptyFilterOption,
+    SearchFilters,
+  } from "@budibase/types";
 
   import "./SuperTable.css";
   import {
@@ -35,7 +40,6 @@
     processStringSync,
     notificationStore,
     enrichButtonActions,
-    getAction,
     ActionTypes,
     Provider,
     fetchData,
@@ -67,7 +71,7 @@
   export let filter;
   export let emptyMessage;
 
-  export let columnList = [];
+  export let columnList;
   export let autocolumns;
 
   export let tableActions;
@@ -129,12 +133,12 @@
   export let onRefresh;
 
   const dataSourceStore = memo(datasource);
-  const columnsStore = memo(columnList);
+  const columnsStore = writable([]);
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(datasource);
   $: filterStore.set(filter);
-  $: columnsStore.set(columnList);
+  $: columnsStore.set(columnList || []);
   $: stbData = createFetch($dataSourceStore);
   $: _rowHeight = rowHeight
     ? toNumber(
@@ -147,7 +151,6 @@
   // Internal Variables
   let timer;
 
-  let stbColumnFilters = {};
   let highlighted;
   let scrollHeight;
   let clientHeight;
@@ -157,22 +160,27 @@
   let maxBodyHeight;
   let viewport;
   let columnsViewport;
-  let start = 0;
-  let end = 0;
   let touchStartY = 0;
   let touchStartX = 0;
   let overflow;
   let isEmpty;
   let _limit = limit;
+  let start = 0;
+  let end = 0;
+
+  // Keep track of the applied query extentions when filtering
+  let stbColumnFilters = new Set();
 
   // Inserting New Record
   let temp_scroll_pos;
   let new_row;
 
+  $: console.log("ColumnList prop :", columnList);
+
   // Turm non primitive props into reactive stores to limit refreshes
 
   const stbSettings = memo({});
-  const stbSchema = writable(0);
+  const stbSchema = memo({});
   // Create Stores
   const stbScrollPos = memo(0);
   const stbScrollOffset = memo(0);
@@ -230,7 +238,6 @@
       autoRefresh,
       autoRefreshRate,
       fetchOnScroll,
-      schema: $stbSchema,
     },
     appearance: {
       size,
@@ -343,9 +350,12 @@
         }
 
         if (list?.length) {
-          columns = list.map((column) =>
-            tableAPI.enrichColumn(schema, { ...column, field: column.name })
-          );
+          columns = list.map((column) => {
+            return tableAPI.enrichColumn(schema, {
+              ...schema[column.name],
+              field: column.name,
+            });
+          });
         } else {
           jsoncolumnslist = Object.keys(schema)
             .filter((v) => schema[v].nestedJSON)
@@ -858,6 +868,7 @@
         $stbScrollOffset = 0;
         $stbHorizontalScrollPos = 0;
         $stbSelected = [];
+        $columnsStore = [];
         if (_limit != limit) _limit = limit;
       },
       synch(fetchState) {
@@ -886,7 +897,9 @@
         isEmpty = !$stbData?.rows.length;
       },
       addFilter(filterObj) {
-        addQueryExtension(filterObj.id, QueryUtils.buildQuery([filterObj]));
+        let extention = QueryUtils.buildQuery([{ ...filterObj }]);
+        stbColumnFilters.add(filterObj.id);
+        addQueryExtension(filterObj.id, extention);
         return "Filtered";
       },
       fetchMoreRows(size) {
@@ -898,18 +911,25 @@
       _enter() {},
       _exit() {},
       addFilter(filterObj) {
+        let extention = QueryUtils.buildQuery([{ ...filterObj }]);
         removeQueryExtension(filterObj.id);
-        addQueryExtension(filterObj.id, QueryUtils.buildQuery([filterObj]));
+        stbColumnFilters.add(filterObj.id);
+        addQueryExtension(filterObj.id, extention);
       },
       removeFilter(id) {
+        stbColumnFilters.delete(id);
         removeQueryExtension(id);
       },
       clearFilter(id) {
+        stbColumnFilters.delete(id);
         removeQueryExtension(id);
         return "Idle";
       },
       clear() {
-        stbColumnFilters = [];
+        stbColumnFilters.forEach((id) => {
+          removeQueryExtension(id);
+        });
+        stbColumnFilters.clear();
         columnStates.forEach(({ state }) => state.reset());
         return "Idle";
       },
@@ -986,7 +1006,7 @@
 
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: queryExtensions = QueryUtils.buildQuery(stbColumnFilters);
+  $: queryExtensions = {};
   $: query = extendQuery(defaultQuery, queryExtensions);
 
   $: stbData?.update({
@@ -1001,8 +1021,7 @@
   $: superColumns = derivedMemo(
     [stbSchema, columnsStore, stbSettings],
     ([$stbSchema, $columnsStore, $stbSettings]) => {
-      if ($stbSchema)
-        return tableAPI.populateColumns($stbSchema, $columnsStore, autocolumns);
+      return tableAPI.populateColumns($stbSchema, $columnsStore, autocolumns);
     }
   );
 
@@ -1124,21 +1143,27 @@
     });
   };
 
-  const extendQuery = (defaultQuery, extensions) => {
-    const extensionValues = Object.values(extensions || {});
-    let extendedQuery = { ...defaultQuery };
-    extensionValues.forEach((extension) => {
-      Object.entries(extension || {}).forEach(([operator, fields]) => {
-        extendedQuery[operator] =
-          operator != "onEmptyFilter"
-            ? {
-                ...extendedQuery[operator],
-                ...fields,
-              }
-            : "none";
-      });
-    });
-    return extendedQuery;
+  const extendQuery = (
+    defaultQuery: SearchFilters,
+    extensions: Record<string, any>
+  ): SearchFilters => {
+    if (!Object.keys(extensions).length) {
+      return defaultQuery;
+    }
+    const extended: SearchFilters = {
+      [LogicalOperator.AND]: {
+        conditions: [
+          ...(defaultQuery ? [defaultQuery] : []),
+          ...Object.values(extensions || {}),
+        ],
+      },
+      onEmptyFilter: EmptyFilterOption.RETURN_NONE,
+    };
+
+    // If there are no conditions applied at all, clear the request.
+    return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
+      ? extended
+      : {};
   };
 
   const beautifyLabel = (label) => {
@@ -1183,142 +1208,141 @@
     if (timer) clearInterval(timer);
   });
 
-  /**
-  $: console.log("Table State : " + $stbState);
-  $: console.log("Table Filters : ", stbColumnFilters);
-  $: console.log("Table Settings : ", $stbSettings);
-  */
+  $: render = true;
+  $: console.log(stbColumnFilters);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-  class="super-table"
-  class:quiet
-  bind:this={viewport}
-  bind:clientHeight
-  style:font-size={sizingMap[size].rowFontSize}
-  style:--super-table-devider-color={dividersStyles.color}
-  style:--super-table-body-height={maxBodyHeight}
-  style:--super-table-header-height={$stbSettings.appearance.headerHeight}
-  style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
-  style:--super-table-horizontal-dividers={dividersStyles.horizontal}
-  style:--super-table-vertical-dividers={dividersStyles.vertical}
-  style:--super-table-cell-padding={sizingMap[size].cellPadding}
-  style:--super-column-top-offset={$stbScrollOffset * -1}
-  on:mouseenter={() => (highlighted = true)}
-  on:mouseleave={() => {
-    highlighted = false;
-    $stbHovered = null;
-  }}
-  on:keydown={stbState.handleKeyboard}
-  on:wheel={stbState.handleWheel}
-  on:touchstart={(e) => stbState.handleTouch(e, "start")}
-  on:touchmove={(e) => stbState.handleTouch(e, "move")}
-  on:touchend={(e) => stbState.handleTouch(e, "end")}
->
-  <Provider {actions} data={dataContext} />
-  {#key columnSizing}
-    {#if $stbState != "Init"}
-      {#if !isEmpty}
-        <ControlSection>
-          <SelectionColumn {hideSelectionColumn} />
+{#if render}
+  <div
+    class="super-table"
+    class:quiet
+    bind:this={viewport}
+    bind:clientHeight
+    style:font-size={sizingMap[size].rowFontSize}
+    style:--super-table-devider-color={dividersStyles.color}
+    style:--super-table-body-height={maxBodyHeight}
+    style:--super-table-header-height={$stbSettings.appearance.headerHeight}
+    style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
+    style:--super-table-horizontal-dividers={dividersStyles.horizontal}
+    style:--super-table-vertical-dividers={dividersStyles.vertical}
+    style:--super-table-cell-padding={sizingMap[size].cellPadding}
+    style:--super-column-top-offset={$stbScrollOffset * -1}
+    on:mouseenter={() => (highlighted = true)}
+    on:mouseleave={() => {
+      highlighted = false;
+      $stbHovered = null;
+    }}
+    on:keydown={stbState.handleKeyboard}
+    on:wheel={stbState.handleWheel}
+    on:touchstart={(e) => stbState.handleTouch(e, "start")}
+    on:touchmove={(e) => stbState.handleTouch(e, "move")}
+    on:touchend={(e) => stbState.handleTouch(e, "end")}
+  >
+    <Provider {actions} data={dataContext} />
+    {#key columnSizing}
+      {#if $stbState != "Init"}
+        {#if !isEmpty}
+          <ControlSection>
+            <SelectionColumn {hideSelectionColumn} />
 
-          {#if showButtonColumnLeft}
-            <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-          {/if}
+            {#if showButtonColumnLeft}
+              <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+            {/if}
 
-          {#if stickFirstColumn && $superColumns.length > 1}
-            <SuperTableColumn
-              sticky={true}
-              scrollPos={$stbHorizontalScrollPos}
-              columnOptions={{
-                ...$superColumns[0],
-                ...$commonColumnOptions,
-                overflow,
-                isFirst: true,
-                isLast:
-                  $superColumns?.length == 1 &&
-                  !showButtonColumnRight &&
-                  canScroll,
-              }}
-            />
-          {/if}
-        </ControlSection>
-      {/if}
+            {#if stickFirstColumn && $superColumns.length > 1}
+              <SuperTableColumn
+                sticky={true}
+                scrollPos={$stbHorizontalScrollPos}
+                columnOptions={{
+                  ...$superColumns[0],
+                  ...$commonColumnOptions,
+                  overflow,
+                  isFirst: true,
+                  isLast:
+                    $superColumns?.length == 1 &&
+                    !showButtonColumnRight &&
+                    canScroll,
+                }}
+              />
+            {/if}
+          </ControlSection>
+        {/if}
 
-      <ColumnsSection
-        {stbSettings}
-        {superColumns}
-        {commonColumnOptions}
-        {canScroll}
-        bind:columnsViewport
-      >
-        <slot />
-      </ColumnsSection>
-
-      {#if showButtonColumnRight && !isEmpty}
-        <ControlSection>
-          <RowButtonsColumn
-            {rowMenuItems}
-            {menuItemsVisible}
-            {rowMenu}
-            {canScroll}
-            right={true}
-          />
-        </ControlSection>
-      {/if}
-
-      <ScrollbarsOverlay
-        anchor={columnsViewport}
-        clientHeight={maxBodyHeight}
-        {scrollHeight}
-        {highlighted}
-        {isEmpty}
-        bind:horizontalVisible
-        on:positionChange={stbState.calculateRowBoundaries}
-      />
-
-      <EmptyResultSetOverlay
-        {isEmpty}
-        message={$stbSettings.data.emptyMessage}
-        top={$superColumns?.length
-          ? $stbSettings.appearance.headerHeight + 16
-          : 16}
-        bottom={horizontalVisible ? 24 : 16}
-      />
-
-      <RowContextMenu {rowContextMenuItems} />
-
-      {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
-        <AddNewRowOverlay
-          {stbState}
-          {tableAPI}
-          {highlighted}
-          {tableActions}
-          footer={$stbSettings.showFooter}
-        />
-      {/if}
-
-      {#if $stbSettings.features.canSelect && selectedActions?.length}
-        <SelectedActionsOverlay
+        <ColumnsSection
           {stbSettings}
-          {selectedActions}
-          {stbSelected}
-          {tableAPI}
-          {stbState}
-          {highlighted}
-          {entitySingular}
-          {entityPlural}
-        />
-      {/if}
+          {superColumns}
+          {commonColumnOptions}
+          {canScroll}
+          bind:columnsViewport
+        >
+          <slot />
+        </ColumnsSection>
 
-      {#if $stbData.loading}
-        <LoadingOverlay />
+        {#if showButtonColumnRight && !isEmpty}
+          <ControlSection>
+            <RowButtonsColumn
+              {rowMenuItems}
+              {menuItemsVisible}
+              {rowMenu}
+              {canScroll}
+              right={true}
+            />
+          </ControlSection>
+        {/if}
+
+        <ScrollbarsOverlay
+          anchor={columnsViewport}
+          clientHeight={maxBodyHeight}
+          {scrollHeight}
+          {highlighted}
+          {isEmpty}
+          bind:horizontalVisible
+          on:positionChange={stbState.calculateRowBoundaries}
+        />
+
+        <EmptyResultSetOverlay
+          {isEmpty}
+          message={$stbSettings.data.emptyMessage}
+          top={$superColumns?.length
+            ? $stbSettings.appearance.headerHeight + 16
+            : 16}
+          bottom={horizontalVisible ? 24 : 16}
+        />
+
+        <RowContextMenu {rowContextMenuItems} />
+
+        {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
+          <AddNewRowOverlay
+            {stbState}
+            {tableAPI}
+            {highlighted}
+            {tableActions}
+            footer={$stbSettings.showFooter}
+          />
+        {/if}
+
+        {#if $stbSettings.features.canSelect && selectedActions?.length}
+          <SelectedActionsOverlay
+            {stbSettings}
+            {selectedActions}
+            {stbSelected}
+            {tableAPI}
+            {stbState}
+            {highlighted}
+            {entitySingular}
+            {entityPlural}
+          />
+        {/if}
+
+        {#if $stbData.loading}
+          <LoadingOverlay />
+        {/if}
+      {:else}
+        <CellSkeleton />
       {/if}
-    {:else}
-      <CellSkeleton />
-    {/if}
-  {/key}
-</div>
+    {/key}
+  </div>
+{/if}

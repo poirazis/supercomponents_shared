@@ -282,7 +282,7 @@
   });
 
   const deepGet = (obj, path) => {
-    if (obj && path.includes(".")) {
+    if (obj && path?.includes(".")) {
       for (var i = 0, path = path.split("."), len = path.length; i < len; i++) {
         if (obj[path[i]]) obj = obj[path[i]];
         else {
@@ -312,10 +312,10 @@
     let comp;
     let editable = columnOptions.canEdit;
 
-    if (columnSchema.type == "json") {
-      comp = cellComponents[columnSchema.type] || CellString;
+    if (columnSchema?.type == "json") {
+      comp = cellComponents[columnSchema?.type] || CellString;
     } else {
-      comp = cellComponents[columnSchema.type] || CellString;
+      comp = cellComponents[columnSchema?.type] || CellString;
     }
 
     if (comp == CellString && !editable) comp = CellStringSimple;
