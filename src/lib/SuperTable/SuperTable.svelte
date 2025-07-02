@@ -350,7 +350,7 @@
         if (list?.length) {
           columns = list.map((column) => {
             return tableAPI.enrichColumn(schema, {
-              ...schema[column.name],
+              ...column,
               field: column.name,
             });
           });
@@ -1207,7 +1207,9 @@
   });
 
   $: render = true;
-  $: console.log(stbColumnFilters);
+  $: console.log($superColumns);
+
+  $: console.log(columnList);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

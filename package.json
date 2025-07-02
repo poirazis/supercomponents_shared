@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
