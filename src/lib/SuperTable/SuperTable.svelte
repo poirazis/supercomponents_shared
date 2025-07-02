@@ -175,8 +175,6 @@
   let temp_scroll_pos;
   let new_row;
 
-  $: console.log("ColumnList prop :", columnList);
-
   // Turm non primitive props into reactive stores to limit refreshes
 
   const stbSettings = memo({});
