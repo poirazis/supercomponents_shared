@@ -1207,9 +1207,6 @@
   });
 
   $: render = true;
-  $: console.log($superColumns);
-
-  $: console.log(columnList);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

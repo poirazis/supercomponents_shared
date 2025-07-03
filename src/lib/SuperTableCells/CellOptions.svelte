@@ -76,8 +76,19 @@
   // Handle Options from Data Source
   const dataSourceStore = memo(cellOptions?.datasource ?? {});
   $: dataSourceStore.set(cellOptions.datasource);
-  $: fetch = optionsSource == "data" ? createFetch($dataSourceStore) : memo({});
+  $: fetch = optionsSource == "data" ? createFetch($dataSourceStore) : memo();
+  $: query = QueryUtils.buildQuery(cellOptions.filter);
+
+  $: if (cellOptions.optionsSource == "data")
+    fetch.update({
+      query,
+      sortColumn: cellOptions.sortColumn,
+      sortOrder: cellOptions.sortOrder,
+      limit: cellOptions.limit,
+    });
+
   $: cellState.syncFetch($fetch);
+  $: cellState.loadDataOptions($fetch?.rows);
 
   // React to property changes
   $: cellState.refresh(
@@ -100,7 +111,10 @@
   $: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
   $: inEdit = $cellState == "Editing";
   $: pills = optionsViewMode == "pills";
-  $: multi = fieldSchema ? fieldSchema?.type == "array" && multi : multi;
+  $: multi =
+    fieldSchema && fieldSchema.type
+      ? fieldSchema.type == "array" && multi
+      : multi;
   $: placeholder = disabled || readonly ? "" : cellOptions.placeholder || "";
 
   export let cellState = fsm("Loading", {
@@ -115,8 +129,12 @@
       loadSchemaOptions() {
         optionColors = fieldSchema?.optionColors || {};
         $options = fieldSchema?.constraints?.inclusion || [];
+        labels = {};
+        filteredOptions = $options;
       },
       loadDataOptions(rows) {
+        $options = [];
+        labels = {};
         if (rows && rows.length) {
           rows.forEach((row) => {
             $options.push(row[valueColumn]);
@@ -124,6 +142,7 @@
           });
         }
         $options = $options;
+        filteredOptions = $options;
       },
       loadCustomOptions() {
         if (customOptions?.length) {
@@ -153,6 +172,13 @@
       syncFetch(fetch) {
         if (fetch?.loaded) {
           return cellOptions.initialState || "View";
+        }
+      },
+      focus(e) {
+        if (!cellOptions.readonly && !cellOptions.disabled) {
+          // Open the popup if the focus in came from a TAB
+          editorState.open();
+          return "Editing";
         }
       },
     },
@@ -250,9 +276,18 @@
         search = false;
       },
       filterOptions(term) {
-        if (term) {
+        if (
+          term &&
+          cellOptions.optionsSource == "data" &&
+          labelColumn &&
+          valueColumn != labelColumn
+        ) {
           filteredOptions = $options.filter((x) =>
-            x?.toLowerCase().startsWith(term.toLowerCase())
+            labels[x]?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
+          );
+        } else if (term) {
+          filteredOptions = $options.filter((x) =>
+            x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
           );
         } else {
           filteredOptions = $options;
@@ -310,13 +345,19 @@
         focusedOptionIdx += 1;
         if (focusedOptionIdx > filteredOptions.length - 1) focusedOptionIdx = 0;
 
-        if (editor) editor.value = filteredOptions[focusedOptionIdx];
+        if (editor)
+          editor.value =
+            labels[filteredOptions[focusedOptionIdx]] ||
+            filteredOptions[focusedOptionIdx];
       },
       highlightPrevious() {
         focusedOptionIdx -= 1;
         if (focusedOptionIdx < 0) focusedOptionIdx = filteredOptions.length - 1;
 
-        if (editor) editor.value = filteredOptions[focusedOptionIdx];
+        if (editor)
+          editor.value =
+            labels[filteredOptions[focusedOptionIdx]] ||
+            filteredOptions[focusedOptionIdx];
       },
     },
     Closed: {
@@ -356,7 +397,6 @@
       API,
       datasource,
       options: {
-        query: QueryUtils.buildQuery(cellOptions.filter),
         sortColumn: cellOptions.sortColumn,
         sortOrder: cellOptions.sortOrder,
         limit: cellOptions.limit,
@@ -435,6 +475,7 @@
       class="editor"
       class:with-icon={cellOptions.icon}
       on:input={(e) => editorState.filterOptions(e.target.value)}
+      value={multi ? "" : labels[localValue[0]] || ""}
       on:keydown={editorState.handleInputKeyboard}
       on:focusout={cellState.focusout}
       use:focus
@@ -458,7 +499,9 @@
       {:else if optionsViewMode == "text"}
         <div style:flex={"auto"}>
           <span>
-            {localValue.join(", ")}
+            {multi
+              ? localValue.join(", ")
+              : labels[localValue[0]] || localValue[0]}
           </span>
         </div>
       {:else}
@@ -547,7 +590,9 @@
             on:mouseenter={() => (focusedOptionIdx = idx)}
           >
             <span>
-              <i class="ri-checkbox-blank-fill" />
+              {#if cellOptions.optionsViewMode !== "text"}
+                <i class="ri-checkbox-blank-fill" />
+              {/if}
               {labels[option] || option}
             </span>
             {#if localValue?.includes(option)}
