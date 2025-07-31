@@ -106,6 +106,7 @@
   }}
   class:super-button={true}
   class:small={size == "S"}
+  class:large={size == "L"}
   class:is-selected={selected}
   class:cta={type == "cta" && !disabled}
   class:warning={type == "warning"}
@@ -123,7 +124,7 @@
   class={buttonClass == "actionButton"
     ? "spectrum-ActionButton spectrum-ActionButton--size" + size
     : "spectrum-Button spectrum-Button--size" + size}
-  class:disabled={disabled || working}
+  class:disabled
 >
   {#if !iconAfterText}
     <i class={icon} />
@@ -145,12 +146,18 @@
     min-width: 5rem;
     padding: 0rem 0.75rem;
     gap: 0.5rem;
+    height: 2rem;
 
     &.small {
       min-width: 4rem;
       padding: 0rem 0.5rem;
       gap: 0.5rem;
       font-size: smaller;
+      height: 1.85rem;
+    }
+
+    &.large {
+      height: 2.25rem;
     }
 
     & > span {
@@ -187,7 +194,7 @@
     font-weight: 500;
 
     &:hover {
-      background-color: var(--spectrum-global-color-gray-200);
+      background-color: var(--spectrum-global-color-gray-200) !important;
       color: var(--spectrum-global-color-gray-900);
     }
   }
@@ -206,17 +213,20 @@
     color: white;
 
     &.quiet {
-      border-color: transparent !important;
+      border-color: transparent;
       background-color: transparent;
-      color: var(--spectrum-global-color-gray-800);
-      &:hover,
-      &:focus {
+      color: var(--spectrum-global-color-blue-600);
+      &:hover {
         background-color: var(--spectrum-global-color-blue-400);
         color: white;
       }
+
+      &:focus {
+        border: 1px dashed var(--spectrum-global-color-blue-700);
+        font-weight: bolder;
+      }
     }
-    &:hover,
-    &:focus {
+    &:hover {
       background-color: var(--spectrum-global-color-blue-600);
       border-color: var(--spectrum-global-color-blue-600);
     }
@@ -296,20 +306,31 @@
   }
 
   .warning {
-    color: var(--spectrum-global-color-red-400);
+    background-color: var(--spectrum-global-color-red-400);
+    color: white;
     &.quiet {
-      border-color: transparent !important;
+      border-color: transparent;
       background-color: transparent;
-      color: var(--spectrum-global-color-red-400);
+      color: var(--spectrum-global-color-red-600);
 
       &:hover {
-        background-color: var(--spectrum-global-color-red-400);
+        background-color: var(--spectrum-global-color-red-700);
+        font-weight: bolder;
+        color: white;
+      }
+
+      &:focus {
+        border: 1px dashed var(--spectrum-global-color-red-700);
+        font-weight: bolder;
       }
     }
-    &:hover,
+    &:hover {
+      background-color: var(--spectrum-global-color-red-700);
+      font-weight: bolder;
+    }
     &:focus {
-      background-color: var(--spectrum-global-color-red-400);
-      color: var(--spectrum-global-color-gray-50);
+      border: 2px dashed var(--spectrum-global-color-red-700);
+      font-weight: bolder;
     }
   }
 

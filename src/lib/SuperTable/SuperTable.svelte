@@ -191,6 +191,15 @@
   const stbMenuID = memo(-1);
   const stbMenuAnchor = memo(-1);
   const stbSelected = memo([]);
+  $: stbSelectedRows = derivedMemo(
+    [stbData, stbSelected],
+    ([$stbData, $stbSelected]) => {
+      return $stbData?.rows?.filter((row) =>
+        $stbSelected?.includes(row[idColumn])
+      );
+    }
+  );
+
   const stbHovered = memo(-1);
   const stbEditing = memo(-1);
   const stbSortColumn = memo({});
@@ -750,7 +759,7 @@
           const remainingHeight =
             loadedHeight - ($stbScrollPos + maxBodyHeight);
           if (remainingHeight < maxBodyHeight && rows.length === _limit) {
-            stbState.fetchMoreRows.debounce(200, 100); // Debounced fetch
+            stbState.fetchMoreRows(100); // Debounced fetch
           }
         }
       },
@@ -875,7 +884,7 @@
           this.calculateBoundaries();
           if (autoRefresh && !inBuilder) {
             timer = setInterval(() => {
-              stbData?.refresh();
+              if (!$stbData?.loading) stbData?.refresh();
               onRefresh?.();
             }, autoRefreshRate * 1000);
           }
@@ -1102,9 +1111,7 @@
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
     rows: $stbData?.rows,
-    selectedRows: $stbData?.rows.filter((x) =>
-      $stbSelected.includes(x[idColumn])
-    ),
+    selectedRows: $stbSelectedRows,
     selectedIds: $stbSelected,
     id: $component.id,
     info: $stbData?.info,
@@ -1207,6 +1214,8 @@
   });
 
   $: render = true;
+
+  $: console.log($stbData);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

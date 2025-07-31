@@ -218,6 +218,7 @@
   }
 
   &.is-selected {
+    color: var(--spectrum-global-color-gray-900);
     background: var(
       --selection-color,
       var(--spectrum-global-color-blue-100)

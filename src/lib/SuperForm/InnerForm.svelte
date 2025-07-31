@@ -1,8 +1,8 @@
 <script lang="ts">
   import { setContext, getContext, createEventDispatcher } from "svelte";
-  import type { Readable, Writable } from "svelte/store";
+  import { Readable, Writable } from "svelte/store";
   import { derived, get, writable } from "svelte/store";
-  import type {
+  import {
     DataFetchDatasource,
     FieldSchema,
     FieldType,

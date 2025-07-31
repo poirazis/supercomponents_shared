@@ -31,6 +31,7 @@
         return state;
       },
       reset() {
+        console.log("reset", value);
         localValue = value;
         lastEdit = undefined;
         return cellOptions?.initialState ?? "View";
@@ -90,7 +91,6 @@
     },
   });
 
-  $: cellState.reset(value);
   $: inEdit = $cellState == "Editing";
   $: isDirty = lastEdit && originalValue != localValue;
   $: formattedValue =
