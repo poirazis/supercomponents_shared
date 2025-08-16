@@ -32,13 +32,23 @@
     View: {
       _enter() {
         localValue = value;
+        originalValue = value;
+        lastEdit = undefined;
       },
       reset() {
-        originalValue = value;
         localValue = value;
+        originalValue = value;
         lastEdit = undefined;
+        formattedValue = cellOptions.template
+          ? processStringSync(cellOptions.template, {
+              ...$context,
+              value: localValue,
+            })
+          : value || localValue || cellOptions.placeholder;
+
         return cellOptions.initialState ?? "View";
       },
+
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
@@ -63,6 +73,7 @@
         this.submit();
       },
       submit() {
+        localValue = editor.value;
         if (isDirty) {
           dispatch("change", localValue);
         }
@@ -74,18 +85,6 @@
         return "View";
       },
       debounce(e: KeyboardEvent) {
-        if (
-          (e.key.length === 1 &&
-            e.key !== "." &&
-            isNaN(Number(e.key)) &&
-            !e.ctrlKey) ||
-          e.keyCode == 32 ||
-          (e.key === "." && e.target.value.toString().indexOf(".") > -1)
-        ) {
-          e.preventDefault();
-          return;
-        }
-        localValue = Number(e.target.value);
         lastEdit = new Date();
         if (cellOptions?.debounce) {
           clearTimeout(timer);
@@ -95,26 +94,65 @@
         }
       },
       handleKeyboard(e: KeyboardEvent) {
-        if (e.key == "Enter") this.submit();
-        if (e.key == "Escape") this.cancel();
+        const input = e.target as HTMLInputElement;
+        const key = e.key;
+
+        // Handle control keys
+        if (
+          ["Enter", "Escape", "ArrowLeft", "ArrowRight", "Tab"].includes(key)
+        ) {
+          if (key === "Enter") return this.submit();
+          if (key === "Escape") return this.cancel();
+          return;
+        }
+
+        // Prevent non-numeric input, except one decimal point and negative sign at start
+        if (
+          (key.length === 1 && !/[\d.-]/.test(key)) || // Allow digits, decimal, negative sign
+          (key === "." && input.value.includes(".")) || // Prevent multiple decimal points
+          (key === "-" &&
+            (input.value.includes("-") || input.selectionStart !== 0)) // Negative sign only at start
+        ) {
+          e.preventDefault();
+        }
+      },
+      handleInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const newValue = input.value;
+
+        // Validate full input
+        if (
+          newValue !== "" &&
+          newValue !== "-" &&
+          !/^-?\d*\.?\d*$/.test(newValue)
+        ) {
+          input.value = localValue?.toString() ?? ""; // Revert to last valid value
+          return;
+        }
+
+        localValue =
+          newValue === "" || newValue === "-" ? null : Number(newValue);
+        lastEdit = new Date();
+        if (cellOptions?.debounce) {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            dispatch("change", localValue);
+          }, cellOptions.debounce ?? 0);
+        }
       },
     },
   });
 
   $: inEdit = $cellState == "Editing";
   $: inline = cellOptions.role == "inlineInput";
-  $: isDirty = inEdit && originalValue != localValue;
+  $: isDirty = lastEdit && originalValue != localValue;
+
   $: formattedValue = cellOptions.template
     ? processStringSync(cellOptions.template, {
         ...$context,
         value: localValue,
       })
-    : undefined;
-
-  $: placeholder =
-    cellOptions.readonly || cellOptions.disabled
-      ? ""
-      : cellOptions.placeholder || "";
+    : value || localValue || cellOptions.placeholder;
 
   $: cellState.reset(value);
 
@@ -134,6 +172,8 @@
     clearTimeout(timer);
     cellState.reset();
   });
+
+  $: console.log(cellOptions, isDirty);
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -145,7 +185,7 @@
   class:readonly={cellOptions.readonly}
   class:disabled={cellOptions.disabled}
   class:inEdit
-  class:isDirty
+  class:isDirty={isDirty && cellOptions?.showDirty}
   class:inline
   class:tableCell={cellOptions?.role == "tableCell"}
   class:formInput={cellOptions?.role == "formInput"}
@@ -164,19 +204,20 @@
   {#if $cellState == "Editing"}
     <input
       class="editor"
+      bind:this={editor}
       class:placeholder={!localValue}
-      type="text"
       style:padding-right={"32px"}
+      class:with-icon={cellOptions.icon}
       style:text-align={cellOptions.align == "flex-start"
         ? "left"
         : cellOptions.align == "center"
           ? "center"
           : "right "}
       placeholder={cellOptions?.placeholder}
-      bind:value={localValue}
-      on:keydown={(e) => cellState.debounce(e)}
+      value={localValue || null}
+      on:keydown={(e) => cellState.handleKeyboard(e)}
+      on:input={(e) => cellState.handleInput(e)}
       on:focusout={(e) => cellState.focusout(e)}
-      on:keyup={(e) => cellState.handleKeyboard(e)}
       use:focus
     />
     <i class="ri-close-line clearIcon" on:mousedown|self={cellState.clear}> </i>
@@ -184,23 +225,11 @@
     <div
       class="value"
       style:padding-right={"12px"}
-      class:placeholder={!value && !formattedValue}
-      style:justify-content={cellOptions.align}
+      class:placeholder={!value}
+      class:with-icon={cellOptions.icon}
+      style:justify-content={cellOptions.align ?? "flex-end"}
     >
-      {formattedValue || value || placeholder}
+      {formattedValue ?? ""}
     </div>
   {/if}
 </div>
-
-<style>
-  .value {
-    flex: auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    box-sizing: border-box;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-</style>

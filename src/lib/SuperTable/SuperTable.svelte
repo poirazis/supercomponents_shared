@@ -65,11 +65,9 @@
   export let sortOrder;
   export let limit = 50;
   export let fetchOnScroll = true;
-  export let autoRefresh;
   export let autoRefreshRate;
   export let paginate;
   export let filter;
-  export let emptyMessage;
 
   export let columnList;
   export let autocolumns;
@@ -104,7 +102,7 @@
   export let dividers = "horizontal";
   export let dividersColor;
 
-  export let rowColorTemplate, rowBGColorTemplate;
+  export let rowColorTemplate, rowBGColorTemplate, rowDisabledTemplate;
   export let rowHeight;
 
   export let footerColorTemplate, footerBGColorTemplate;
@@ -237,12 +235,10 @@
       sortColumn,
       sortOrder,
       limit,
-      emptyMessage:
-        emptyMessage || entityPlural
-          ? "No " + entityPlural + " found"
-          : "No Rows Found",
+      emptyMessage: entityPlural
+        ? "No " + entityPlural + " found"
+        : "No Rows Found",
       paginate,
-      autoRefresh,
       autoRefreshRate,
       fetchOnScroll,
     },
@@ -262,6 +258,7 @@
       highlighters,
       rowColorTemplate,
       rowBGColorTemplate,
+      rowDisabledTemplate,
       footerColorTemplate,
       footerBGColorTemplate,
       cellPadding: sizingMap[size].cellPadding,
@@ -286,17 +283,26 @@
           height: rowHeight
             ? toNumber(
                 processStringSync(rowHeight, {
+                  ...$context,
                   [comp_id]: { row },
                 })
               ) || $stbSettings.appearance.rowHeight
             : $stbSettings.appearance.rowHeight,
           bgcolor: rowBGColorTemplate
             ? processStringSync(rowBGColorTemplate, {
+                ...$context,
                 [comp_id]: { row },
               })
             : undefined,
           color: rowColorTemplate
             ? processStringSync(rowColorTemplate, {
+                ...$context,
+                [comp_id]: { row },
+              })
+            : undefined,
+          disabled: rowDisabledTemplate
+            ? processStringSync(rowDisabledTemplate, {
+                ...$context,
                 [comp_id]: { row },
               })
             : undefined,
@@ -513,6 +519,7 @@
     },
     selectRow: (index) => {
       let id = $stbData.rows[index][idColumn] ?? index;
+      let disabled = $stbRowMetadata[index]["disabled"];
 
       if (maxSelected != 1) {
         if ($stbSelected.includes(id)) {
@@ -644,23 +651,22 @@
     patchRow: async (patch) => {
       patch = tableAPI.unflattenObject(patch);
       if (tableId) {
-        try {
-          let row = await API.patchRow({
+        let row = await API.patchRow(
+          {
             tableId,
             ...patch,
-          });
+          },
+          true
+        );
 
-          stbState.refresh();
-          let richContext = {
-            ...$context,
-            [comp_id]: { row },
-          };
-          let cmd_after = enrichButtonActions(afterEdit, richContext);
-          await cmd_after?.({ row });
-          return row;
-        } catch (ex) {
-          console.log(ex);
-        }
+        stbState.refresh();
+        let richContext = {
+          ...$context,
+          [comp_id]: { row },
+        };
+        let cmd_after = enrichButtonActions(afterEdit, richContext);
+        await cmd_after?.({ row });
+        return row;
       }
     },
   };
@@ -685,7 +691,10 @@
         this.calculateRowBoundaries();
       },
       scrollToEnd() {
-        $stbScrollPos = scrollHeight - maxBodyHeight;
+        $stbScrollPos =
+          scrollHeight > maxBodyHeight
+            ? scrollHeight - maxBodyHeight
+            : $stbScrollPos;
         this.calculateRowBoundaries();
       },
       calculateBoundaries() {
@@ -882,7 +891,7 @@
         if (fetchState.loaded) {
           this.enrichRows();
           this.calculateBoundaries();
-          if (autoRefresh && !inBuilder) {
+          if (autoRefreshRate && !inBuilder) {
             timer = setInterval(() => {
               if (!$stbData?.loading) stbData?.refresh();
               onRefresh?.();
@@ -1214,8 +1223,6 @@
   });
 
   $: render = true;
-
-  $: console.log($stbData);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

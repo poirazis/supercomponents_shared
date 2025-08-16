@@ -28,6 +28,9 @@
       goTo(state) {
         return state;
       },
+      reset(val) {
+        localValue = undefined;
+      },
     },
     View: {
       _enter() {},

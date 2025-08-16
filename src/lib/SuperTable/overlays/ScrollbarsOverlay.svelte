@@ -40,11 +40,11 @@
   $: left = ($stbHorizontalScrollPos / scrollWidth) * 100 + "%";
   $: height = (clientHeight / scrollHeight) * 100 + "%";
   $: verticalRange = Math.max(scrollHeight - clientHeight, 0);
+  $: horizontalRange = anchor?.scrollWidth - anchor?.clientWidth;
   $: calculate(localWidth, $stbScrollPos);
 
   export const calculate = () => {
     if (!anchor) return;
-    horizontalRange = anchor?.scrollWidth - anchor?.clientWidth;
     visible = verticalRange;
     horizontalVisible = horizontalRange;
     scrollWidth = anchor?.scrollWidth;

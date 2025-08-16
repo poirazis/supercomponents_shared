@@ -28,7 +28,7 @@
     let obj = {};
     $options.forEach(
       (option, index) =>
-        (obj[option] = optionColors[option] || colorsArray[index % 14])
+        (obj[option] = optionColors[option] ?? colorsArray[index % 14])
     );
     return obj;
   });
@@ -499,7 +499,7 @@
       {:else if optionsViewMode == "text"}
         <div style:flex={"auto"}>
           <span>
-            {multi
+            {multi || localValue.length > 1
               ? localValue.join(", ")
               : labels[localValue[0]] || localValue[0]}
           </span>
@@ -511,8 +511,12 @@
           class:colorText={optionsViewMode == "colorText"}
           style:justify-content={cellOptions.align ?? "flex-start"}
         >
-          {#each localValue as val (val)}
-            <div class="item" style:--option-color={$colors[val]}>
+          {#each localValue as val, idx (val)}
+            <div
+              class="item"
+              style:--option-color={$colors[val] ||
+                colorsArray[idx % colorsArray.length]}
+            >
               <i class="ri-checkbox-blank-fill" />
               <span> {isObjects ? "JSON" : labels[val] || val} </span>
             </div>

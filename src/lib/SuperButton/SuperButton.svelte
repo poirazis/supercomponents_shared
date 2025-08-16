@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher, onDestroy, onMount } from "svelte";
+  import { createEventDispatcher, onDestroy, onMount, tick } from "svelte";
   const dispatch = createEventDispatcher();
 
   export let size = "M";
@@ -39,7 +39,7 @@
   let elapsed = 0;
 
   async function handleClick() {
-    working = true;
+    await tick();
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
       if (Array.isArray(loop) && loopEvent) {
@@ -55,7 +55,6 @@
     } else if (onClick) {
       await onClick?.();
     }
-
     working = false;
   }
 
@@ -99,12 +98,14 @@
 <button
   tabindex={disabled ? "-1" : "0"}
   on:click={(e) => {
-    if (!disabled) {
+    if (!disabled && !working) {
       dispatch("click", e.target);
+      working = true;
       handleClick();
     }
   }}
   class:super-button={true}
+  class:xsmall={size == "XS"}
   class:small={size == "S"}
   class:large={size == "L"}
   class:is-selected={selected}
@@ -124,7 +125,7 @@
   class={buttonClass == "actionButton"
     ? "spectrum-ActionButton spectrum-ActionButton--size" + size
     : "spectrum-Button spectrum-Button--size" + size}
-  class:disabled
+  class:disabled={disabled || working}
 >
   {#if !iconAfterText}
     <i class={icon} />
@@ -148,12 +149,23 @@
     gap: 0.5rem;
     height: 2rem;
 
+    &.xsmall {
+      height: 1.5rem;
+      font-size: 10px;
+      padding: 0rem 0.5rem;
+      min-width: unset;
+    }
+
     &.small {
       min-width: 4rem;
       padding: 0rem 0.5rem;
       gap: 0.5rem;
       font-size: smaller;
       height: 1.85rem;
+
+      &.ink {
+        height: 1.5rem;
+      }
     }
 
     &.large {
@@ -172,6 +184,8 @@
 
     &.iconOnly {
       min-width: unset;
+      aspect-ratio: 1/1;
+      border-radius: 0.25rem;
       & > span {
         display: none;
       }
@@ -241,6 +255,7 @@
     color: var(--spectrum-global-color-gray-50);
     font-weight: 700;
     opacity: 0.9;
+    max-height: 1.35rem;
 
     &.quiet {
       border-color: transparent !important;

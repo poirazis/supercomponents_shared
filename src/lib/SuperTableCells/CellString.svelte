@@ -31,9 +31,10 @@
         return state;
       },
       reset() {
-        console.log("reset", value);
         localValue = value;
         lastEdit = undefined;
+        originalValue = undefined;
+        isDirty = false;
         return cellOptions?.initialState ?? "View";
       },
     },
@@ -52,6 +53,7 @@
       },
       _exit() {
         originalValue = undefined;
+        lastEdit = undefined;
         dispatch("exitedit");
         dispatch("focusout");
       },
@@ -93,18 +95,18 @@
 
   $: inEdit = $cellState == "Editing";
   $: isDirty = lastEdit && originalValue != localValue;
-  $: formattedValue =
-    !formattedValue && cellOptions?.template
-      ? processStringSync(cellOptions.template, {
-          value,
-        })
-      : formattedValue;
+  $: formattedValue = cellOptions?.template
+    ? processStringSync(cellOptions.template, {
+        value,
+      })
+    : value;
 
   $: placeholder =
     cellOptions.readonly || cellOptions.disabled
       ? ""
       : cellOptions.placeholder || "";
 
+  $: cellState.reset(value);
   const focus = (node) => {
     node?.focus();
   };
@@ -137,7 +139,9 @@
   class:readonly={cellOptions.readonly}
   class:error={cellOptions.error}
   style:color={cellOptions.color}
-  style:background={cellOptions.background}
+  style:background={$cellState == "Editing" && cellOptions.role != "inline"
+    ? "var(--spectrum-global-color-gray-50)"
+    : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
   {#if cellOptions.icon}

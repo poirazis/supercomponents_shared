@@ -136,6 +136,9 @@
         optionsViewMode: $columnOptionsStore.optionsViewMode,
         relViewMode: $columnOptionsStore.relViewMode,
         padding: $columnOptionsStore.isFirst ? "1rem" : "0.5rem",
+        background: $columnOptionsStore.background,
+        color: $columnOptionsStore.color,
+        controlType: "checkbox",
       };
     }
   );

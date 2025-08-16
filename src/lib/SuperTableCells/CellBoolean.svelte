@@ -73,6 +73,7 @@
   $: inline = cellOptions.role == "inlineInput";
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue !== value;
+  $: checkbox = cellOptions?.controlType == "checkbox";
 
   const focus = (node) => {
     if (cellOptions.role == "tableCell") node.focus();
@@ -85,10 +86,11 @@
 <div
   class="superCell"
   class:inEdit
-  class:isDirty
+  class:isDirty={isDirty && cellOptions.showDirty}
   class:inline
+  class:naked-field={checkbox}
   class:tableCell={cellOptions.role == "tableCell"}
-  class:formInput={cellOptions.role == "formInput"}
+  class:formInput={!checkbox && cellOptions.role == "formInput"}
   class:disabled={cellOptions.disabled}
   class:readonly={cellOptions.readonly}
   style:color={cellOptions.color}
@@ -96,29 +98,47 @@
     ? "var(--spectrum-global-color-gray-50)"
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
-  style:padding-top={"unset"}
-  style:padding-bottom={"unset"}
 >
   {#if cellOptions.icon}
-    <i class={cellOptions.icon + " frontIcon"}></i>
+    <i class={cellOptions.icon + " icon"}></i>
   {/if}
 
   {#if $cellState == "Editing" || cellOptions.role != "tableCell"}
     <div
       class="editor"
-      style:padding-left={cellOptions.icon ? "32px" : cellOptions.padding}
-      style:padding-right={cellOptions.clearValueIcon
-        ? "32px"
-        : cellOptions.padding}
+      class:with-icon={cellOptions.icon}
+      class:naked-field={checkbox}
       style:justify-content={cellOptions.align ?? "center"}
+      on:mousedown|self|preventDefault|stopPropagation={$cellState == "Editing"
+        ? () => {
+            value = !value;
+          }
+        : () => {
+            cellState.focus();
+          }}
     >
-      <div
-        class="spectrum-Switch spectrum-Switch--emphasized"
-        style:--spectrum-switch-height={"22px"}
-        style:margin={0}
-      >
+      {#if !checkbox}
+        <div
+          class="spectrum-Switch spectrum-Switch--emphasized"
+          style:--spectrum-switch-height={"22px"}
+          style:margin={0}
+        >
+          <input
+            class="spectrum-Switch-input"
+            bind:checked={value}
+            bind:this={editor}
+            type="checkbox"
+            disabled={cellOptions.disabled || cellOptions.readonly}
+            on:focusin={cellState.focus}
+            on:focusout={cellState.submit}
+            on:change={cellState.change}
+            use:focus
+          />
+          <span class="spectrum-Switch-switch" />
+        </div>
+      {:else}
         <input
-          class="spectrum-Switch-input"
+          class="checkbox"
           bind:checked={value}
           bind:this={editor}
           type="checkbox"
@@ -128,31 +148,64 @@
           on:change={cellState.change}
           use:focus
         />
-        <span class="spectrum-Switch-switch" />
-      </div>
+      {/if}
     </div>
   {:else}
     <div
       class="value"
       tabIndex="0"
       style:justify-content={cellOptions.align ?? "center"}
-      style:padding-left={cellOptions.icon ? "32px" : cellOptions.padding}
+      class:with-icon={cellOptions.icon}
       on:focusin={cellState.focus}
     >
       {#if formattedValue}
         {formattedValue}
       {:else if value}
-        <i class="ri-check-line icon"></i>
+        <i class="ri-check-line valueicon"></i>
       {:else if cellOptions.showFalse}
-        <i class="ri-close-line icon"></i>
+        <i class="ri-close-line valueicon"></i>
       {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  .icon {
+  .valueicon {
     font-size: 16px;
     color: var(--spectrum-global-color-green-400);
+  }
+
+  .checkbox {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    position: relative;
+    background: var(--spectrum-global-color-gray-50);
+    border: 1px solid var(--spectrum-global-color-gray-500);
+  }
+  .checkbox:checked::before {
+    content: "\2713";
+    position: absolute;
+    top: 0px;
+    left: 2px;
+    color: var(--spectrum-global-color-green-400);
+    font-size: 12px;
+  }
+
+  .checkbox:focus {
+    outline: none;
+    border: 1px solid var(--spectrum-global-color-blue-400);
+  }
+
+  .naked-field {
+    background-color: unset !important;
+    padding-left: unset !important;
+    border-color: transparent !important;
+    border-width: 0px !important;
+
+    &.with-icon {
+      padding-left: 32px !important;
+    }
   }
 </style>

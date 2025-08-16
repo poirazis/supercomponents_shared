@@ -3,7 +3,6 @@
     getContext,
     createEventDispatcher,
     onMount,
-    tick,
     onDestroy,
   } from "svelte";
 
@@ -33,6 +32,7 @@
   export let rowHeight;
   let mounted;
   let viewport;
+  let info;
 
   $: meta = $rowMetadata?.[index] ?? {};
   $: id = row?.[idField] ?? index;
@@ -46,31 +46,23 @@
       ...row,
       [field]: change,
     };
-    try {
-      let patched_row = await stbAPI.patchRow(patch);
-      row = patched_row;
-    } catch (ex) {
-      console.log(ex);
-    } finally {
-    }
-  };
 
-  const handleSize = async () => {
-    if (mounted) {
-      await tick();
-      if (
-        $columnSettings.superColumn &&
-        viewport &&
-        viewport.scrollHeight > meta.height
-      ) {
-        dispatch("resize", viewport.scrollHeight);
-      } else if (
-        $columnSettings.superColumn &&
-        viewport &&
-        !hasChildren &&
-        viewport.scrollHeight > rowHeight
-      )
-        dispatch("resize", rowHeight);
+    try {
+      value = "";
+      let patched_row = await stbAPI.patchRow(patch);
+      row = { ...patched_row };
+    } catch (ex) {
+      if (ex.json.validationErrors) {
+        info = ex.json.validationErrors[field][0];
+      } else {
+        info = ex.message;
+      }
+
+      setTimeout(() => {
+        info = undefined;
+      }, 2250);
+    } finally {
+      value = deepGet(row, field);
     }
   };
 
@@ -106,6 +98,7 @@
   class:is-selected={isSelected}
   class:is-hovered={isHovered}
   class:is-editing={isEditing}
+  class:is-disabled={meta.disabled}
   class:isLast
   style:height={meta.height + "px"}
   style:color={meta.color}
@@ -123,7 +116,7 @@
   {#if !hasChildren}
     <svelte:component
       this={$columnSettings.cellComponent}
-      cellOptions={{ ...$rowCellOptions, disabled }}
+      cellOptions={{ ...$rowCellOptions, disabled, error: info }}
       fieldSchema={$columnSettings.schema}
       {value}
       on:enteredit={() => columnState.enteredit(index)}
@@ -133,6 +126,9 @@
         stbAPI.executeOnLinkClickAction(field, e.detail);
       }}
     />
+    {#if info}
+      <div class="info" class:bottom={index == 0}>{info}</div>
+    {/if}
   {:else}
     <Provider
       data={{
@@ -147,3 +143,19 @@
     </Provider>
   {/if}
 </div>
+
+<style>
+  .info {
+    position: absolute;
+    top: -26px;
+    font-size: 11px;
+    background-color: var(--spectrum-global-color-red-400);
+    border-radius: 4px;
+    padding: 4px;
+
+    &.bottom {
+      top: unset;
+      bottom: -26px;
+    }
+  }
+</style>

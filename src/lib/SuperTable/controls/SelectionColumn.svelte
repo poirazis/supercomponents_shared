@@ -36,25 +36,14 @@
 {#if visible}
   <div class="super-column control-column" class:sticky>
     {#if $stbSettings?.showHeader}
-      <div class="control-column-header">
+      <div class="control-column-header" style:gap={"0.75rem"}>
         {#if numbering}
-          <div class="row-number"></div>
-        {/if}
-
-        {#if canDelete}
-          {#if $stbSelected.length > 1}
-            <i
-              class="ri-delete-bin-line"
-              on:click={stbAPI.deleteSelectedRows}
-            />
-          {:else}
-            <div class="row-number"></div>
-          {/if}
+          <span class="row-number"></span>
         {/if}
 
         {#if $stbSettings.features.canSelect && $stbSettings.features.maxSelected != 1 && !hideSelectionColumn}
           {#if fullSelection}
-            <i class="ri-check-line" on:click={stbAPI.selectAllRows} />
+            <i class="ri-check-line full" on:click={stbAPI.selectAllRows} />
           {:else if partialSelection}
             <i
               class="ri-checkbox-indeterminate-line"
@@ -66,6 +55,17 @@
               style:color={"var(--spectrum-global-color-gray-500)"}
               on:click={stbAPI.selectAllRows}
             />
+          {/if}
+        {/if}
+
+        {#if canDelete}
+          {#if $stbSelected.length}
+            <i
+              class="ri-delete-bin-line delete"
+              on:click={stbAPI.deleteSelectedRows}
+            />
+          {:else}
+            <i class="ri-delete-bin-line disabled" />
           {/if}
         {/if}
       </div>
@@ -80,42 +80,27 @@
     >
       {#each $stbVisibleRows as visibleRow}
         {@const row = $stbData?.rows?.[visibleRow]}
+        {@const selected = $stbSelected?.includes(row[idColumn] ?? visibleRow)}
         {#if row}
           <div
             class="super-row selection"
-            class:is-selected={$stbSelected?.includes(
-              row[idColumn] ?? visibleRow
-            )}
+            class:is-selected={selected}
             class:is-hovered={$stbHovered == visibleRow ||
               $stbMenuID == visibleRow}
-            class:is-editing={$stbEditing == row[idColumn]}
+            class:is-editing={$stbEditing == visibleRow}
+            class:is-disabled={$rowMetadata[visibleRow]?.disabled}
             style:min-height={$rowMetadata[visibleRow]?.height}
             on:mouseenter={() => ($stbHovered = visibleRow)}
             on:mouseleave={() => ($stbHovered = null)}
           >
             {#if numbering}
-              <span class="row-number">
-                {#if $stbEditing == row[idColumn]}
-                  <i
-                    class="ri-edit-line"
-                    style:font-size={"14px"}
-                    style:color={"lime"}
-                  />
-                {:else}
-                  {visibleRow + 1}
-                {/if}
-              </span>
-            {/if}
-
-            {#if canDelete}
-              <i
-                class="ri-delete-bin-line delete"
-                on:click={(e) => stbAPI.deleteRow(visibleRow)}
-              />
+              <div class="row-number">
+                {visibleRow + 1}
+              </div>
             {/if}
 
             {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-              {#if $stbSelected?.includes(row[idColumn] ?? visibleRow)}
+              {#if selected}
                 <i
                   class="ri-check-line"
                   style:color={"var(--spectrum-global-color-gray-800)"}
@@ -127,6 +112,14 @@
                   on:click={() => stbAPI.selectRow(visibleRow)}
                 />
               {/if}
+            {/if}
+
+            {#if canDelete}
+              <i
+                class="ri-delete-bin-line delete"
+                class:selected
+                on:click={(e) => stbAPI.deleteRow(visibleRow)}
+              />
             {/if}
           </div>
         {/if}
@@ -148,26 +141,44 @@
     flex: auto;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
-    gap: 1rem;
-    font-size: 14px;
+    gap: 0.75rem;
+    font-size: 13px;
     font-weight: 500;
     align-items: center;
     &.is-hovered > .delete {
-      color: var(--spectrum-global-color-red-700);
+      color: var(--spectrum-global-color-red-700) !important;
     }
     &.is-selected > .delete {
-      color: var(--spectrum-global-color-red-700);
+      color: var(--spectrum-global-color-red-400);
     }
-    &.is-hovered > i {
+    &.is-hovered > i:not(.delete) {
       color: var(--spectrum-global-color-gray-700);
     }
   }
 
   i {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--spectrum-global-color-gray-500);
 
-    &:hover {
+    &.disabled {
+      color: var(--spectrum-global-color-gray-100);
+    }
+
+    &.delete {
+      &.selected {
+        color: var(--spectrum-global-color-red-400);
+      }
+
+      &:hover {
+        color: var(--spectrum-global-color-red-700);
+      }
+    }
+
+    &.full {
+      color: var(--spectrum-global-color-gray-900);
+    }
+
+    &:hover:not(.disabled) {
       cursor: pointer;
     }
   }

@@ -40,7 +40,7 @@
       {/if}
     </div>
   {/if}
-  <div class="inline-cells">
+  <div class="inline-cells" class:multirow>
     <slot></slot>
   </div>
 </div>
@@ -91,6 +91,15 @@
 
     &.multirow {
       height: unset;
+      & > .inline-buttons {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    & > .inline-buttons {
+      display: flex;
+      padding-left: 0.5rem;
     }
   }
 

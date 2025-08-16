@@ -62,17 +62,17 @@
     class:sticky
     class:zebra={$stbSettings.appearance.zebraColors}
   >
-    {#each $stbVisibleRows as index}
+    {#each $stbVisibleRows as visibleRow}
+      {@const row = $stbData?.rows?.[visibleRow]}
       <div
         class="super-row"
-        on:mouseenter={() => ($stbHovered = index)}
+        on:mouseenter={() => ($stbHovered = visibleRow)}
         on:mouseleave={() => ($stbHovered = null)}
-        class:is-selected={$stbSelected?.includes(
-          $stbData.rows[index][idColumn]
-        )}
-        class:is-hovered={$stbHovered == index || $stbMenuID == index}
-        class:is-editing={$stbEditing == index}
-        style:min-height={$rowMetadata[index].height}
+        class:is-selected={$stbSelected?.includes(row[idColumn] ?? visibleRow)}
+        class:is-hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
+        class:is-editing={$stbEditing == visibleRow}
+        class:is-disabled={$rowMetadata[visibleRow].disabled}
+        style:min-height={$rowMetadata[visibleRow].height}
         style:padding-right={canScroll && right ? "1.5rem" : "0.5rem"}
       >
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -86,10 +86,14 @@
                 size="S"
                 {icon}
                 {text}
-                disabled={disabled || $stbEditing == index}
+                disabled={disabled ||
+                  $stbEditing == visibleRow ||
+                  $rowMetadata[visibleRow].disabled}
                 {quiet}
                 type={type == "primary" ? "ink" : type}
-                on:click={() => stbAPI.executeRowButtonAction(index, onClick)}
+                on:click={() => {
+                  stbAPI.executeRowButtonAction(visibleRow, onClick);
+                }}
               />
             {/each}
           {/if}
@@ -101,7 +105,7 @@
               text=""
               quiet="true"
               type="secondary"
-              on:click={(e) => handleMenu(e, index)}
+              on:click={(e) => handleMenu(e, visibleRow)}
             />
           {/if}
         </div>
@@ -157,6 +161,7 @@
     flex-direction: row;
     align-items: center;
     padding-left: 0.5rem;
+    background: transparent;
   }
 
   .action-menu {

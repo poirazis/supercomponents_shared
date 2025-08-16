@@ -57,13 +57,16 @@
     }
 
     &.placeholder {
-      font-style: italic;
       font-weight: 400;
       color: var(--spectrum-global-color-gray-500);
       justify-content: space-between;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      & > span {
+        font-style: italic !important;
+      }
     }
 
     &.with-icon {
@@ -197,6 +200,10 @@
       align-items: center;
       justify-content: center;
     }
+  }
+
+  &.error {
+    border: 1px solid var(--spectrum-global-color-red-400) !important;
   }
 }
 
