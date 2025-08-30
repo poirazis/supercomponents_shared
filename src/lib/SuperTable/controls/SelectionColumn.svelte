@@ -8,7 +8,6 @@
   const stbHovered = getContext("stbHovered");
   const stbMenuID = getContext("stbMenuID");
   const stbSelected = getContext("stbSelected");
-  const stbEditing = getContext("stbEditing");
   const stbAPI = getContext("stbAPI");
   const rowMetadata = getContext("stbRowMetadata");
   const stbVisibleRows = getContext("stbVisibleRows");
@@ -17,13 +16,16 @@
   export let hideSelectionColumn;
 
   $: idColumn = $stbSettings.data.idColumn;
-  $: partialSelection = $stbSelected.length;
+  $: partialSelection =
+    $stbSelected.length && $stbSelected.length != $stbData.rows?.length;
+
   $: fullSelection =
     $stbSelected.length == $stbData.rows?.length && $stbData.rows?.length > 0;
 
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
   $: canDelete = $stbSettings.features.canDelete;
+
   $: sticky = $stbHorizontalScrollPos > 0;
 
   $: visible = numbering || checkBoxes || canDelete;
@@ -36,26 +38,20 @@
 {#if visible}
   <div class="super-column control-column" class:sticky>
     {#if $stbSettings?.showHeader}
-      <div class="control-column-header" style:gap={"0.75rem"}>
+      <div class="control-column-header" style:gap={"1rem"}>
         {#if numbering}
           <span class="row-number"></span>
         {/if}
 
-        {#if $stbSettings.features.canSelect && $stbSettings.features.maxSelected != 1 && !hideSelectionColumn}
-          {#if fullSelection}
-            <i class="ri-check-line full" on:click={stbAPI.selectAllRows} />
-          {:else if partialSelection}
-            <i
-              class="ri-checkbox-indeterminate-line"
-              on:click={stbAPI.selectAllRows}
-            ></i>
-          {:else}
-            <i
-              class="ri-checkbox-blank-line"
-              style:color={"var(--spectrum-global-color-gray-500)"}
-              on:click={stbAPI.selectAllRows}
-            />
-          {/if}
+        {#if checkBoxes && $stbSettings.features.maxSelected != 1}
+          <div
+            class="checkbox"
+            class:selected={fullSelection}
+            class:partialSelection
+            on:click={stbAPI.selectAllRows}
+          >
+            <i class="ri-check-line" style:visibility={"hidden"} />
+          </div>
         {/if}
 
         {#if canDelete}
@@ -87,7 +83,6 @@
             class:is-selected={selected}
             class:is-hovered={$stbHovered == visibleRow ||
               $stbMenuID == visibleRow}
-            class:is-editing={$stbEditing == visibleRow}
             class:is-disabled={$rowMetadata[visibleRow]?.disabled}
             style:min-height={$rowMetadata[visibleRow]?.height}
             on:mouseenter={() => ($stbHovered = visibleRow)}
@@ -100,18 +95,13 @@
             {/if}
 
             {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-              {#if selected}
-                <i
-                  class="ri-check-line"
-                  style:color={"var(--spectrum-global-color-gray-800)"}
-                  on:click={() => stbAPI.selectRow(visibleRow)}
-                />
-              {:else}
-                <i
-                  class="ri-checkbox-blank-line"
-                  on:click={() => stbAPI.selectRow(visibleRow)}
-                />
-              {/if}
+              <div
+                class="checkbox"
+                class:selected
+                on:click={() => stbAPI.selectRow(visibleRow)}
+              >
+                <i class="ri-check-line" style:visibility={"hidden"} />
+              </div>
             {/if}
 
             {#if canDelete}
@@ -141,7 +131,7 @@
     flex: auto;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
-    gap: 0.75rem;
+    gap: 1rem;
     font-size: 13px;
     font-weight: 500;
     align-items: center;
@@ -180,6 +170,30 @@
 
     &:hover:not(.disabled) {
       cursor: pointer;
+    }
+  }
+
+  .checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--spectrum-global-color-gray-500);
+    background-color: var(--spectrum-global-color-gray-50);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &.selected {
+      border: 1px solid var(--spectrum-global-color-gray-600);
+      & > i {
+        visibility: visible !important;
+        color: var(--spectrum-global-color-gray-700);
+      }
+    }
+
+    &.partialSelection {
+      border-color: var(--spectrum-global-color-green-700);
     }
   }
 </style>

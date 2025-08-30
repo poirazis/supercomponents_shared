@@ -57,13 +57,13 @@
         class:open
         style:z-index={1}
         style:font-size={"16px"}
-        on:mousedown|self|preventDefault={toggleOpen}
+        on:mousedown|self|preventDefault|stopPropagation={toggleOpen}
       />
     {/if}
     <div
       style:z-index={2}
       style:width={"100%"}
-      on:mousedown|preventDefault={toggleNode}
+      on:mousedown|preventDefault|stopPropagation={toggleNode}
     >
       <span class="spectrum-TreeView-itemLabel" style:padding-left={"0.25rem"}
         >{tree.label || "Not Set"}</span

@@ -18,8 +18,8 @@
   {#each $superColumns as column, idx (idx)}
     <SuperTableColumn
       columnOptions={{
-        ...column,
         ...$commonColumnOptions,
+        ...column,
         overflow,
         isFirst: idx == 0,
         isLast:

@@ -172,8 +172,6 @@
     clearTimeout(timer);
     cellState.reset();
   });
-
-  $: console.log(cellOptions, isDirty);
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->

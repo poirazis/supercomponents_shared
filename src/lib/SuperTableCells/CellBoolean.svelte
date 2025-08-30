@@ -74,6 +74,7 @@
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue !== value;
   $: checkbox = cellOptions?.controlType == "checkbox";
+  $: tableCell = cellOptions.role == "tableCell";
 
   const focus = (node) => {
     if (cellOptions.role == "tableCell") node.focus();
@@ -88,9 +89,8 @@
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline
-  class:naked-field={checkbox}
-  class:tableCell={cellOptions.role == "tableCell"}
-  class:formInput={!checkbox && cellOptions.role == "formInput"}
+  class:naked-field={!tableCell}
+  class:tableCell
   class:disabled={cellOptions.disabled}
   class:readonly={cellOptions.readonly}
   style:color={cellOptions.color}
@@ -107,7 +107,7 @@
     <div
       class="editor"
       class:with-icon={cellOptions.icon}
-      class:naked-field={checkbox}
+      class:naked-field={!tableCell}
       style:justify-content={cellOptions.align ?? "center"}
       on:mousedown|self|preventDefault|stopPropagation={$cellState == "Editing"
         ? () => {
@@ -118,11 +118,7 @@
           }}
     >
       {#if !checkbox}
-        <div
-          class="spectrum-Switch spectrum-Switch--emphasized"
-          style:--spectrum-switch-height={"22px"}
-          style:margin={0}
-        >
+        <div class="spectrum-Switch spectrum-Switch--emphasized">
           <input
             class="spectrum-Switch-input"
             bind:checked={value}
@@ -168,44 +164,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .valueicon {
-    font-size: 16px;
-    color: var(--spectrum-global-color-green-400);
-  }
-
-  .checkbox {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 2px;
-    position: relative;
-    background: var(--spectrum-global-color-gray-50);
-    border: 1px solid var(--spectrum-global-color-gray-500);
-  }
-  .checkbox:checked::before {
-    content: "\2713";
-    position: absolute;
-    top: 0px;
-    left: 2px;
-    color: var(--spectrum-global-color-green-400);
-    font-size: 12px;
-  }
-
-  .checkbox:focus {
-    outline: none;
-    border: 1px solid var(--spectrum-global-color-blue-400);
-  }
-
-  .naked-field {
-    background-color: unset !important;
-    padding-left: unset !important;
-    border-color: transparent !important;
-    border-width: 0px !important;
-
-    &.with-icon {
-      padding-left: 32px !important;
-    }
-  }
-</style>

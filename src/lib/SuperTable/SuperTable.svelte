@@ -398,6 +398,7 @@
     enrichColumn: (schema, bbcolumn) => {
       let type;
       let columnSchema;
+      let isSelf;
 
       if (bbcolumn.field.includes(".")) {
         let words = bbcolumn.field.split(".");
@@ -408,18 +409,18 @@
         type = schema[bbcolumn.field]?.type;
         columnSchema = schema[bbcolumn.field];
 
-        // TODO : Let the ST handle self relationships inline
-        /** 
         if (bbcolumn.field.startsWith("fk_self_")) {
+          isSelf = true;
           (type = "link"),
             (columnSchema = {
               ...columnSchema,
               tableId: $dataSourceStore.tableId,
               relationshipType: "self",
+              recursiveTable: true,
+              primaryDisplay: $stbData?.definition?.primaryDisplay,
               type: "link",
             });
         }
-        */
       }
 
       return {
@@ -430,7 +431,8 @@
         canEdit:
           supportEditingMap[type] &&
           canEdit &&
-          !schema[bbcolumn.name]?.readonly,
+          !schema[bbcolumn.name]?.readonly &&
+          !isSelf,
         canFilter: supportFilteringMap[type] ? canFilter : false,
         canSort: supportSortingMap[type],
         filteringOperators: QueryUtils.getValidOperatorsForType({ type }),

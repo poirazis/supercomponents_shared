@@ -39,7 +39,11 @@
     position: absolute;
     right: 8px;
     color: var(--spectrum-global-color-red-500);
-    cursor: pointer;
+
+    &:hover {
+      color: var(--spectrum-global-color-red-700);
+      cursor: pointer;
+    }
   }
 
   .value {
@@ -73,10 +77,11 @@
       padding-left: 2rem !important;
     }
 
-    span {
+    & > span {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      padding-right: 2.5rem;
 
       &.multiline {
         overflow: auto;
@@ -93,8 +98,15 @@
     }
 
     .controlIcon {
+      position: absolute;
       color: var(--spectrum-global-color-gray-600);
       cursor: pointer;
+      right: 0.5rem;
+    }
+
+    & > .valueicon {
+      font-size: 16px;
+      color: var(--spectrum-global-color-green-700);
     }
 
     .items {
@@ -104,11 +116,14 @@
       align-items: stretch;
       align-self: stretch;
       gap: 0.5rem;
+      margin-right: 1rem;
+      padding: 0.15rem 0rem;
 
       .item {
         display: flex;
         align-items: center;
         overflow: hidden;
+        padding: 0.15rem 0.5rem;
 
         i {
           display: none;
@@ -130,8 +145,7 @@
         );
         gap: 0.5rem;
         border-radius: 4px;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
+
         i {
           display: none;
         }
@@ -142,8 +156,6 @@
       .item {
         gap: 0.5rem;
         border-radius: 4px;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
         background-color: var(
           --option-color,
           var(--spectrum-global-color-gray-300)
@@ -161,14 +173,14 @@
         }
       }
     }
+
     .items.colorText {
       .item {
         gap: 0.5rem;
-        margin-top: 4px;
-        margin-bottom: 4px;
+        padding: unset;
 
         i {
-          font-size: larger;
+          font-size: 18px;
           color: var(--option-color);
           display: block;
         }
@@ -191,19 +203,55 @@
       }
     }
 
-    .item-count {
-      border-radius: 50%;
-      background-color: var(--spectrum-global-color-gray-200);
-      width: 1.7rem;
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .items.withCount {
+      &.inEdit {
+        margin-right: 2.5rem;
+      }
+
+      & > .count {
+        flex: none;
+        font-weight: light;
+        color: var(--spectrum-global-color-gray-700);
+      }
     }
   }
 
   &.error {
     border: 1px solid var(--spectrum-global-color-red-400) !important;
+  }
+
+  & *.checkbox {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    position: relative;
+    background: var(--spectrum-global-color-gray-50);
+    border: 1px solid var(--spectrum-global-color-gray-500);
+  }
+  & *.checkbox:checked::before {
+    content: "\2713";
+    position: absolute;
+    top: 0px;
+    left: 2px;
+    color: var(--spectrum-global-color-green-400);
+    font-size: 12px;
+  }
+
+  & *.checkbox:focus {
+    outline: none;
+  }
+
+  &.naked-field,
+  & > .naked-field {
+    background-color: unset !important;
+    padding-left: 2px !important;
+    border-color: transparent !important;
+    border-width: 0px !important;
+
+    &.with-icon {
+      padding-left: 32px !important;
+    }
   }
 }
 
@@ -257,8 +305,15 @@
   min-height: unset;
   border: 1px solid transparent;
 
+  &:hover:not(.readonly):not(.inEdit) {
+    border: 1px dashed var(--spectrum-global-color-blue-400);
+    cursor: pointer;
+  }
+
   &.inEdit {
-    border-color: var(--spectrum-global-color-blue-500);
+    border-color: var(--spectrum-global-color-blue-400);
+    cursor: pointer;
+    background-color: var(--spectrum-global-color-gray-50);
   }
 }
 
@@ -277,6 +332,7 @@
   outline: none;
   border: none;
   color: inherit;
+  letter-spacing: inherit;
 
   &:focus {
     outline: none;
@@ -319,11 +375,13 @@
   min-height: 1.8rem;
   min-width: unset;
 }
+
 .superCell.inline.disabled {
   background-color: var(--spectrum-global-color-gray-100) !important;
   color: var(--spectrum-global-color-gray-600);
   cursor: not-allowed;
 }
+
 .superCell.inline.readonly {
   background-color: var(--spectrum-global-color-gray-100);
   color: var(--spectrum-global-color-gray-600);

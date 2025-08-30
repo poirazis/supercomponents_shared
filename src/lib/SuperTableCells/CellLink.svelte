@@ -60,6 +60,8 @@
         dispatch("exitedit");
       },
       focusout(e) {
+        console.log("Focus out", e, popup);
+
         if (popup?.contains(e?.relatedTarget)) return;
         this.submit();
       },
@@ -109,6 +111,7 @@
   $: links = cellOptions.relViewMode == "links" && !isUser;
 
   $: localValue = enrichValue(value);
+
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue != JSON.stringify(localValue);
   $: simpleView = cellOptions.relViewMode == "text";
@@ -121,10 +124,7 @@
     !multi;
 
   $: returnSingle = isUser && !multi;
-  $: placeholder =
-    cellOptions.disabled || cellOptions.readonly
-      ? ""
-      : cellOptions.placeholder || "";
+  $: placeholder = cellOptions.placeholder || "";
 
   const handleKeyboard = (e) => {
     if (e.key == "Escape" && $editorState == "Open") {
@@ -149,13 +149,18 @@
   };
 
   const enrichValue = (x) => {
-    if (fieldSchema.relationshipType == "self" && x) {
+    if (fieldSchema.relationshipType == "self" && x && !Array.isArray(x)) {
       API.fetchRow(fieldSchema.tableId, x).then((row) => {
         localValue = [
-          { _id: row.id, primaryDisplay: row.name ?? Object.values(row)[0] },
+          {
+            _id: row.id,
+            primaryDisplay: fieldSchema.primaryDisplay
+              ? row[fieldSchema.primaryDisplay]
+              : row.name || row.id,
+          },
         ];
       });
-      return [];
+      return localValue || [];
     } else if (multi) {
       return value ? [...value] : [];
     } else {
@@ -197,10 +202,17 @@
     class:with-icon={cellOptions?.icon}
     class:placeholder={localValue?.length < 1}
   >
-    {#if localValue?.length < 1 && placeholder}
+    {#if localValue?.length < 1}
       <span> {placeholder} </span>
-    {:else}
-      <div class="items" class:pills class:links class:isUser>
+    {:else if pills || links}
+      <div
+        class="items"
+        class:pills
+        class:links
+        class:isUser
+        class:withCount={localValue.length > 5}
+        class:inEdit
+      >
         {#each localValue as val, idx}
           {#if idx < 5}
             <div
@@ -216,13 +228,19 @@
             </div>
           {/if}
         {/each}
-
         {#if localValue.length > 5}
-          <span class="item-count">
-            {localValue.length}
+          <span class="count">
+            (+ {localValue.length - 5})
           </span>
         {/if}
       </div>
+    {:else}
+      <span>
+        {#if cellOptions.role == "formInput"}
+          ({localValue.length})
+        {/if}
+        {localValue.map((v) => v.primaryDisplay).join(", ")}
+      </span>
     {/if}
 
     {#if inEdit && localValue?.length}
@@ -232,6 +250,7 @@
         on:mousedown|preventDefault={cellState.clear}
       ></i>
     {/if}
+
     {#if !cellOptions.readonly && (cellOptions.role == "formInput" || inEdit)}
       <i class="ri-arrow-down-s-line controlIcon"></i>
     {/if}
@@ -245,7 +264,7 @@
     bind:popup
     open={$editorState == "Open"}
   >
-    {#if fieldSchema.recursiveTable || ownId}
+    {#if fieldSchema.recursiveTable}
       <CellLinkPickerTree
         {fieldSchema}
         filter={filter ?? []}

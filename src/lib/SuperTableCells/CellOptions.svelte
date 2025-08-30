@@ -112,9 +112,8 @@
   $: inEdit = $cellState == "Editing";
   $: pills = optionsViewMode == "pills";
   $: multi =
-    fieldSchema && fieldSchema.type
-      ? fieldSchema.type == "array" && multi
-      : multi;
+    fieldSchema && fieldSchema.type ? fieldSchema.type == "array" : multi;
+
   $: placeholder = disabled || readonly ? "" : cellOptions.placeholder || "";
 
   export let cellState = fsm("Loading", {
@@ -638,7 +637,7 @@
     }
 
     &.focused {
-      background-color: var(--spectrum-global-color-gray-200);
+      background-color: var(--spectrum-global-color-gray-75);
       color: var(--spectrum-global-color-gray-800);
     }
 
@@ -656,7 +655,7 @@
 
       & > i {
         font-size: 16px;
-        color: var(--option-color);
+        color: var(--option-color, var(--spectrum-global-color-gray-300));
       }
     }
   }

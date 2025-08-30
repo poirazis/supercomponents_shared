@@ -19,6 +19,7 @@
   import CellAttachment from "../SuperTableCells/CellAttachment.svelte";
 
   import CellStringSimple from "../SuperTableCells/CellStringSimple.svelte";
+  import CellLinkAdvanced from "../SuperTableCells/CellLinkAdvanced.svelte";
 
   const stbData = getContext("stbData");
   const stbSettings = getContext("stbSettings");

@@ -118,6 +118,7 @@
       this={$columnSettings.cellComponent}
       cellOptions={{ ...$rowCellOptions, disabled, error: info }}
       fieldSchema={$columnSettings.schema}
+      ownId={row[idField]}
       {value}
       on:enteredit={() => columnState.enteredit(index)}
       on:exitedit={columnState.exitedit}

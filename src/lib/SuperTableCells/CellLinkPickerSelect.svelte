@@ -145,7 +145,7 @@
     />
   </div>
 
-  {#if $fetch?.loaded}
+  {#if $fetch?.rows}
     {#if wide}
       <div class="listWrapper" on:mousedown|preventDefault={() => {}}>
         <div class="list">
@@ -159,7 +159,9 @@
                       class:highlighted={focusIdx == idx}
                       on:mouseenter={() => (focusIdx = idx)}
                       on:mouseleave={() => (focusIdx = -1)}
-                      on:mousedown|preventDefault={selectRow(row)}
+                      on:mousedown|preventDefault|stopPropagation={selectRow(
+                        row
+                      )}
                     >
                       {row[primaryDisplay]}
                       <i class="ri-add-line" />
@@ -200,7 +202,7 @@
         <div class="list">
           <div class="options">
             {#key localValue}
-              {#if $fetch?.rows.length}
+              {#if $fetch?.rows?.length}
                 {#each $fetch?.rows as row, idx (idx)}
                   <div
                     class="option"
@@ -208,10 +210,10 @@
                     class:highlighted={focusIdx == idx}
                     on:mouseenter={() => (focusIdx = idx)}
                     on:mouseleave={() => (focusIdx = -1)}
-                    on:mousedown|preventDefault={selectRow(row)}
+                    on:mousedown|preventDefault|stopPropagation={selectRow(row)}
                   >
                     {row[primaryDisplay]}
-                    <i class="ri-checkbox-circle-fill" />
+                    <i class="ri-check-line" />
                   </div>
                 {/each}
               {:else}
@@ -325,8 +327,6 @@
     }
 
     &.selected {
-      background-color: var(--spectrum-global-color-gray-75);
-      color: var(--spectrum-global-color-gray-900);
       & > i {
         visibility: visible;
         color: var(--spectrum-global-color-green-500);
@@ -334,7 +334,7 @@
     }
 
     &.highlighted {
-      background-color: var(--spectrum-global-color-gray-200);
+      background-color: var(--spectrum-global-color-gray-75);
     }
   }
 
@@ -348,7 +348,7 @@
   }
 
   .option:hover {
-    background-color: var(--spectrum-global-color-gray-200);
+    background-color: var(--spectrum-global-color-gray-75);
     border-radius: 4px;
     cursor: pointer;
   }
