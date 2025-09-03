@@ -1,6 +1,6 @@
 <script>
   import Portal from "svelte-portal";
-  import { createEventDispatcher, getContext } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import positionDropdown from "../Actions/position_dropdown";
   import clickOutside from "../Actions/click_outside";
   import { fly } from "svelte/transition";

@@ -62,7 +62,6 @@
       _exit() {
         originalValue = undefined;
         dispatch("exitedit");
-        dispatch("focusout");
       },
       clear() {
         if (cellOptions.debounce) dispatch("change", null);

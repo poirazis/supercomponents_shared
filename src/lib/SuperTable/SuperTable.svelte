@@ -135,9 +135,32 @@
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(datasource);
+
   $: filterStore.set(filter);
-  $: columnsStore.set(columnList || []);
   $: stbData = createFetch($dataSourceStore);
+  $: stbSchema.set($stbData?.definition?.schema);
+
+  // Memoize schema changes - only update when schema actually changes
+  let previousSchema = null;
+
+  $: {
+    const newSchema = $stbData?.definition?.schema;
+
+    // Check if schema has actually changed
+    const schemaChanged =
+      JSON.stringify(newSchema) !== JSON.stringify(previousSchema);
+
+    if (schemaChanged) {
+      memoizedSchema.set(newSchema);
+      previousSchema = newSchema;
+      // Reset columnsStore only when schema changes
+      columnsStore.set(columnList || []);
+    }
+  }
+
+  // Update columnsStore when columnList changes
+  $: columnsStore.set(columnList || []);
+
   $: _rowHeight = rowHeight
     ? toNumber(
         processStringSync(rowHeight, {
@@ -168,6 +191,7 @@
 
   // Keep track of the applied query extentions when filtering
   let stbColumnFilters = new Set();
+  let queryExtensions = {};
 
   // Inserting New Record
   let temp_scroll_pos;
@@ -177,6 +201,7 @@
 
   const stbSettings = memo({});
   const stbSchema = memo({});
+  const memoizedSchema = memo({});
   // Create Stores
   const stbScrollPos = memo(0);
   const stbScrollOffset = memo(0);
@@ -189,12 +214,18 @@
   const stbMenuID = memo(-1);
   const stbMenuAnchor = memo(-1);
   const stbSelected = memo([]);
+  const maxSelectedStore = memo(maxSelected);
+  $: maxSelectedStore.set(maxSelected);
   $: stbSelectedRows = derivedMemo(
-    [stbData, stbSelected],
-    ([$stbData, $stbSelected]) => {
-      return $stbData?.rows?.filter((row) =>
+    [stbData, stbSelected, maxSelectedStore],
+    ([$stbData, $stbSelected, $maxSelectedStore]) => {
+      const selectedRows = $stbData?.rows?.filter((row) =>
         $stbSelected?.includes(row[idColumn])
       );
+      if ($maxSelectedStore === 1) {
+        return selectedRows.length > 0 ? selectedRows[0] : null;
+      }
+      return selectedRows;
     }
   );
 
@@ -394,6 +425,7 @@
           (a, b) => a.order - b.order
         );
       }
+      return [];
     },
     enrichColumn: (schema, bbcolumn) => {
       let type;
@@ -402,24 +434,36 @@
 
       if (bbcolumn.field.includes(".")) {
         let words = bbcolumn.field.split(".");
-        let outerSchema = schema[words[0]].schema;
-        columnSchema = outerSchema[words[1]];
-        type = columnSchema.type;
+        let outerSchema = schema[words[0]]?.schema;
+        if (outerSchema && outerSchema[words[1]]) {
+          columnSchema = outerSchema[words[1]];
+          type = columnSchema.type;
+        } else {
+          // Handle case where nested column doesn't exist
+          type = "string"; // Default type
+          columnSchema = {};
+        }
       } else {
-        type = schema[bbcolumn.field]?.type;
         columnSchema = schema[bbcolumn.field];
+        if (columnSchema) {
+          type = columnSchema.type;
+        } else {
+          // Handle case where column doesn't exist in schema
+          type = "string"; // Default type
+          columnSchema = {};
+        }
 
         if (bbcolumn.field.startsWith("fk_self_")) {
           isSelf = true;
-          (type = "link"),
-            (columnSchema = {
-              ...columnSchema,
-              tableId: $dataSourceStore.tableId,
-              relationshipType: "self",
-              recursiveTable: true,
-              primaryDisplay: $stbData?.definition?.primaryDisplay,
-              type: "link",
-            });
+          type = "link";
+          columnSchema = {
+            ...columnSchema,
+            tableId: $dataSourceStore.tableId,
+            relationshipType: "self",
+            recursiveTable: true,
+            primaryDisplay: $stbData?.definition?.primaryDisplay,
+            type: "link",
+          };
         }
       }
 
@@ -427,11 +471,11 @@
         ...bbcolumn,
         name: bbcolumn.field,
         widthOverride: bbcolumn.width,
-        readonly: schema[bbcolumn.field]?.readonly,
+        readonly: columnSchema?.readonly,
         canEdit:
           supportEditingMap[type] &&
           canEdit &&
-          !schema[bbcolumn.name]?.readonly &&
+          !columnSchema?.readonly &&
           !isSelf,
         canFilter: supportFilteringMap[type] ? canFilter : false,
         canSort: supportSortingMap[type],
@@ -997,8 +1041,6 @@
     },
   });
 
-  $: stbSchema.set($stbData?.definition?.schema);
-
   // Virtual List Capabilities reacting to viewport change
   $: stbState.calculateBoundaries(
     clientHeight,
@@ -1024,7 +1066,6 @@
 
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: queryExtensions = {};
   $: query = extendQuery(defaultQuery, queryExtensions);
 
   $: stbData?.update({
@@ -1037,9 +1078,13 @@
 
   // Derived Store with the columns to be rendered
   $: superColumns = derivedMemo(
-    [stbSchema, columnsStore, stbSettings],
-    ([$stbSchema, $columnsStore, $stbSettings]) => {
-      return tableAPI.populateColumns($stbSchema, $columnsStore, autocolumns);
+    [memoizedSchema, columnsStore, stbSettings],
+    ([$memoizedSchema, $columnsStore, $stbSettings]) => {
+      return tableAPI.populateColumns(
+        $memoizedSchema,
+        $columnsStore,
+        autocolumns
+      );
     }
   );
 

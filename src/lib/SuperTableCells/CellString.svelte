@@ -106,7 +106,10 @@
       ? ""
       : cellOptions.placeholder || "";
 
-  $: cellState.reset(value);
+  // Removed: $: cellState.reset(value);  // This was causing resets during editing
+  // Instead, sync localValue reactively only when not editing
+  $: if (!inEdit) localValue = value;
+
   const focus = (node) => {
     node?.focus();
   };
