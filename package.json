@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
   "svelte": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "vite build",
+    "build": "SASS_API=modern vite build",
     "watch": "vite build --watch",
     "dev": "vite",
     "prepare": "npm run build"
