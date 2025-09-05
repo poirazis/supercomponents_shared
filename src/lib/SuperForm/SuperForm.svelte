@@ -47,6 +47,8 @@
     return parsedFormStep;
   };
 
+  let currentUser = $context?.user?.email || "unknown";
+
   let definition: Table | undefined;
   let schema: TableSchema | undefined;
   let loaded = false;
@@ -140,6 +142,7 @@
       {editAutoColumns}
       {currentStep}
       {provideContext}
+      {currentUser}
       on:change
       on:reset
     >

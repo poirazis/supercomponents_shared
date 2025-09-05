@@ -23,6 +23,8 @@
   let timer;
   let picker;
   let search;
+  let initLimit = 15; // Fixed batch size for each API call
+  let isInitialLoad = true; // Track if this is the first load
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
@@ -77,6 +79,10 @@
   const dataSourceStore = memo(cellOptions?.datasource ?? {});
   $: dataSourceStore.set(cellOptions.datasource);
   $: fetch = optionsSource == "data" ? createFetch($dataSourceStore) : memo();
+  $: if (optionsSource == "data") {
+    initLimit = 15;
+    isInitialLoad = true;
+  }
   $: query = QueryUtils.buildQuery(cellOptions.filter);
 
   $: if (cellOptions.optionsSource == "data")
@@ -84,8 +90,24 @@
       query,
       sortColumn: cellOptions.sortColumn,
       sortOrder: cellOptions.sortOrder,
-      limit: cellOptions.limit,
+      limit: initLimit,
     });
+
+  // Auto-fetch more if initial data doesn't fill viewport
+  $: if (
+    $fetch?.rows?.length > 0 &&
+    !isInitialLoad &&
+    picker &&
+    optionsSource == "data"
+  ) {
+    const scrollHeight = picker.scrollHeight;
+    const clientHeight = picker.clientHeight;
+
+    // If content doesn't fill the viewport, try to fetch more
+    if (scrollHeight <= clientHeight) {
+      fetchMore();
+    }
+  }
 
   $: cellState.syncFetch($fetch);
   $: cellState.loadDataOptions($fetch?.rows);
@@ -142,6 +164,7 @@
         }
         $options = $options;
         filteredOptions = $options;
+        if (isInitialLoad) isInitialLoad = false;
       },
       loadCustomOptions() {
         if (customOptions?.length) {
@@ -208,7 +231,15 @@
         if (picker?.contains(e?.relatedTarget)) return;
 
         dispatch("focusout");
-        this.submit();
+
+        // For debounced inputs, dispatch the current value immediately on focusout
+        if (cellOptions.debounce && isDirty) {
+          clearTimeout(timer);
+          dispatch("change", multi ? localValue : localValue[0]);
+        } else {
+          this.submit();
+        }
+
         return "View";
       },
       submit() {
@@ -275,22 +306,38 @@
         search = false;
       },
       filterOptions(term) {
-        if (
-          term &&
-          cellOptions.optionsSource == "data" &&
-          labelColumn &&
-          valueColumn != labelColumn
-        ) {
-          filteredOptions = $options.filter((x) =>
-            labels[x]?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
-          );
-        } else if (term) {
-          filteredOptions = $options.filter((x) =>
-            x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
-          );
-        } else {
+        if (cellOptions.optionsSource == "data") {
+          // For datasource, update the fetch with filter
+          let appliedFilter = [];
+          if (term) {
+            appliedFilter = [
+              ...(cellOptions.filter || []),
+              {
+                field: labelColumn || valueColumn,
+                type: "string",
+                operator: "fuzzy",
+                value: term,
+                valueType: "Value",
+              },
+            ];
+          } else {
+            appliedFilter = cellOptions.filter || [];
+          }
+          fetch?.update({
+            query: QueryUtils.buildQuery(appliedFilter),
+          });
+          // Keep filteredOptions in sync
           filteredOptions = $options;
-          search = false;
+        } else {
+          // Client-side filtering for non-datasource
+          if (term) {
+            filteredOptions = $options.filter((x) =>
+              x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
+            );
+          } else {
+            filteredOptions = $options;
+            search = false;
+          }
         }
       },
       toggle() {
@@ -398,9 +445,35 @@
       options: {
         sortColumn: cellOptions.sortColumn,
         sortOrder: cellOptions.sortOrder,
-        limit: cellOptions.limit,
+        limit: initLimit,
       },
     });
+  };
+
+  const fetchMore = () => {
+    if ($fetch?.loading) return;
+    if ($fetch?.rows?.length < initLimit) {
+      return;
+    } // No more data to fetch
+    else {
+      initLimit += 100;
+
+      fetch?.update({
+        limit: initLimit,
+      });
+    }
+  };
+
+  const handleScroll = (e) => {
+    const element = e.target;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+
+    // Fetch more when user scrolls near the bottom (within 50px)
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      fetchMore();
+    }
   };
 
   const focus = (node) => {
@@ -476,7 +549,6 @@
       on:input={(e) => editorState.filterOptions(e.target.value)}
       value={multi ? "" : labels[localValue[0]] || ""}
       on:keydown={editorState.handleInputKeyboard}
-      on:focusout={cellState.focusout}
       use:focus
       {placeholder}
     />
@@ -544,7 +616,7 @@
   <SuperPopover
     {anchor}
     useAnchorWidth
-    maxHeight={400}
+    maxHeight={250}
     open={$editorState == "Open"}
     on:close={editorState.close}
   >
@@ -553,6 +625,7 @@
       class="options"
       on:wheel={(e) => e.stopPropagation()}
       on:mouseleave={() => (focusedOptionIdx = -1)}
+      on:scroll={optionsSource == "data" ? handleScroll : null}
     >
       {#if search}
         <div
@@ -574,7 +647,49 @@
           />
         </div>
       {/if}
-      {#if filteredOptions?.length < 1}
+      {#if optionsSource == "data"}
+        {#if $fetch?.loading && !$fetch?.rows?.length}
+          <div class="option loading">
+            <i class="ri-loader-2-line rotating" />
+            Loading...
+          </div>
+        {:else if filteredOptions?.length}
+          {#each filteredOptions as option, idx (idx)}
+            <div
+              class="option"
+              class:text={optionsViewMode == "text"}
+              class:focused={focusedOptionIdx === idx}
+              class:selected={localValue?.includes(option)}
+              style:--option-color={$colors[option]}
+              on:mousedown|preventDefault={(e) => editorState.toggleOption(idx)}
+              on:mouseenter={() => (focusedOptionIdx = idx)}
+            >
+              <span>
+                {#if cellOptions.optionsViewMode !== "text"}
+                  <i class="ri-checkbox-blank-fill" />
+                {/if}
+                {labels[option] || option}
+              </span>
+              {#if localValue?.includes(option)}
+                <i class="ri-check-fill" />
+              {/if}
+            </div>
+          {/each}
+          {#if $fetch?.loading}
+            <div class="option loading">
+              <i class="ri-loader-2-line rotating" />
+              Loading more...
+            </div>
+          {/if}
+        {:else}
+          <div class="option">
+            <span>
+              <i class="ri-close-line" />
+              No Options Found
+            </span>
+          </div>
+        {/if}
+      {:else if filteredOptions?.length < 1}
         <div class="option">
           <span>
             <i class="ri-close-line" />
@@ -659,6 +774,26 @@
       }
     }
   }
+
+  .option.loading {
+    justify-content: center;
+    color: var(--spectrum-global-color-gray-500);
+    font-style: italic;
+
+    & > i.rotating {
+      animation: rotate 1s linear infinite;
+    }
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .actionIcon {
     height: 100%;
     display: flex;

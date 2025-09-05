@@ -1,7 +1,11 @@
 <script>
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import { createEventDispatcher, onMount } from "svelte";
-  import { ALL_ICONS, ICON_CATEGORIES, ICONS_BY_CATEGORY } from "./remixIcons";
+  import {
+    ALL_ICONS,
+    ICON_CATEGORIES,
+    ICONS_BY_CATEGORY,
+  } from "./phosphorIcons";
   import VirtualList from "svelte-virtual-list";
 
   // Initialize categories with the correct structure
@@ -30,48 +34,27 @@
   const dispatch = createEventDispatcher();
 
   // Icon state management
-  let filled = false;
+  let weight = "regular";
   let iconName = "";
 
-  // Update icon name and variant when value changes
+  // Update icon name and weight when value changes
   $: if (value) {
-    const match = value.match(/^ri-(.+?)(?:-(line|fill))?$/);
+    const match = value.match(/^ph-(.+?)(?:-(bold|fill))?$/);
     if (match) {
       iconName = match[1];
-      filled = match[2] === "fill";
+      weight = match[2] || "regular";
     } else {
-      iconName = value.replace(/^ri-/, "");
-      filled = false; // Default to line variant if no variant specified
+      iconName = value.replace(/^ph-/, "");
+      weight = "regular";
     }
   } else {
     iconName = "";
-    filled = false;
+    weight = "regular";
   }
 
-  // Filter icons to only include the selected variant (line or fill)
+  // Filter icons (no variants in Budibase list)
   function filterIcons(icons) {
-    const variant = filled ? "-fill" : "-line";
-    const baseIcons = new Set();
-
-    return icons
-      .filter((icon) => icon.endsWith(variant))
-      .map((icon) => {
-        // Get the base name without any variant
-        const baseName = icon.endsWith("-fill")
-          ? icon.slice(0, -5) // remove '-fill'
-          : icon.endsWith("-line")
-            ? icon.slice(0, -5) // remove '-line'
-            : icon; // no variant
-        return { baseName, fullName: icon };
-      })
-      .filter(({ baseName }) => {
-        if (!baseIcons.has(baseName)) {
-          baseIcons.add(baseName);
-          return true;
-        }
-        return false;
-      })
-      .map(({ fullName }) => fullName);
+    return icons;
   }
 
   // Grid configuration
@@ -87,37 +70,27 @@
   $: itemsPerRow = cellOptions?.showCategories ? 9 : 6;
   $: containerHeight = buttonSize * rowsToShow + containerPadding * 2;
   $: rowData = generateRowData(
-    filled,
+    weight,
     value,
     itemsPerRow,
     selectedCategory,
     searchQuery
   );
 
-  function generateRowData(useFilled) {
+  function generateRowData(
+    useWeight,
+    currentValue,
+    itemsPerRow,
+    selectedCategory,
+    searchQuery
+  ) {
     const currentCategory = categories.find(
       (cat) => cat.id === selectedCategory
     );
     if (!currentCategory) return [];
 
-    // Filter to show the selected variant and remove duplicates
-    const variant = useFilled ? "-fill" : "-line";
-    let icons = [...currentCategory.icons]
-      .filter((icon) => icon.endsWith(variant))
-      .map((icon) => {
-        // Get the base name without any variant
-        const baseName = icon.endsWith("-fill")
-          ? icon.slice(0, -5) // remove '-fill'
-          : icon.endsWith("-line")
-            ? icon.slice(0, -5) // remove '-line'
-            : icon; // no variant
-        return { baseName, fullName: icon };
-      })
-      .filter(
-        ({ baseName }, index, self) =>
-          index === self.findIndex((i) => i.baseName === baseName)
-      )
-      .map(({ fullName }) => fullName);
+    // Filter (no variants)
+    let icons = [...currentCategory.icons];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -139,24 +112,16 @@
   // Reactive updates are handled in the reactive block above
 
   const onChange = (icon) => {
-    const baseName = icon.replace(/-line|-fill$/, "");
-    const variant = filled ? "-fill" : "-line";
-    const newValue = `ri-${baseName}${variant}`;
+    const newValue = `ph-${icon}${weight !== "regular" ? `-${weight}` : ""}`;
     const selectedValue = newValue === value ? "" : newValue;
     value = selectedValue;
     dispatch("change", selectedValue);
     open = false;
   };
 
-  // Toggle between filled and line variants
-  function toggleFilled() {
-    filled = !filled;
-    // The reactive statement will handle updating rowData
-  }
-
   // Handle mouse enter on icon button
   function handleMouseEnter(icon) {
-    hoveredIcon = "ri-" + icon;
+    hoveredIcon = `ph ph-${icon}${weight !== "regular" ? ` ph-${weight}` : ""}`;
   }
 
   const handleKeydown = (event, icon) => {
@@ -198,10 +163,10 @@
   aria-label="Select icon"
 >
   {#if value}
-    <i class={hoveredIcon || value} />
+    <i class="ph ph-{iconName}{weight !== 'regular' ? ` ph-${weight}` : ''}" />
   {:else}
     <div class="empty-state">
-      <i class={hoveredIcon || "ri-image-line"} />
+      <i class="ph ph-image" />
     </div>
   {/if}
 </div>
@@ -233,7 +198,7 @@
         </div>
       {/if}
       <div class="search-container">
-        <i class="ri-search-line search-icon" />
+        <i class="ph ph-magnifying-glass search-icon" />
         <input
           type="text"
           bind:value={searchQuery}
@@ -247,7 +212,7 @@
             on:click={() => (searchQuery = "")}
             aria-label="Clear search"
           >
-            <i class="ri-close-line" />
+            <i class="ph ph-x" />
           </button>
         {/if}
       </div>
@@ -268,7 +233,7 @@
             {#each rowIcons as icon}
               <button
                 class="icon-button"
-                class:selected={value === `ri-${icon}`}
+                class:selected={iconName === icon}
                 on:click={() => onChange(icon)}
                 on:keydown={(e) => handleKeydown(e, icon)}
                 on:mouseenter={() => handleMouseEnter(icon)}
@@ -276,14 +241,18 @@
                 aria-label={`Select ${icon} icon`}
                 tabindex="0"
               >
-                <i class="ri-{icon}" />
+                <i
+                  class="ph ph-{icon}{weight !== 'regular'
+                    ? ` ph-${weight}`
+                    : ''}"
+                />
               </button>
             {/each}
           </div>
         </VirtualList>
       {:else}
         <div class="no-results">
-          <i class="ri-search-line" />
+          <i class="ph ph-magnifying-glass" />
           <p>No icons found</p>
         </div>
       {/if}
@@ -291,20 +260,18 @@
 
     <div class="footer">
       <div class="footer-left">
-        <label class="checkbox-container">
-          <input
-            type="checkbox"
-            checked={filled}
-            on:click={toggleFilled}
-            on:keydown={(e) => e.key === "Enter" && toggleFilled()}
-          />
-          <span class="checkmark"></span>
-          <span class="checkbox-label">Filled</span>
+        <label class="weight-selector">
+          <span class="weight-label">Weight:</span>
+          <select bind:value={weight} class="weight-select">
+            <option value="regular">Normal</option>
+            <option value="bold">Bold</option>
+            <option value="fill">Filled</option>
+          </select>
         </label>
       </div>
       {#if value}
         <button class="clear-button" on:click={clearSelection}>
-          <i class="ri-close-line" /> Clear
+          <i class="ph ph-x" /> Clear
         </button>
       {/if}
     </div>
@@ -312,6 +279,10 @@
 </SuperPopover>
 
 <style lang="scss">
+  @import "@phosphor-icons/web/src/regular/style.css";
+  @import "@phosphor-icons/web/src/fill/style.css";
+  @import "@phosphor-icons/web/src/bold/style.css";
+
   .preview-icon {
     position: relative;
     display: inline-flex;
@@ -538,74 +509,31 @@
     height: 100%;
   }
 
-  .checkbox-container {
+  .weight-selector {
     display: flex;
     align-items: center;
-    position: relative;
-    padding-left: 20px;
-    margin: 0;
-    cursor: pointer;
-    height: 100%;
+    gap: 0.5rem;
+  }
+
+  .weight-label {
+    font-size: 0.75rem;
     color: var(--spectrum-global-color-gray-700);
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    white-space: nowrap;
   }
 
-  .checkbox-container input {
-    position: absolute;
-    opacity: 0;
+  .weight-select {
+    padding: 4px 8px;
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: 4px;
+    background: var(--spectrum-global-color-white);
+    font-size: 0.75rem;
+    color: var(--spectrum-global-color-gray-800);
     cursor: pointer;
-    height: 0;
-    width: 0;
+    transition: border-color 0.2s ease;
   }
 
-  .checkmark {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    height: 12px;
-    width: 12px;
-    background-color: var(--spectrum-global-color-gray-100);
-    border: 1px solid var(--spectrum-global-color-gray-400);
-    border-radius: 2px;
-    transition: all 0.2s ease;
-  }
-
-  .checkbox-container:hover input ~ .checkmark {
-    border-color: var(--spectrum-global-color-gray-600);
-  }
-
-  .checkbox-container input:checked ~ .checkmark {
-    background-color: var(--spectrum-global-color-blue-500);
+  .weight-select:focus {
+    outline: none;
     border-color: var(--spectrum-global-color-blue-500);
-  }
-
-  .checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-  }
-
-  .checkbox-container input:checked ~ .checkmark:after {
-    display: block;
-  }
-
-  .checkbox-container .checkmark:after {
-    left: 3px;
-    top: 0;
-    width: 4px;
-    height: 7px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-
-  .checkbox-label {
-    margin-left: 4px;
   }
 
   .clear-button {

@@ -1,13 +1,22 @@
 <script>
   import { getContext } from "svelte";
+  import CellString from "../../SuperTableCells/CellString.svelte";
+  import CellStringSimple from "../../SuperTableCells/CellStringSimple.svelte";
   const columnSettings = getContext("stColumnOptions");
   const rowCellOptions = getContext("stRowCellOptions");
   const stbState = getContext("stbState");
+  const stbSettings = getContext("stbSettings");
 
   export let row = {};
   export let isFirst;
   export let isLast;
   export let color;
+
+  $: cellComponent =
+    $columnSettings.cellComponent === CellStringSimple &&
+    $stbSettings.features.canInsert
+      ? CellString
+      : $columnSettings.cellComponent;
 </script>
 
 <div
@@ -17,7 +26,7 @@
   class:isLast
 >
   <svelte:component
-    this={$columnSettings.cellComponent}
+    this={cellComponent}
     cellOptions={{
       ...$rowCellOptions,
       readonly: false,

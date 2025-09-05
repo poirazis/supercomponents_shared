@@ -190,6 +190,7 @@
       unlockWidth() {
         if (resizing) return;
         $lockWidth = 0;
+        this.lockWidth.debounce(200);
       },
       startResizing(e) {
         e.stopPropagation();
@@ -334,6 +335,20 @@
 
   onMount(() => {
     stbAPI?.registerSuperColumn(id, columnState);
+
+    // Auto-lock width after initial render for flexible columns only
+    if (
+      ($columnOptionsStore.sizing === "flexible" ||
+        $columnOptionsStore.sizing === "flex") &&
+      $columnOptionsStore.sizing !== "fixed"
+    ) {
+      // Use a timeout to ensure the DOM has rendered
+      setTimeout(() => {
+        if (viewport && $lockWidth === 0) {
+          $lockWidth = viewport.clientWidth;
+        }
+      }, 0);
+    }
   });
 
   onDestroy(() => {
@@ -394,3 +409,42 @@
     <SuperColumnFooter {footerLabel} />
   {/if}
 </div>
+
+<style>
+  .super-column {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    /* Touch devices */
+    touch-action: manipulation;
+  }
+
+  .grabber {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    cursor: ew-resize;
+    z-index: 1;
+  }
+
+  .grabber:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .super-column.sticky {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+  }
+
+  .super-column.resizing {
+    cursor: ew-resize;
+  }
+
+  .super-column considerResizing {
+    cursor: pointer;
+  }
+</style>

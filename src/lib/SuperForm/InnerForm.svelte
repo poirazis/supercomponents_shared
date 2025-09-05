@@ -46,6 +46,7 @@
   export let editAutoColumns: boolean = false;
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
+  export let currentUser: string = "unknown";
 
   const { Provider, ActionTypes, createValidatorFromConstraints } =
     getContext("sdk");
@@ -407,7 +408,34 @@
     value: any;
   }) => {
     if (type === "set") {
-      formApi.setFieldValue(field, value);
+      if (field === "_value") {
+        let parsedValue = value;
+        if (typeof value === "string") {
+          try {
+            parsedValue = JSON.parse(value);
+          } catch {
+            // Invalid JSON, skip
+            return;
+          }
+        }
+        if (typeof parsedValue === "object" && parsedValue !== null) {
+          // Special case: update multiple fields from the value object
+          Object.keys(parsedValue).forEach((key) => {
+            const fieldStore = fields.find(
+              (field) => get(field).name.toLowerCase() === key.toLowerCase()
+            );
+            if (fieldStore) {
+              const actualFieldName = get(fieldStore).name;
+              formApi.setFieldValue(actualFieldName, parsedValue[key]);
+            }
+          });
+
+          formApi.validate();
+        }
+        // If not an object, do nothing
+      } else {
+        formApi.setFieldValue(field, value);
+      }
     } else {
       formApi.resetField(field);
     }

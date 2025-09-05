@@ -17,6 +17,11 @@
   let focusIdx = -1;
   let control;
   let filterTerm;
+  let initLimit = 15; // Fixed batch size for each API call
+  let listElement; // Reference to the scrollable list
+  let isInitialLoad = true; // Track if this is the first load
+  let currentCursor = null; // Track the current bookmark/cursor for incremental fetching
+  let currentOffset = 0; // Fallback offset-based pagination
 
   $: isBBReference = fieldSchema?.type?.includes("bb_reference");
   $: isMultiReference =
@@ -31,11 +36,16 @@
     },
     options: {
       filter,
-      limit: 1000,
-    },
+      limit: 15,
+    }, // Always use batch size for API calls    },
   });
 
   $: primaryDisplay = $fetch?.definition?.primaryDisplay || "email";
+
+  // Reset focus when data changes
+  $: if ($fetch?.rows) {
+    focusIdx = Math.min(focusIdx, $fetch.rows.length - 1);
+  }
 
   const rowSelected = (val) => {
     if (value) {
@@ -74,6 +84,7 @@
 
   const handleSearch = (e) => {
     filterTerm = e.target.value;
+
     if (e.target.value) {
       appliedFilter = [
         ...filter,
@@ -94,6 +105,32 @@
     });
   };
 
+  const fetchMore = () => {
+    if ($fetch?.loading) return;
+    if ($fetch.rows.length < initLimit) {
+      return;
+    } // No more data to fetch
+    else {
+      initLimit += 100;
+
+      fetch?.update({
+        limit: initLimit,
+      });
+    }
+  };
+
+  const handleScroll = (e) => {
+    const element = e.target;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+
+    // Fetch more when user scrolls near the bottom (within 50px)
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      fetchMore();
+    }
+  };
+
   const handleNavigation = (e) => {
     if (e.key == "ArrowDown") {
       e.preventDefault();
@@ -107,6 +144,17 @@
       selectRow($fetch.rows[focusIdx]);
     if (e.key == "Tab" || e.key == "Escape") dispatch("close");
   };
+
+  // Auto-fetch more if initial data doesn't fill viewport
+  $: if ($fetch?.rows?.length > 0 && !isInitialLoad && listElement) {
+    const scrollHeight = listElement.scrollHeight;
+    const clientHeight = listElement.clientHeight;
+
+    // If content doesn't fill the viewport, try to fetch more
+    if (scrollHeight <= clientHeight) {
+      fetchMore();
+    }
+  }
 
   export const api = {
     focus: () => {
@@ -124,7 +172,7 @@
 <div class="control">
   <div class="searchControl">
     <i
-      class={$fetch.loading
+      class={$fetch.loading && isInitialLoad
         ? "ri-loader-2-line"
         : control?.value
           ? "ri-filter-fill"
@@ -138,7 +186,9 @@
       class="search"
       class:placeholder={!filterTerm}
       type="text"
-      placeholder={$fetch.loading ? "Loading..." : "Search"}
+      placeholder={$fetch?.loading && !$fetch?.rows?.length && isInitialLoad
+        ? "Loading..."
+        : "Search"}
       on:input={handleSearch}
       on:keydown={handleNavigation}
       on:blur={() => dispatch("close")}
@@ -148,11 +198,11 @@
   {#if $fetch?.rows}
     {#if wide}
       <div class="listWrapper" on:mousedown|preventDefault={() => {}}>
-        <div class="list">
+        <div class="list" bind:this={listElement} on:scroll={handleScroll}>
           <div class="options">
             {#key localValue}
-              {#if $fetch?.rows.length}
-                {#each $fetch.rows as row, idx (idx)}
+              {#if $fetch?.rows?.length || ($fetch?.loading && !isInitialLoad)}
+                {#each $fetch?.rows || [] as row, idx (idx)}
                   {#if !rowSelected(row)}
                     <div
                       class="option wide"
@@ -168,8 +218,19 @@
                     </div>
                   {/if}
                 {/each}
+                {#if $fetch?.loading && $fetch.loaded}
+                  <div class="option wide loading">
+                    <i class="ri-loader-2-line rotating" />
+                    Loading more...
+                  </div>
+                {/if}
+              {:else if $fetch?.loading}
+                <div class="option wide loading">
+                  <i class="ri-loader-2-line rotating" />
+                  Loading...
+                </div>
               {:else}
-                <div class="option">No Results Found</div>
+                <div class="option wide">No Results Found</div>
               {/if}
             {/key}
           </div>
@@ -199,11 +260,11 @@
       </div>
     {:else}
       <div class="listWrapper" on:mousedown|preventDefault={() => {}}>
-        <div class="list">
+        <div class="list" bind:this={listElement} on:scroll={handleScroll}>
           <div class="options">
             {#key localValue}
-              {#if $fetch?.rows?.length}
-                {#each $fetch?.rows as row, idx (idx)}
+              {#if $fetch?.rows?.length || ($fetch?.loading && !$fetch?.loaded)}
+                {#each $fetch?.rows || [] as row, idx (idx)}
                   <div
                     class="option"
                     class:selected={rowSelected(row)}
@@ -216,6 +277,17 @@
                     <i class="ri-check-line" />
                   </div>
                 {/each}
+                {#if $fetch?.loading && $fetch.loaded}
+                  <div class="option loading">
+                    <i class="ri-loader-2-line rotating" />
+                    Loading more...
+                  </div>
+                {/if}
+              {:else if $fetch?.loading}
+                <div class="option loading">
+                  <i class="ri-loader-2-line rotating" />
+                  Loading...
+                </div>
               {:else}
                 <div class="option">No Results Found</div>
               {/if}
@@ -351,5 +423,24 @@
     background-color: var(--spectrum-global-color-gray-75);
     border-radius: 4px;
     cursor: pointer;
+  }
+
+  .option.loading {
+    justify-content: center;
+    color: var(--spectrum-global-color-gray-500);
+    font-style: italic;
+
+    & > i.rotating {
+      animation: rotate 1s linear infinite;
+    }
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

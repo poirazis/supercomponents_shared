@@ -363,8 +363,6 @@
     value = null;
     dispatch("change", null);
   };
-
-  $: console.log(cellOptions);
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->

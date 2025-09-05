@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@budibase/types": "^2.33.14",
+    "@phosphor-icons/web": "^2.1.2",
     "@sveltejs/svelte-virtual-list": "^3.0.1",
     "date-picker-svelte": "^2.16.0",
     "shortid": "^2.2.17",

@@ -189,6 +189,11 @@
   let start = 0;
   let end = 0;
 
+  // Scrolling width lock variables
+  let scrollLockTimeout;
+  let isScrolling = false;
+  let tableWidth = 0;
+
   // Keep track of the applied query extentions when filtering
   let stbColumnFilters = new Set();
   let queryExtensions = {};
@@ -727,6 +732,28 @@
         stbData?.refresh();
       },
       enrichRows() {},
+      lockColumnWidths() {
+        if (isScrolling) return; // Already locked
+        isScrolling = true;
+        // Clear any existing timeout
+        if (scrollLockTimeout) {
+          clearTimeout(scrollLockTimeout);
+          scrollLockTimeout = null;
+        }
+        columnStates.forEach(({ state }) => state.lockWidth());
+      },
+      unlockColumnWidths() {
+        // Only unlock if currently locked
+        if (!isScrolling) return;
+        isScrolling = false;
+        // Clear any existing timeout
+        if (scrollLockTimeout) {
+          clearTimeout(scrollLockTimeout);
+          scrollLockTimeout = null;
+        }
+        // Unlock all columns immediately (no delay needed for table resize)
+        columnStates.forEach(({ state }) => state.unlockWidth());
+      },
       scrollToTop() {
         $stbScrollPos = 0;
         $stbScrollOffset = 0;
@@ -813,12 +840,24 @@
           const loadedHeight = $cumulativeHeights[rows.length - 1];
           const remainingHeight =
             loadedHeight - ($stbScrollPos + maxBodyHeight);
-          if (remainingHeight < maxBodyHeight && rows.length === _limit) {
+
+          // Only fetch if we're actually scrolling near the end AND haven't loaded all possible rows
+          // Check if total rows loaded < total available (if known) or if remainingHeight indicates need
+          const hasMoreData =
+            !$stbData.info?.total || rows.length < $stbData.info.total;
+          if (
+            remainingHeight < maxBodyHeight &&
+            rows.length === _limit &&
+            hasMoreData
+          ) {
             stbState.fetchMoreRows(100); // Debounced fetch
           }
         }
       },
       handleVerticalScroll(delta) {
+        // Lock column widths during scrolling to prevent flickering
+        this.lockColumnWidths();
+
         $stbScrollPos = Math.max(
           Math.min(
             $stbScrollPos + delta,
@@ -831,6 +870,7 @@
             ? $stbScrollPos / (scrollHeight - maxBodyHeight)
             : 0;
         window.requestAnimationFrame(() => this.calculateRowBoundaries());
+        // Note: We don't unlock here - columns stay locked during scrolling
       },
       handleWheel(e) {
         if ($stbState == "Inserting") {
@@ -844,6 +884,9 @@
           e.stopPropagation();
           this.handleVerticalScroll(e.deltaY);
         } else if (e.deltaX) {
+          // Lock column widths during horizontal scrolling too
+          this.lockColumnWidths();
+
           if ($stbHorizontalScrollPos + e.deltaX < 0) {
             $stbHorizontalScrollPos = 0;
             $stbHorizontalScrollPercent = 0;
@@ -862,6 +905,8 @@
           $stbHorizontalScrollPos += e.deltaX;
           $stbHorizontalScrollPercent =
             $stbHorizontalScrollPos / columnsViewport.scrollWidth;
+
+          // Note: We don't unlock here - columns stay locked during scrolling
         }
       },
       handleKeyboard(e) {
@@ -887,6 +932,26 @@
             e.preventDefault(); // Prevent native vertical scroll
             this.handleVerticalScroll(deltaY * 0.5); // Adjust sensitivity (0.5 for smoother scrolling)
             touchStartY = touchY; // Update start position for continuous scrolling
+          } else if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Handle horizontal touch scrolling
+            this.lockColumnWidths();
+            if ($stbHorizontalScrollPos + deltaX < 0) {
+              $stbHorizontalScrollPos = 0;
+              $stbHorizontalScrollPercent = 0;
+            } else if (
+              $stbHorizontalScrollPos + deltaX >
+              columnsViewport?.scrollWidth - columnsViewport.clientWidth
+            ) {
+              $stbHorizontalScrollPos =
+                columnsViewport?.scrollWidth - columnsViewport.clientWidth;
+              $stbHorizontalScrollPercent = 1;
+            } else {
+              $stbHorizontalScrollPos += deltaX;
+              $stbHorizontalScrollPercent =
+                $stbHorizontalScrollPos / columnsViewport.scrollWidth;
+            }
+            touchStartX = touchX;
+            // Note: We don't unlock here - columns stay locked during scrolling
           }
         }
       },
@@ -950,6 +1015,8 @@
     Idle: {
       _enter() {
         isEmpty = $stbData.rows.length < 1;
+        // Note: We don't unlock columns here anymore since columns auto-lock themselves
+        // when they are flexible and become unlocked
       },
       _exit() {},
       synch(fetchState) {
@@ -1199,7 +1266,7 @@
         sortColumn,
         sortOrder,
         limit,
-        paginate: true,
+        paginate: false,
       },
     });
   };
@@ -1267,9 +1334,21 @@
 
   onDestroy(() => {
     if (timer) clearInterval(timer);
+    if (scrollLockTimeout) clearTimeout(scrollLockTimeout);
   });
 
   $: render = true;
+
+  // Unlock columns when table width changes to allow responsive re-rendering
+  let previousTableWidth = 0;
+  $: if (
+    (tableWidth > 0 && tableWidth !== previousTableWidth) ||
+    $columnsStore
+  ) {
+    previousTableWidth = tableWidth;
+    // Unlock all columns to allow responsive re-rendering
+    columnStates.forEach(({ state }) => state.unlockWidth());
+  }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1280,6 +1359,7 @@
     class="super-table"
     class:quiet
     bind:this={viewport}
+    bind:clientWidth={tableWidth}
     bind:clientHeight
     style:font-size={sizingMap[size].rowFontSize}
     style:--super-table-devider-color={dividersStyles.color}

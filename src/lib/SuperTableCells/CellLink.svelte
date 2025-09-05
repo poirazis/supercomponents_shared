@@ -60,8 +60,6 @@
         dispatch("exitedit");
       },
       focusout(e) {
-        console.log("Focus out", e, popup);
-
         if (popup?.contains(e?.relatedTarget)) return;
         this.submit();
       },
