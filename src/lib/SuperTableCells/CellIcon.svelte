@@ -279,9 +279,9 @@
 </SuperPopover>
 
 <style lang="scss">
-  @import "@phosphor-icons/web/src/regular/style.css";
+  /* @import "@phosphor-icons/web/src/regular/style.css";
   @import "@phosphor-icons/web/src/fill/style.css";
-  @import "@phosphor-icons/web/src/bold/style.css";
+  @import "@phosphor-icons/web/src/bold/style.css"; */
 
   .preview-icon {
     position: relative;
@@ -307,7 +307,6 @@
   .preview-icon:focus {
     outline: none;
   }
-
   .preview-icon.circle {
     border-radius: 50%;
   }

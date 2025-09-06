@@ -15,6 +15,7 @@ export { default as CellOptions } from "./CellOptions.svelte";
 export { default as CellOptionsAdvanced } from "./CellOptionsAdvanced.svelte";
 export { default as CellSkeleton } from "./CellSkeleton.svelte";
 export { default as CellString } from "./CellString.svelte";
+export { default as CellStringMask } from "./CellStringMask.svelte";
 export { default as CellStringSimple } from "./CellStringSimple.svelte";
 
 // Export utilities from this directory

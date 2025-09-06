@@ -70,7 +70,6 @@
   export let filter;
 
   export let columnList;
-  export let autocolumns;
 
   export let tableActions;
 
@@ -79,6 +78,8 @@
   export let size = "M";
   export let canInsert, canDelete, canEdit, canResize, canFilter, canSelect;
   export let superColumnsPos;
+  export let showAutoColumns;
+  export let showSpecialColumns;
 
   export let debounce = 750;
   export let rowMenu;
@@ -200,7 +201,8 @@
 
   // Inserting New Record
   let temp_scroll_pos;
-  let new_row;
+  const new_row = writable({});
+  let errorTimer; // Timer for auto-clearing errors
 
   // Turm non primitive props into reactive stores to limit refreshes
 
@@ -239,10 +241,20 @@
   const stbSortColumn = memo({});
   const stbSortOrder = memo({});
 
+  const specialColumns = [
+    "created_by",
+    "created_at",
+    "updated_by",
+    "updated_at",
+    "deleted_by",
+    "deleted_at",
+  ];
+
   // Update Settings Reactively so children can react to changes
   $: stbSettings.set({
     inBuilder: $builderStore?.inBuilder,
-    autocolumns,
+    showAutoColumns,
+    showSpecialColumns,
     superColumnsPos,
     columnSizing: columnSizing || "flexible",
     columnMaxWidth: columnMaxWidth || "auto",
@@ -386,18 +398,13 @@
         return res;
       }, {});
     },
-    populateColumns: (schema, list, auto) => {
+    populateColumns: (schema, list, auto, special) => {
       let jsoncolumnslist = [];
       let autocolumnsList = [];
+      let specialColumnsList = [];
       let columns = [];
 
       if (schema) {
-        if (auto) {
-          autocolumnsList = Object.keys(schema)
-            .filter((v) => schema[v].autocolumn)
-            .map((v) => tableAPI.enrichColumn(schema, schema[v]));
-        }
-
         if (list?.length) {
           columns = list.map((column) => {
             return tableAPI.enrichColumn(schema, {
@@ -406,6 +413,18 @@
             });
           });
         } else {
+          if (auto) {
+            autocolumnsList = Object.keys(schema)
+              .filter((v) => schema[v]?.autocolumn)
+              .map((v) => tableAPI.enrichColumn(schema, schema[v]));
+          }
+
+          if (special) {
+            specialColumnsList = Object.keys(schema)
+              .filter((v) => specialColumns.includes(v))
+              .map((v) => tableAPI.enrichColumn(schema, schema[v]));
+          }
+
           jsoncolumnslist = Object.keys(schema)
             .filter((v) => schema[v].nestedJSON)
             .map((v) => tableAPI.enrichColumn(schema, schema[v]));
@@ -414,21 +433,22 @@
             .filter(
               (v) =>
                 !schema[v].autocolumn &&
+                !specialColumns.includes(v) &&
                 !schema[v].nestedJSON &&
                 schema[v]?.visible != false &&
                 v != idColumn
             )
             .map((v) => {
-              return tableAPI.enrichColumn(schema, {
-                ...schema[v],
-                field: v ?? schema[v].field ?? schema[v].name,
-              });
+              return tableAPI.enrichColumn(schema, schema[v]);
             });
         }
 
-        return [...columns, ...jsoncolumnslist, ...autocolumnsList].sort(
-          (a, b) => a.order - b.order
-        );
+        return [
+          ...autocolumnsList,
+          ...columns,
+          ...jsoncolumnslist,
+          ...specialColumnsList,
+        ].sort((a, b) => a.order - b.order);
       }
       return [];
     },
@@ -437,8 +457,8 @@
       let columnSchema;
       let isSelf;
 
-      if (bbcolumn.field.includes(".")) {
-        let words = bbcolumn.field.split(".");
+      if (bbcolumn.name.includes(".")) {
+        let words = bbcolumn.name.split(".");
         let outerSchema = schema[words[0]]?.schema;
         if (outerSchema && outerSchema[words[1]]) {
           columnSchema = outerSchema[words[1]];
@@ -458,7 +478,7 @@
           columnSchema = {};
         }
 
-        if (bbcolumn.field.startsWith("fk_self_")) {
+        if (bbcolumn.name.startsWith("fk_self_")) {
           isSelf = true;
           type = "link";
           columnSchema = {
@@ -474,14 +494,14 @@
 
       return {
         ...bbcolumn,
-        name: bbcolumn.field,
         widthOverride: bbcolumn.width,
         readonly: columnSchema?.readonly,
         canEdit:
           supportEditingMap[type] &&
           canEdit &&
           !columnSchema?.readonly &&
-          !isSelf,
+          !isSelf &&
+          !bbcolumn.autocolumn,
         canFilter: supportFilteringMap[type] ? canFilter : false,
         canSort: supportSortingMap[type],
         filteringOperators: QueryUtils.getValidOperatorsForType({ type }),
@@ -614,12 +634,47 @@
       } else {
         stbState.startSave();
         try {
-          saved_row = await API.saveRow({ ...new_row, tableId });
+          saved_row = await API.saveRow(
+            { ...$new_row, tableId },
+            { suppressErrors: true }
+          );
+
+          // Clear errors on success
+          $new_row.errors = {};
+          $new_row = $new_row;
+          stbState.refresh();
+          let richContext = { ...$context, [comp_id]: { row: saved_row } };
+          let cmd_after = enrichButtonActions(afterInsert, richContext);
+          await cmd_after?.({ row: saved_row });
+          stbState.endSave(); // Only on success
+          return saved_row;
         } catch (e) {
-          console.log(e);
-        } finally {
-          await cmd_after?.({ newRow: saved_row });
-          stbState.endSave();
+          // Auto-clear errors after 2 seconds
+          if (errorTimer) clearTimeout(errorTimer);
+          errorTimer = setTimeout(() => {
+            $new_row = { ...$new_row, errors: {} };
+          }, 2000);
+
+          // Parse Budibase API error
+          $new_row.errors = {};
+          if (e.json && e.json.validationErrors) {
+            // Handle Budibase validation errors
+            const validationErrors = e.json.validationErrors;
+            Object.keys(validationErrors).forEach((field) => {
+              $new_row.errors[field] =
+                validationErrors[field][0] || "Validation error";
+            });
+          } else if (e.details || e.errors) {
+            const errorDetails = e.details || e.errors;
+            errorDetails.forEach((err) => {
+              if (err.field) {
+                $new_row.errors[err.field] = err.message || "Validation error";
+              }
+            });
+          } else {
+            // Fallback for generic errors
+            $new_row.errors = { general: e.message || "Save failed" };
+          }
         }
       }
     },
@@ -1087,7 +1142,7 @@
       _enter() {
         isEmpty = false;
         columnStates.forEach(({ state }) => state.addRow());
-        new_row = {};
+        $new_row = {};
         temp_scroll_pos = $stbScrollPos;
         this.scrollToEnd();
       },
@@ -1103,7 +1158,16 @@
         return "Idle";
       },
       setValue(field, value) {
-        new_row[field] = value;
+        $new_row[field] = value;
+        // Clear errors for this field and cancel auto-clear timer
+        if ($new_row.errors && $new_row.errors[field]) {
+          delete $new_row.errors[field];
+          if (errorTimer) {
+            clearTimeout(errorTimer);
+            errorTimer = null;
+          }
+        }
+        $new_row = { ...$new_row }; // Trigger reactivity
       },
     },
   });
@@ -1150,7 +1214,8 @@
       return tableAPI.populateColumns(
         $memoizedSchema,
         $columnsStore,
-        autocolumns
+        $stbSettings.showAutoColumns,
+        $stbSettings.showSpecialColumns
       );
     }
   );
@@ -1326,6 +1391,7 @@
   $: setContext("stbRowMetadata", stbRowMetadata);
   $: setContext("stbData", stbData);
   $: setContext("stbSchema", stbSchema);
+  $: setContext("new_row", new_row);
 
   function toNumber(input) {
     const num = Number(input);
@@ -1336,8 +1402,6 @@
     if (timer) clearInterval(timer);
     if (scrollLockTimeout) clearTimeout(scrollLockTimeout);
   });
-
-  $: render = true;
 
   // Unlock columns when table width changes to allow responsive re-rendering
   let previousTableWidth = 0;
@@ -1354,135 +1418,133 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-{#if render}
-  <div
-    class="super-table"
-    class:quiet
-    bind:this={viewport}
-    bind:clientWidth={tableWidth}
-    bind:clientHeight
-    style:font-size={sizingMap[size].rowFontSize}
-    style:--super-table-devider-color={dividersStyles.color}
-    style:--super-table-body-height={maxBodyHeight}
-    style:--super-table-header-height={$stbSettings.appearance.headerHeight}
-    style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
-    style:--super-table-horizontal-dividers={dividersStyles.horizontal}
-    style:--super-table-vertical-dividers={dividersStyles.vertical}
-    style:--super-table-cell-padding={sizingMap[size].cellPadding}
-    style:--super-column-top-offset={$stbScrollOffset * -1}
-    on:mouseenter={() => (highlighted = true)}
-    on:mouseleave={() => {
-      highlighted = false;
-      $stbHovered = null;
-    }}
-    on:keydown={stbState.handleKeyboard}
-    on:wheel={stbState.handleWheel}
-    on:touchstart={(e) => stbState.handleTouch(e, "start")}
-    on:touchmove={(e) => stbState.handleTouch(e, "move")}
-    on:touchend={(e) => stbState.handleTouch(e, "end")}
-  >
-    <Provider {actions} data={dataContext} />
-    {#key columnSizing}
-      {#if $stbState != "Init"}
-        {#if !isEmpty}
-          <ControlSection>
-            <SelectionColumn {hideSelectionColumn} />
+<div
+  class="super-table"
+  class:quiet
+  bind:this={viewport}
+  bind:clientWidth={tableWidth}
+  bind:clientHeight
+  style:font-size={sizingMap[size].rowFontSize}
+  style:--super-table-devider-color={dividersStyles.color}
+  style:--super-table-body-height={maxBodyHeight}
+  style:--super-table-header-height={$stbSettings.appearance.headerHeight}
+  style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
+  style:--super-table-horizontal-dividers={dividersStyles.horizontal}
+  style:--super-table-vertical-dividers={dividersStyles.vertical}
+  style:--super-table-cell-padding={sizingMap[size].cellPadding}
+  style:--super-column-top-offset={$stbScrollOffset * -1}
+  on:mouseenter={() => (highlighted = true)}
+  on:mouseleave={() => {
+    highlighted = false;
+    $stbHovered = null;
+  }}
+  on:keydown={stbState.handleKeyboard}
+  on:wheel={stbState.handleWheel}
+  on:touchstart={(e) => stbState.handleTouch(e, "start")}
+  on:touchmove={(e) => stbState.handleTouch(e, "move")}
+  on:touchend={(e) => stbState.handleTouch(e, "end")}
+>
+  <Provider {actions} data={dataContext} />
+  {#key columnSizing}
+    {#if $stbState != "Init"}
+      {#if !isEmpty}
+        <ControlSection>
+          <SelectionColumn {hideSelectionColumn} />
 
-            {#if showButtonColumnLeft}
-              <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-            {/if}
+          {#if showButtonColumnLeft}
+            <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+          {/if}
 
-            {#if stickFirstColumn && $superColumns.length > 1}
-              <SuperTableColumn
-                sticky={true}
-                scrollPos={$stbHorizontalScrollPos}
-                columnOptions={{
-                  ...$superColumns[0],
-                  ...$commonColumnOptions,
-                  overflow,
-                  isFirst: true,
-                  isLast:
-                    $superColumns?.length == 1 &&
-                    !showButtonColumnRight &&
-                    canScroll,
-                }}
-              />
-            {/if}
-          </ControlSection>
-        {/if}
-
-        <ColumnsSection
-          {stbSettings}
-          {superColumns}
-          {commonColumnOptions}
-          {canScroll}
-          bind:columnsViewport
-        >
-          <slot />
-        </ColumnsSection>
-
-        {#if showButtonColumnRight && !isEmpty}
-          <ControlSection>
-            <RowButtonsColumn
-              {rowMenuItems}
-              {menuItemsVisible}
-              {rowMenu}
-              {canScroll}
-              right={true}
+          {#if stickFirstColumn && $superColumns.length > 1}
+            <SuperTableColumn
+              sticky={true}
+              scrollPos={$stbHorizontalScrollPos}
+              columnOptions={{
+                ...$superColumns[0],
+                ...$commonColumnOptions,
+                overflow,
+                isFirst: true,
+                isLast:
+                  $superColumns?.length == 1 &&
+                  !showButtonColumnRight &&
+                  canScroll,
+              }}
             />
-          </ControlSection>
-        {/if}
-
-        <ScrollbarsOverlay
-          anchor={columnsViewport}
-          clientHeight={maxBodyHeight}
-          {scrollHeight}
-          {highlighted}
-          {isEmpty}
-          bind:horizontalVisible
-          on:positionChange={stbState.calculateRowBoundaries}
-        />
-
-        <EmptyResultSetOverlay
-          {isEmpty}
-          message={$stbSettings.data.emptyMessage}
-          top={$superColumns?.length
-            ? $stbSettings.appearance.headerHeight + 16
-            : 16}
-          bottom={horizontalVisible ? 24 : 16}
-        />
-
-        <RowContextMenu {rowContextMenuItems} />
-
-        {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
-          <AddNewRowOverlay
-            {stbState}
-            {tableAPI}
-            {highlighted}
-            {tableActions}
-            footer={$stbSettings.showFooter}
-          />
-        {/if}
-
-        {#if $stbSettings.features.canSelect && selectedActions?.length}
-          <SelectedActionsOverlay
-            {stbSettings}
-            {selectedActions}
-            {stbSelected}
-            {tableAPI}
-            {stbState}
-            {highlighted}
-            {entitySingular}
-            {entityPlural}
-          />
-        {/if}
-
-        {#if $stbData.loading}
-          <LoadingOverlay />
-        {/if}
-      {:else}
-        <CellSkeleton />
+          {/if}
+        </ControlSection>
       {/if}
-    {/key}
-  </div>
-{/if}
+
+      <ColumnsSection
+        {stbSettings}
+        {superColumns}
+        {commonColumnOptions}
+        {canScroll}
+        bind:columnsViewport
+      >
+        <slot />
+      </ColumnsSection>
+
+      {#if showButtonColumnRight && !isEmpty}
+        <ControlSection>
+          <RowButtonsColumn
+            {rowMenuItems}
+            {menuItemsVisible}
+            {rowMenu}
+            {canScroll}
+            right={true}
+          />
+        </ControlSection>
+      {/if}
+
+      <ScrollbarsOverlay
+        anchor={columnsViewport}
+        clientHeight={maxBodyHeight}
+        {scrollHeight}
+        {highlighted}
+        {isEmpty}
+        bind:horizontalVisible
+        on:positionChange={stbState.calculateRowBoundaries}
+      />
+
+      <EmptyResultSetOverlay
+        {isEmpty}
+        message={$stbSettings.data.emptyMessage}
+        top={$superColumns?.length
+          ? $stbSettings.appearance.headerHeight + 16
+          : 16}
+        bottom={horizontalVisible ? 24 : 16}
+      />
+
+      <RowContextMenu {rowContextMenuItems} />
+
+      {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
+        <AddNewRowOverlay
+          {stbState}
+          {tableAPI}
+          {highlighted}
+          {tableActions}
+          footer={$stbSettings.showFooter}
+        />
+      {/if}
+
+      {#if $stbSettings.features.canSelect && selectedActions?.length}
+        <SelectedActionsOverlay
+          {stbSettings}
+          {selectedActions}
+          {stbSelected}
+          {tableAPI}
+          {stbState}
+          {highlighted}
+          {entitySingular}
+          {entityPlural}
+        />
+      {/if}
+
+      {#if $stbData.loading}
+        <LoadingOverlay />
+      {/if}
+    {:else}
+      <CellSkeleton />
+    {/if}
+  {/key}
+</div>

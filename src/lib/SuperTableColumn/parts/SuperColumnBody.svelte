@@ -6,6 +6,7 @@
   const columnState = getContext("stColumnState");
   const stbVisibleRows = getContext("stbVisibleRows");
   const stbState = getContext("stbState");
+  const new_row = getContext("new_row");
 
   export let field;
   export let idField;
@@ -52,6 +53,6 @@
     {/each}
   {/if}
   {#if inserting}
-    <SuperColumnRowNew {isFirst} {isLast} />
+    <SuperColumnRowNew {isFirst} {isLast} row={$new_row} />
   {/if}
 </div>

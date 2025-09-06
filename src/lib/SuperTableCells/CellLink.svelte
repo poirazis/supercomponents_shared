@@ -103,7 +103,7 @@
 
   $: multi = !fieldSchema?.type?.includes("_single");
   $: isUser = fieldSchema?.type?.includes("bb_reference");
-  $: pills = cellOptions.relViewMode == "pills" && !isUser;
+  $: pills = cellOptions.relViewMode == "pills";
   $: valueIcon =
     fieldSchema.type == "link" ? "ri-edit-box-line" : "ri-user-line";
   $: links = cellOptions.relViewMode == "links" && !isUser;

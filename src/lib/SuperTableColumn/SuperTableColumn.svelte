@@ -190,7 +190,7 @@
       unlockWidth() {
         if (resizing) return;
         $lockWidth = 0;
-        this.lockWidth.debounce(200);
+        if (!columnOptions.asComponent) this.lockWidth.debounce(200);
       },
       startResizing(e) {
         e.stopPropagation();
@@ -344,7 +344,7 @@
     ) {
       // Use a timeout to ensure the DOM has rendered
       setTimeout(() => {
-        if (viewport && $lockWidth === 0) {
+        if (viewport && $lockWidth === 0 && !columnOptions.asComponent) {
           $lockWidth = viewport.clientWidth;
         }
       }, 0);

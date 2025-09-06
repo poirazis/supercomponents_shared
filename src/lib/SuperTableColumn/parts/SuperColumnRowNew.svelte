@@ -17,6 +17,9 @@
     $stbSettings.features.canInsert
       ? CellString
       : $columnSettings.cellComponent;
+
+  // Reactive: Use errors from the row prop
+  $: fieldError = row.errors && row.errors[$columnSettings.name];
 </script>
 
 <div
@@ -30,14 +33,35 @@
     cellOptions={{
       ...$rowCellOptions,
       readonly: false,
+      error: fieldError,
+      showDirty: false,
     }}
     autofocus={isFirst}
     fieldSchema={$columnSettings.schema}
-    value={row.value}
+    value={row[$columnSettings.name]}
     multi={$columnSettings.schema.type == "array"}
     on:change={(e) => {
       stbState.setValue($columnSettings.name, e.detail);
-      row.value = e.detail;
     }}
   />
+  <!-- Add error display similar to plain row's info block -->
+  {#if fieldError}
+    <div class="info" class:bottom={true}>{fieldError}</div>
+  {/if}
 </div>
+
+<style>
+  .info {
+    position: absolute;
+    top: -26px;
+    font-size: 11px;
+    background-color: var(--spectrum-global-color-red-400);
+    border-radius: 4px;
+    padding: 4px;
+
+    &.bottom {
+      top: unset;
+      bottom: -26px;
+    }
+  }
+</style>
