@@ -443,8 +443,4 @@
   .super-column.resizing {
     cursor: ew-resize;
   }
-
-  .super-column considerResizing {
-    cursor: pointer;
-  }
 </style>

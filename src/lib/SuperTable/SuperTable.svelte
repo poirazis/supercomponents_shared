@@ -469,7 +469,7 @@
           columnSchema = {};
         }
       } else {
-        columnSchema = schema[bbcolumn.field];
+        columnSchema = schema[bbcolumn.name];
         if (columnSchema) {
           type = columnSchema.type;
         } else {
@@ -508,7 +508,7 @@
         defaultFilteringOperator: defaultOperatorMap[type],
         headerAlign: bbcolumn.align ? bbcolumn.align : "flex-start",
         type,
-        displayName: beautifyLabel(bbcolumn.displayName ?? bbcolumn.field),
+        displayName: beautifyLabel(bbcolumn.displayName ?? bbcolumn.name),
         schema: columnSchema,
       };
     },
@@ -1413,6 +1413,8 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates.forEach(({ state }) => state.unlockWidth());
   }
+
+  $: console.log($columnsStore, $superColumns, $stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
