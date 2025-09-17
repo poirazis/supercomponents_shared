@@ -7,7 +7,7 @@
   transition: all 130ms;
 
   &.multirow {
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   &:focus {
@@ -81,7 +81,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      padding-right: 2.5rem;
 
       &.multiline {
         overflow: auto;
@@ -271,8 +270,7 @@
     border: 1px solid var(--spectrum-global-color-blue-400) !important;
   }
 
-  &:hover:not(.disabled):not(.readonly) {
-    cursor: pointer;
+  &:hover:not(.disabled):not(.readonly):not(.inEdit) {
     border: 1px solid var(--spectrum-global-color-gray-400);
   }
 

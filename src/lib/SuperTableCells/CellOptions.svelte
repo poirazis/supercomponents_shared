@@ -556,7 +556,7 @@
       class="actionIcon"
       on:mousedown|preventDefault|stopPropagation={editorState.toggle}
     >
-      <i class="ri-arrow-down-s-line"></i>
+      <i class="ph"></i>
     </div>
   {:else}
     <div
@@ -604,7 +604,7 @@
       {/if}
 
       {#if !cellOptions.readonly && (role == "formInput" || inEdit)}
-        <i class="ri-arrow-down-s-line controlIcon" />
+        <i class="ph ph-caret-down controlIcon" />
       {/if}
     </div>
   {/if}

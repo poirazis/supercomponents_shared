@@ -141,6 +141,16 @@
           }
           enrichments[`${field.name}_first`] = url;
         }
+
+        // Enrich array fields that are stored as strings
+        if (field.type == "string" && field.fieldSchema.subtype == "array") {
+          const value = field.fieldState.value;
+          if (Array.isArray(value)) {
+            enrichments[`${field.name}`] = value.join(", ");
+          } else {
+            enrichments[`${field.name}`] = "";
+          }
+        }
       });
       return enrichments;
     });

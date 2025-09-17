@@ -250,7 +250,7 @@
     {/if}
 
     {#if !cellOptions.readonly && (cellOptions.role == "formInput" || inEdit)}
-      <i class="ri-arrow-down-s-line controlIcon"></i>
+      <i class="ph ph-caret-down controlIcon"></i>
     {/if}
   </div>
 </div>

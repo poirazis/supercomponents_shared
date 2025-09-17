@@ -24,8 +24,23 @@
   let editor;
   let lastEdit;
   let localValue = value;
+  let state = cellOptions?.initialState ?? "View";
 
-  export let cellState = fsm(cellOptions?.initialState ?? "View", {
+  $: errors = [];
+  $: error = cellOptions?.error || errors.length > 0;
+  $: inEdit = $cellState == "Editing";
+  $: isDirty = lastEdit && originalValue != localValue;
+  $: formattedValue = cellOptions?.template
+    ? processStringSync(cellOptions.template, {
+        value,
+      })
+    : value;
+
+  $: placeholder = cellOptions?.placeholder ?? "";
+
+  $: cellState.reset(value);
+
+  export const cellState = fsm(state ?? "View", {
     "*": {
       goTo(state) {
         return state;
@@ -35,7 +50,8 @@
         lastEdit = undefined;
         originalValue = undefined;
         isDirty = false;
-        return cellOptions?.initialState ?? "View";
+        errors = [];
+        return state;
       },
     },
     View: {
@@ -49,6 +65,9 @@
     Editing: {
       _enter() {
         originalValue = value;
+        setTimeout(() => {
+          editor?.focus();
+        }, 50);
         dispatch("enteredit");
       },
       _exit() {
@@ -57,10 +76,14 @@
         dispatch("exitedit");
         dispatch("focusout");
       },
+      focus() {
+        editor?.focus();
+      },
       clear() {
         if (cellOptions.debounce) dispatch("change", null);
         lastEdit = new Date();
         localValue = null;
+        dispatch("clear", null);
       },
       focusout(e) {
         this.submit();
@@ -69,12 +92,12 @@
         if (isDirty) {
           dispatch("change", localValue);
         }
-        return "View";
+        return state;
       },
       cancel() {
         value = originalValue;
         dispatch("cancel");
-        return "View";
+        return state;
       },
       debounce(e) {
         localValue = e.target.value;
@@ -93,22 +116,23 @@
     },
   });
 
-  $: inEdit = $cellState == "Editing";
-  $: isDirty = lastEdit && originalValue != localValue;
-  $: formattedValue = cellOptions?.template
-    ? processStringSync(cellOptions.template, {
-        value,
-      })
-    : value;
-
-  $: placeholder =
-    cellOptions.readonly || cellOptions.disabled
-      ? ""
-      : cellOptions.placeholder || "";
-
-  // Removed: $: cellState.reset(value);  // This was causing resets during editing
-  // Instead, sync localValue reactively only when not editing
-  $: if (!inEdit) localValue = value;
+  export const cellApi = {
+    focus: () => cellState.focus(),
+    reset: () => cellState.reset(),
+    isEditing: () => $cellState == "Editing",
+    isDirty: () => isDirty,
+    getValue: () => localValue,
+    setError: (err) => {
+      errors = [...errors, err];
+    },
+    clearError: () => {
+      errors = [];
+    },
+    setValue: (val) => {
+      localValue = val;
+      if ($cellState != "Editing") value = val;
+    },
+  };
 
   const focus = (node) => {
     node?.focus();
@@ -134,7 +158,6 @@
   class="superCell"
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
-  class:focused={inEdit}
   class:inline={cellOptions.role == "inlineInput"}
   class:tableCell={cellOptions.role == "tableCell"}
   class:formInput={cellOptions.role == "formInput"}
@@ -147,8 +170,11 @@
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
-  {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+  {#if cellOptions.icon || error}
+    <i
+      class={error ? "ph ph-warning icon" : cellOptions.icon + " icon"}
+      style:color={error ? "var(--spectrum-global-color-red-600)" : "inherit"}
+    ></i>
   {/if}
 
   {#if inEdit}
@@ -156,7 +182,7 @@
       bind:this={editor}
       tabindex="0"
       class="editor"
-      class:with-icon={cellOptions.icon}
+      class:with-icon={cellOptions.icon || error}
       class:placeholder={!value && !formattedValue && !localValue}
       value={localValue ?? ""}
       placeholder={cellOptions?.placeholder ?? ""}
@@ -183,7 +209,7 @@
     <div
       class="value"
       tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
-      class:with-icon={cellOptions.icon}
+      class:with-icon={cellOptions.icon || error}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}

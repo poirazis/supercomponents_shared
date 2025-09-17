@@ -20,6 +20,9 @@ export { default as SuperTableColumn } from "./lib/SuperTableColumn/SuperTableCo
 // Tree components
 export { default as SuperTree } from "./lib/SuperTree/SuperTree.svelte";
 
+// Tabs Components
+export { default as SuperTabs } from "./lib/SuperTabs/SuperTabs.svelte";
+
 // Export all SuperTableCells components
 export * from "./lib/SuperTableCells/index.js";
 

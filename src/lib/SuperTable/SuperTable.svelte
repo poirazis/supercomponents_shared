@@ -903,7 +903,8 @@
           if (
             remainingHeight < maxBodyHeight &&
             rows.length === _limit &&
-            hasMoreData
+            hasMoreData &&
+            $stbScrollPos > 0
           ) {
             stbState.fetchMoreRows(100); // Debounced fetch
           }
@@ -1413,8 +1414,6 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates.forEach(({ state }) => state.unlockWidth());
   }
-
-  $: console.log($columnsStore, $superColumns, $stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

@@ -83,7 +83,6 @@
 
   // Time value (format: HH:mm)
   $: timeValue = currentShowTime && value ? getTimeFromValue() : "00:00";
-
   $: innerDate = value ? new Date(value) : new Date();
 
   // Extract time from current value if it exists
@@ -95,6 +94,8 @@
 
   // Date formatting helper function
   function formatDate(date, dateFormat) {
+    if (!date) return "";
+
     if (!dateFormat || dateFormat === "default") {
       return date.toDateString();
     }
@@ -139,6 +140,8 @@
 
   // DateTime formatting helper function
   function formatDateTime(date, dateFormat, showTime) {
+    if (!date) return "";
+
     if (!showTime) {
       return formatDate(date, dateFormat);
     }
@@ -152,13 +155,9 @@
   $: formattedValue =
     cellOptions.template && value
       ? processStringSync(cellOptions.template, { value })
-      : undefined;
+      : formatDate(value, currentDateFormat);
 
-  $: placeholder =
-    cellOptions.readonly || cellOptions.disabled
-      ? ""
-      : cellOptions.placeholder || "";
-
+  $: placeholder = cellOptions?.placeholder ?? "Select Date";
   $: inEdit = $cellState == "Editing";
   $: inline = cellOptions.role == "inlineInpur";
   $: isDirty = inEdit && originalValue != value;
@@ -218,20 +217,10 @@
     <div
       class="editor"
       class:with-icon={cellOptions.icon}
-      class:placeholder={!value && !formattedValue}
+      class:placeholder={!formattedValue}
       on:click={() => (open = !open)}
     >
-      {#if formattedValue}
-        {formattedValue}
-      {:else if value}
-        {currentDateFormat
-          ? formatDateTime(innerDate, currentDateFormat, currentShowTime)
-          : currentShowTime
-            ? innerDate?.toDateString() + " " + timeValue
-            : innerDate?.toDateString()}
-      {:else}
-        {cellOptions?.placeholder}
-      {/if}
+      {formattedValue || placeholder}
       <i
         class="ri-calendar-line"
         style="font-size: 16px; justify-self: flex-end"
@@ -241,19 +230,11 @@
     <div
       class="value"
       class:with-icon={cellOptions.icon}
-      class:placeholder={!value}
+      class:placeholder={!formattedValue}
       style:justify-content={cellOptions.align}
     >
       <span>
-        {formattedValue
-          ? formattedValue
-          : value
-            ? currentDateFormat
-              ? formatDateTime(innerDate, currentDateFormat, currentShowTime)
-              : currentShowTime
-                ? innerDate?.toDateString() + " " + timeValue
-                : innerDate?.toDateString()
-            : placeholder}
+        {formattedValue || placeholder}
       </span>
     </div>
   {/if}

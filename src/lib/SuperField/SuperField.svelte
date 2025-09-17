@@ -49,10 +49,12 @@
   .super-field {
     min-width: 180px;
     width: 100%;
+
     display: flex;
     align-self: flex-start;
     justify-content: stretch;
     flex-direction: column;
+    overflow: hidden;
 
     &.left-label {
       flex-direction: row;
@@ -61,9 +63,10 @@
     }
     &.multirow {
       align-items: stretch;
+      max-height: 100%;
 
       & > .inline-cells {
-        height: unset;
+        height: 100%;
       }
 
       & > .superlabel {
