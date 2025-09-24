@@ -103,7 +103,6 @@
   $: localValue = Array.isArray(value) ? value : value ? [value] : [];
   $: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
   $: inEdit = $cellState == "Editing";
-  $: multi = fieldSchema ? fieldSchema?.type == "array" && multi : true;
   $: radios = controlType == "radio";
   $: allSelected = filteredOptions.length == localValue.length;
 
@@ -340,7 +339,7 @@
         query: QueryUtils.buildQuery(cellOptions.filter),
         sortColumn: cellOptions.sortColumn,
         sortOrder: cellOptions.sortOrder,
-        limit: cellOptions.limit,
+        limit: cellOptions.limit || 1000,
       },
     });
   };

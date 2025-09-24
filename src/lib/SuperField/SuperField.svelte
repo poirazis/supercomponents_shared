@@ -1,17 +1,25 @@
 <script>
   export let labelPos;
   export let multirow;
+  export let tall;
   export let label;
   export let field;
   export let helpText;
   export let error;
   export let labelWidth;
+  export let height;
 
   let showHelp;
   $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
 </script>
 
-<div class="super-field" class:left-label={labelPos == "left"} class:multirow>
+<div
+  class="super-field"
+  class:left-label={labelPos == "left"}
+  class:multirow
+  class:tall
+  style:--height={height ? height : "15rem"}
+>
   {#if labelPos}
     <div
       class="superlabel"
@@ -40,6 +48,7 @@
       {/if}
     </div>
   {/if}
+
   <div class="inline-cells" class:multirow>
     <slot></slot>
   </div>
@@ -49,11 +58,9 @@
   .super-field {
     min-width: 180px;
     width: 100%;
-
     display: flex;
-    align-self: flex-start;
-    justify-content: stretch;
     flex-direction: column;
+    align-items: stretch;
     overflow: hidden;
 
     &.left-label {
@@ -62,20 +69,11 @@
       gap: 1rem;
     }
     &.multirow {
-      align-items: stretch;
-      max-height: 100%;
-
-      & > .inline-cells {
-        height: 100%;
-      }
-
-      & > .superlabel {
-        align-self: start;
-
-        &.left {
-          padding-top: 0.5rem;
-        }
-      }
+      max-height: var(--height, 15rem);
+    }
+    &.tall {
+      height: var(--height, 15rem);
+      justify-content: stretch;
     }
 
     &:focus-within {
@@ -88,16 +86,14 @@
   .inline-cells {
     flex: auto;
     display: flex;
-    justify-content: stretch;
-    height: 2rem;
+    align-items: stretch;
+    min-height: 2rem;
     overflow: hidden;
 
     &.multirow {
-      height: unset;
-      & > .inline-buttons {
-        display: flex;
-        flex-direction: column;
-      }
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: stretch;
     }
 
     & > .inline-buttons {

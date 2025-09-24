@@ -53,7 +53,7 @@
       if (condition == true) await onTrueCondition?.();
       else await onFalseCondition?.();
     } else if (onClick) {
-      await onClick?.();
+      onClick?.();
     }
     working = false;
   }
@@ -308,8 +308,8 @@
       background-color: transparent;
 
       &:hover {
-        background-color: var(--spectrum-global-color-gray-200);
-        border-color: transparent;
+        background-color: transparent;
+        border-color: var(--spectrum-global-color-gray-400);
       }
     }
 
@@ -329,9 +329,10 @@
       color: var(--spectrum-global-color-red-600);
 
       &:hover {
-        background-color: var(--spectrum-global-color-red-700);
+        border-color: var(--spectrum-global-color-red-400);
+        background-color: transparent;
         font-weight: bolder;
-        color: white;
+        color: var(--spectrum-global-color-red-700);
       }
 
       &:focus {

@@ -11,11 +11,11 @@
   export let showColors;
   export let showHandle = true;
   export let listItemKey;
-  export const listItemText = "primaryDisplay";  // Changed to const as it was unused
+  export const listItemText = "primaryDisplay"; // Changed to const as it was unused
   export let draggable = true;
   export let focus;
   export let editorState;
-  export const cellState = undefined;  // Changed to const as it was unused
+  export const cellState = undefined; // Changed to const as it was unused
   export let reorderOnly;
   export let placeholder;
   export let fullSelection;
@@ -151,11 +151,11 @@
         style:--option-color={itemsColors[draggableItem.item]}
       >
         <i class="ri-checkbox-blank-fill" />
-        {itemsLabels[draggableItem.item] || draggableItem.item}
+        <span>{itemsLabels[draggableItem.item] || draggableItem.item}</span>
       </div>
       {#if !reorderOnly && inEdit}
         <i
-          class="ri-close-line"
+          class="ph ph-trash-simple"
           on:mousedown|preventDefault={() => removeItem(draggableItem.id)}
         />
       {/if}
@@ -198,6 +198,9 @@
     padding: 0;
     width: 100%;
     border-radius: 4px;
+    max-height: var(--height, 15rem);
+    overflow-y: auto;
+    height: 100%;
   }
   .list-wrap > li:not(.buttons) {
     background-color: transparent;
@@ -228,6 +231,12 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+
+    & > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     &.showColors {
       & > i {

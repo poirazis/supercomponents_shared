@@ -23,6 +23,9 @@ export { default as SuperTree } from "./lib/SuperTree/SuperTree.svelte";
 // Tabs Components
 export { default as SuperTabs } from "./lib/SuperTabs/SuperTabs.svelte";
 
+// Lightbox component
+export { default as SuperLightbox } from "./lib/SuperLightbox/SuperLightbox.svelte";
+
 // Export all SuperTableCells components
 export * from "./lib/SuperTableCells/index.js";
 

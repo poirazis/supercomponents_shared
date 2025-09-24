@@ -97,7 +97,7 @@
     if (!date) return "";
 
     if (!dateFormat || dateFormat === "default") {
-      return date.toDateString();
+      return date?.toDateString();
     }
 
     // Manual formatting for specific formats to ensure exact order
@@ -135,7 +135,7 @@
     }
 
     // Fallback to default
-    return date.toDateString();
+    return date?.toDateString();
   }
 
   // DateTime formatting helper function
@@ -155,7 +155,9 @@
   $: formattedValue =
     cellOptions.template && value
       ? processStringSync(cellOptions.template, { value })
-      : formatDate(value, currentDateFormat);
+      : value
+        ? formatDate(innerDate, currentDateFormat)
+        : "";
 
   $: placeholder = cellOptions?.placeholder ?? "Select Date";
   $: inEdit = $cellState == "Editing";

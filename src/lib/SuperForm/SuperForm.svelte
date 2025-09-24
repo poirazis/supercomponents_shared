@@ -32,6 +32,7 @@
   // Export the full form API to be used by parents
   export let form;
   export let formState;
+  export let formValue: Record<string, any> = {};
   export let row;
 
   const context = getContext("context");
@@ -65,7 +66,7 @@
     row
   );
   $: resetKey = hashString(
-    schemaKey + JSON.stringify(initialValues) + disabled + readonly
+    schemaKey + JSON.stringify(initialValues) + disabled + readonly + actionType
   );
 
   const getInitialValues = (
@@ -74,7 +75,7 @@
     path: string[],
     context: Record<string, any>
   ) => {
-    if (type !== "Update") {
+    if (type !== "Update" && type !== "View") {
       return {};
     }
 
@@ -131,10 +132,11 @@
     <InnerForm
       bind:form
       bind:formState
+      bind:formValue
       {dataSource}
       {size}
       {disabled}
-      {readonly}
+      readonly={readonly || actionType == "View"}
       {schema}
       {definition}
       {initialValues}

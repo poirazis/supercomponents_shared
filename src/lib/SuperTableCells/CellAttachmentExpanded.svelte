@@ -2,12 +2,15 @@
   import { createEventDispatcher, tick } from "svelte";
   import fsm from "svelte-fsm";
   import "./CellCommon.css";
+  import SuperLightbox from "../SuperLightbox/SuperLightbox.svelte";
 
   export let value: any;
   export let cellOptions: any;
   export let fieldSchema: any;
   export let tableid: string;
   export let API;
+  export let height = "auto";
+  export let inBuilder;
 
   const dispatch = createEventDispatcher();
 
@@ -18,19 +21,26 @@
   let focusedOptionIdx: number | undefined;
   let fileInput: any; // Reference to hidden file input
   let selectedIndices: Set<number> = new Set(); // Track selected item indices
+  // New: Carousel state and helpers
+  let currentIndex = 0;
+
+  // Modal state
+  let showModal = false;
+  let modalImageIndex = 0;
 
   $: multi = fieldSchema?.type?.includes("single") !== true;
   $: localvalue = value && multi ? value : value ? [value] : [];
   $: controlType = cellOptions.controlType || "list";
   $: imageRatio = cellOptions.imageRatio || "landscape";
   $: gridColumns = cellOptions.gridColumns || 4;
-  $: height = "100%";
   $: canAdd = !cellOptions.readonly && !cellOptions.disabled;
   $: isGallery = cellOptions.isGallery;
   $: disabled = cellOptions.disabled;
   $: readonly = cellOptions.readonly;
-  $: onClickAction = cellOptions.onClickAction || "view";
+  $: onClickAction = cellOptions.onClickAction;
   $: inEdit = $cellState == "Editing";
+  $: canSelect = !readonly && !disabled && !isGallery;
+  $: canDelete = !readonly && !disabled && !isGallery;
 
   export let cellState = fsm(cellOptions.initialState ?? "View", {
     "*": {
@@ -164,131 +174,24 @@
     processFiles(files);
   }
 
-  // New: Carousel state and helpers
-  let currentIndex = 0;
-  $: if (localvalue?.length) {
-    currentIndex = Math.min(currentIndex, localvalue.length - 1);
-  } else {
-    currentIndex = 0;
-  }
-
-  // Modal state
-  let showModal = false;
-  let modalImageIndex = 0;
-  let modalContent: HTMLElement; // Reference to modal content for focus management
-  let modalKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
-
-  // Focus modal content when modal opens
-  $: if (showModal && modalContent) {
-    // Add document-level keyboard handler
-    if (!modalKeydownHandler) {
-      modalKeydownHandler = (event: KeyboardEvent) => {
-        modalAPI.handleKeydown(event);
-      };
-      document.addEventListener("keydown", modalKeydownHandler);
+  // Open modal with specific image
+  function openModal(index: number) {
+    if (
+      !disabled &&
+      !inBuilder &&
+      localvalue?.[index] &&
+      isImage(localvalue[index])
+    ) {
+      modalImageIndex = index;
+      showModal = true;
     }
-    tick().then(() => modalContent.focus());
-  } else if (!showModal && modalKeydownHandler) {
-    // Remove document-level keyboard handler
-    document.removeEventListener("keydown", modalKeydownHandler);
-    modalKeydownHandler = null;
   }
 
-  // Modal API object to encapsulate modal functionality
-  const modalAPI = {
-    // Open modal with specific image
-    open(index: number) {
-      if (!disabled && localvalue?.[index] && isImage(localvalue[index])) {
-        modalImageIndex = index;
-        showModal = true;
-      }
-    },
-
-    // Close modal
-    close() {
-      showModal = false;
-      anchor?.focus();
-    },
-
-    // Navigate to next image in modal
-    next() {
-      if (localvalue?.length > 1) {
-        modalImageIndex = (modalImageIndex + 1) % localvalue.length;
-      }
-    },
-
-    // Navigate to previous image in modal
-    prev() {
-      if (localvalue?.length > 1) {
-        modalImageIndex =
-          (modalImageIndex - 1 + localvalue.length) % localvalue.length;
-      }
-    },
-
-    // Jump to specific image in modal
-    goTo(index: number) {
-      if (index >= 0 && index < localvalue?.length) {
-        modalImageIndex = index;
-      }
-    },
-
-    // Handle keyboard navigation in modal
-    handleKeydown(event: KeyboardEvent) {
-      switch (event.key) {
-        case "Escape":
-          this.close();
-          break;
-        case "ArrowLeft":
-          event.preventDefault();
-          this.prev();
-          break;
-        case "ArrowRight":
-        case " ": // Space key for next
-          event.preventDefault();
-          this.next();
-          break;
-        case "Home":
-          event.preventDefault();
-          this.goTo(0); // Go to first image
-          break;
-        case "End":
-          event.preventDefault();
-          this.goTo(localvalue?.length - 1 || 0); // Go to last image
-          break;
-        case "PageUp":
-          event.preventDefault();
-          this.prev(); // Same as ArrowLeft
-          break;
-        case "PageDown":
-          event.preventDefault();
-          this.next(); // Same as ArrowRight
-          break;
-        default:
-          // Handle number keys 1-9 to jump to specific images
-          if (event.key >= "1" && event.key <= "9") {
-            const index = parseInt(event.key) - 1; // 1 = index 0, 2 = index 1, etc.
-            if (index < (localvalue?.length || 0)) {
-              event.preventDefault();
-              this.goTo(index);
-            }
-          }
-          break;
-      }
-    },
-
-    // Download current attachment in modal
-    download() {
-      if (localvalue?.[modalImageIndex]) {
-        const attachment = localvalue[modalImageIndex];
-        const link = document.createElement("a");
-        link.href = attachment.url;
-        link.download = attachment.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    },
-  };
+  // Close modal
+  function closeModal() {
+    showModal = false;
+    anchor?.focus();
+  }
 
   // Carousel API object to encapsulate carousel functionality
   const carouselAPI = {
@@ -345,6 +248,19 @@
     const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
     return imageExtensions.includes(attachment.extension?.toLowerCase());
   }
+
+  // Unified click handler for items in carousel and grid modes
+  function onItemClick(item: any, index: number) {
+    if (onClickAction === "none") {
+      return;
+    } else if (onClickAction === "view") {
+      openModal(index);
+    } else if (onClickAction === "select") {
+      toggleSelection(index);
+    } else if (onClickAction === "custom") {
+      cellOptions.onItemClick?.(item, index);
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -363,7 +279,6 @@
   class:readonly={cellOptions.readonly}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  style:overflow={"hidden"}
   on:keydown={(e) => {
     carouselAPI.handleKeydown(e);
   }}
@@ -424,7 +339,7 @@
       {/if}
     </div>
   {:else if controlType == "carousel"}
-    <div class="carousel" style:height>
+    <div class="carousel">
       {#if localvalue?.length}
         <div class="carousel-content">
           {#if isImage(localvalue[currentIndex])}
@@ -434,75 +349,73 @@
               style="background-image: url('{localvalue[currentIndex].url}')"
               aria-label={localvalue[currentIndex].name}
               on:click={() => {
-                if (inEdit)
-                  onClickAction == "view"
-                    ? modalAPI.open(currentIndex)
-                    : toggleSelection(currentIndex);
+                if (inEdit) onItemClick(localvalue[currentIndex], currentIndex);
               }}
-            ></div>
+            >
+              {#if localvalue.length > 1 || canAdd}
+                <div class="carousel-controls">
+                  {#if localvalue.length > 1}
+                    <button
+                      class="btn-nav"
+                      on:click|stopPropagation={carouselAPI.prev}
+                      aria-label="Previous attachment"
+                      type="button"
+                      disabled={cellOptions.disabled}
+                    >
+                      <i class="ph ph-caret-left"></i>
+                    </button>
+                    <div class="indicators">
+                      {#each localvalue as _, idx}
+                        <button
+                          class="indicator"
+                          class:active={idx === currentIndex}
+                          on:click|stopPropagation={() => carouselAPI.goTo(idx)}
+                          aria-label="Go to attachment {idx + 1}"
+                          type="button"
+                          disabled={cellOptions.disabled}
+                        ></button>
+                      {/each}
+                    </div>
+                    <button
+                      class="btn-nav"
+                      on:click|stopPropagation={carouselAPI.next}
+                      aria-label="Next attachment"
+                      type="button"
+                      disabled={cellOptions.disabled}
+                    >
+                      <i class="ph ph-caret-right"></i>
+                    </button>
+                    <button
+                      class="btn-nav"
+                      style="align-self: flex-end;"
+                      on:click|stopPropagation={() => openModal(currentIndex)}
+                      aria-label="Full Screen"
+                      type="button"
+                      disabled={cellOptions.disabled}
+                    >
+                      <i class="ph ph-arrows-out-simple"></i>
+                    </button>
+                  {/if}
+                  {#if canAdd}
+                    <button
+                      class="btn-nav add"
+                      style="align-self: flex-end;"
+                      on:click|stopPropagation={uploadNewAttachment}
+                      aria-label="Next attachment"
+                      type="button"
+                    >
+                      <i class="ph ph-upload"></i>
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
           {:else if !isGallery}
             <div class="carousel-fallback">
               <div class="pill">
                 {localvalue[currentIndex].extension?.toUpperCase()}
               </div>
               <span class="filename">{localvalue[currentIndex].name}</span>
-            </div>
-          {/if}
-          {#if localvalue.length > 1 || canAdd}
-            <div class="carousel-controls">
-              {#if localvalue.length > 1}
-                <button
-                  class="btn-nav"
-                  on:click|stopPropagation={carouselAPI.prev}
-                  aria-label="Previous attachment"
-                  type="button"
-                  disabled={cellOptions.disabled}
-                >
-                  <i class="ph ph-caret-left"></i>
-                </button>
-                <div class="indicators">
-                  {#each localvalue as _, idx}
-                    <button
-                      class="indicator"
-                      class:active={idx === currentIndex}
-                      on:click|stopPropagation={() => carouselAPI.goTo(idx)}
-                      aria-label="Go to attachment {idx + 1}"
-                      type="button"
-                      disabled={cellOptions.disabled}
-                    ></button>
-                  {/each}
-                </div>
-                <button
-                  class="btn-nav"
-                  on:click|stopPropagation={carouselAPI.next}
-                  aria-label="Next attachment"
-                  type="button"
-                  disabled={cellOptions.disabled}
-                >
-                  <i class="ph ph-caret-right"></i>
-                </button>
-                <button
-                  class="btn-nav"
-                  style="align-self: flex-end;"
-                  on:click|stopPropagation={modalAPI.open(currentIndex)}
-                  aria-label="Full Screen"
-                  type="button"
-                  disabled={cellOptions.disabled}
-                >
-                  <i class="ph ph-arrows-out-simple"></i>
-                </button>
-              {/if}
-              {#if canAdd}
-                <button
-                  class="btn-nav add"
-                  style="align-self: flex-end;"
-                  on:click|stopPropagation={uploadNewAttachment}
-                  aria-label="Next attachment"
-                  type="button"
-                >
-                  <i class="ph ph-upload"></i>
-                </button>
-              {/if}
             </div>
           {/if}
         </div>
@@ -528,29 +441,27 @@
       <div class="attachment-grid" style:--grid-columns={gridColumns}>
         {#if localvalue?.length}
           {#each localvalue as attachment, idx (idx)}
-            <div
-              class="grid-item"
-              class:focused={focusedOptionIdx === idx}
-              class:selected={selectedIndices.has(idx)}
-              style="aspect-ratio: {imageRatio === 'landscape'
-                ? '4 / 3'
-                : imageRatio === 'square'
-                  ? '1 / 1'
-                  : '3 / 4'}"
-            >
-              {#if isImage(attachment)}
+            {#if isImage(attachment)}
+              <div
+                class="grid-item"
+                class:focused={focusedOptionIdx === idx}
+                class:selected={selectedIndices.has(idx)}
+                style="aspect-ratio: {imageRatio === 'landscape'
+                  ? '4 / 3'
+                  : imageRatio === 'square'
+                    ? '1 / 1'
+                    : '3 / 4'}"
+              >
                 <div
                   class="grid-image"
                   style="background-image: url('{attachment.url}');"
                   role="button"
                   tabindex="0"
                   aria-label={attachment.name}
-                  on:click={() =>
-                    onClickAction == "view"
-                      ? modalAPI.open(idx)
-                      : toggleSelection(idx)}
+                  on:click={() => onItemClick(attachment, idx)}
                   on:keydown={(e) => e.key === "Enter" && toggleSelection(idx)}
                 >
+                  <slot />
                   {#if !isGallery && !readonly}
                     <div class="grid-overlay-top">
                       <button
@@ -581,13 +492,24 @@
                     </div>
                   {/if}
                 </div>
-              {:else if !isGallery}
+              </div>
+            {:else if !isGallery}
+              <div
+                class="grid-item"
+                class:focused={focusedOptionIdx === idx}
+                class:selected={selectedIndices.has(idx)}
+                style="aspect-ratio: {imageRatio === 'landscape'
+                  ? '4 / 3'
+                  : imageRatio === 'square'
+                    ? '1 / 1'
+                    : '3 / 4'}"
+              >
                 <div class="grid-fallback">
                   <div class="pill">{attachment.extension?.toUpperCase()}</div>
                   <span class="filename">{attachment.name}</span>
                 </div>
-              {/if}
-            </div>
+              </div>
+            {/if}
           {/each}
 
           {#if canAdd}
@@ -666,110 +588,16 @@
     style="display: none"
   />
 
-  <!-- Image modal for previewing images in full size -->
-  {#if showModal}
-    <div class="image-modal" on:click={modalAPI.close}>
-      <div
-        class="image-modal-content"
-        on:click|stopPropagation
-        tabindex="0"
-        bind:this={modalContent}
-      >
-        <span class="modal-close" on:click={modalAPI.close}>&times;</span>
-        <div
-          class="modal-image-container"
-          class:selected={selectedIndices.has(modalImageIndex)}
-          aria-label="Image {modalImageIndex + 1} of {localvalue?.length ||
-            1}. Use arrow keys to navigate, Home/End for first/last, numbers 1-9 to jump to images, Space for next, Escape to close."
-        >
-          {#if isImage(localvalue[modalImageIndex])}
-            <img
-              src={localvalue[modalImageIndex].url}
-              alt={localvalue[modalImageIndex].name}
-              class="modal-image"
-            />
-          {:else}
-            <div class="modal-fallback">
-              <div class="pill">
-                {localvalue[modalImageIndex]?.extension?.toUpperCase()}
-              </div>
-              <span class="filename">{localvalue[modalImageIndex]?.name}</span>
-            </div>
-          {/if}
-          <div class="modal-controls">
-            <div class="modal-navigation">
-              <button
-                class="btn-nav large"
-                on:click={modalAPI.prev}
-                aria-label="Previous image"
-                type="button"
-                disabled={localvalue.length <= 1}
-              >
-                <i class="ph ph-caret-left"></i>
-              </button>
-              {#if localvalue.length > 1}
-                <div class="modal-indicators">
-                  {#each localvalue as _, idx}
-                    <button
-                      class="indicator large"
-                      class:active={idx === modalImageIndex}
-                      on:click={() => modalAPI.goTo(idx)}
-                      aria-label="Go to image {idx + 1}"
-                      type="button"
-                    ></button>
-                  {/each}
-                </div>
-              {/if}
-              <button
-                class="btn-nav large"
-                on:click={modalAPI.next}
-                aria-label="Next image"
-                type="button"
-                disabled={localvalue.length <= 1}
-              >
-                <i class="ph ph-caret-right"></i>
-              </button>
-            </div>
-            <div class="modal-actions">
-              <button
-                class="btn-nav large btn-modal-select"
-                class:selected={selectedIndices.has(modalImageIndex)}
-                on:click={() => toggleSelection(modalImageIndex)}
-                aria-label={selectedIndices.has(modalImageIndex)
-                  ? "Deselect"
-                  : "Select"}
-                type="button"
-              >
-                <i
-                  class="ph {selectedIndices.has(modalImageIndex)
-                    ? 'ph-check-square'
-                    : 'ph-square'}"
-                ></i>
-              </button>
-              <button
-                class="btn-nav large btn-modal-download"
-                on:click={modalAPI.download}
-                aria-label="Download"
-                type="button"
-              >
-                <i class="ph ph-download-simple"></i>
-              </button>
-              {#if !readonly && !isGallery}
-                <button
-                  class="btn-nav large btn-modal-delete"
-                  on:click={() => handleDelete(modalImageIndex)}
-                  aria-label="Delete"
-                  type="button"
-                >
-                  <i class="ph ph-trash-simple"></i>
-                </button>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
+  <!-- SuperLightbox for image preview -->
+  <SuperLightbox
+    bind:items={localvalue}
+    bind:open={showModal}
+    bind:currentIndex
+    bind:selectedIndices
+    on:close={() => console.log("closed")}
+    {canSelect}
+    {canDelete}
+  />
 </div>
 
 <style>
@@ -837,7 +665,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0rem 0.25rem;
-    height: 30px;
+    min-height: 30px;
     cursor: pointer;
     border-bottom: 1px solid var(--spectrum-global-color-gray-200);
   }
@@ -858,18 +686,19 @@
     align-items: stretch;
     position: relative;
     width: 100%;
-    max-height: 100%;
+    height: 100%;
     overflow-y: auto;
   }
 
   /* New carousel styles */
   .carousel {
-    flex: auto;
+    position: relative;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    min-width: 15rem;
-    min-height: 15rem;
+    align-items: stretch;
+    min-width: 8rem;
+    height: 100%;
   }
 
   .carousel:hover .carousel-controls {
@@ -888,6 +717,7 @@
   .carousel-image {
     width: 100%;
     height: 100%;
+    min-width: 8rem;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -961,12 +791,6 @@
     color: white;
     font-size: 12px;
   }
-
-  .btn-nav.large {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 16px;
-  }
   .btn-nav:hover:not(:disabled) {
     background-color: var(--spectrum-global-color-gray-100);
     border-color: var(--spectrum-global-color-gray-400);
@@ -990,10 +814,6 @@
     border: none;
     cursor: pointer;
     transition: background 0.2s ease;
-  }
-  .indicator.large {
-    width: 0.75rem;
-    height: 0.75rem;
   }
   .indicator.active {
     background: var(--spectrum-global-color-static-blue-600);
@@ -1081,7 +901,7 @@
     padding: 0.25rem;
     min-width: 15rem;
     overflow-y: auto;
-    position: relative;
+    min-height: 13rem;
   }
 
   .grid-item {
@@ -1292,200 +1112,6 @@
   .btn-close:hover:not(:disabled) {
     background: var(--spectrum-global-color-gray-400);
     color: var(--spectrum-global-color-gray-800);
-  }
-
-  /* New image modal styles */
-  .image-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-  }
-
-  .image-modal-content {
-    position: relative;
-    width: 80vw;
-    height: 80vh;
-    height: 80vh;
-    background: transparent;
-    border-radius: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    color: var(--spectrum-global-color-static-white);
-    border: 1px solid var(--spectrum-global-color-gray-500);
-    font-size: 2rem;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    z-index: 20;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.7;
-  }
-  .modal-close:hover {
-    opacity: 1;
-  }
-
-  .modal-image-container {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.5rem;
-    background: transparent;
-    min-height: 200px; /* Ensure minimum height for controls */
-    border: 1px solid var(--spectrum-global-color-gray-100);
-  }
-
-  .modal-image {
-    position: relative;
-    max-width: 100%;
-    max-height: 100%;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 0;
-    cursor: pointer;
-    background: transparent;
-  }
-
-  .modal-controls {
-    position: absolute;
-    bottom: 0.5rem;
-    left: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-top: none;
-    z-index: 10;
-    min-height: 60px; /* Ensure controls have minimum height */
-  }
-
-  .modal-navigation {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .modal-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: 2rem;
-  }
-
-  .modal-indicators {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin: 0 16px;
-  }
-
-  .modal-fallback {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    color: rgba(255, 255, 255, 0.9);
-    text-align: center;
-  }
-
-  .modal-fallback .filename {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .btn-modal-select,
-  .btn-modal-download,
-  .btn-modal-delete {
-    background: transparent;
-    border: 1px solid var(--spectrum-global-color-gray-500);
-    border-radius: 50%;
-    width: 3rem;
-    height: 3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    color: var(--spectrum-global-color-gray-600);
-    font-size: 14px;
-  }
-
-  .btn-modal-select.selected {
-    background: var(--spectrum-global-color-blue-600);
-    border-color: var(--spectrum-global-color-blue-600);
-    color: white;
-  }
-
-  .btn-modal-select:hover:not(:disabled),
-  .btn-modal-download:hover:not(:disabled),
-  .btn-modal-delete:hover:not(:disabled) {
-    border-color: var(--spectrum-global-color-gray-700);
-    color: var(--spectrum-global-color-gray-800);
-  }
-
-  .btn-modal-select:disabled,
-  .btn-modal-download:disabled,
-  .btn-modal-delete:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  .btn-modal-delete {
-    color: var(--spectrum-global-color-red-600);
-  }
-
-  .btn-modal-delete:hover:not(:disabled) {
-    background: var(--spectrum-global-color-red-100);
-    border-color: var(--spectrum-global-color-red-500);
-    color: var(--spectrum-global-color-red-700);
-  }
-
-  .modal-image-container.selected {
-    border: 2px solid var(--spectrum-global-color-blue-600);
-  }
-
-  .modal-image-container.selected::before {
-    content: "\2713";
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    background: var(--spectrum-global-color-blue-600);
-    border-radius: 4px;
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1rem;
-    font-weight: bold;
-    z-index: 30;
   }
 
   /* Grid-specific empty state container (when no attachments) */

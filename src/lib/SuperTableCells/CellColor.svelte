@@ -16,7 +16,7 @@
 
   $: customValue = getCustomValue(value);
   $: checkColor = getCheckColor(value);
-  $: allowCustom = cellOptions?.allowCustom;
+  $: allowCustom = cellOptions?.allowCustom !== false;
   $: circle = cellOptions?.swatch === "circle";
   $: readonly = cellOptions?.readonly || cellOptions?.disabled;
   $: customColors = cellOptions?.customColors || [];

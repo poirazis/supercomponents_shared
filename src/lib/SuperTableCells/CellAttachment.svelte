@@ -133,7 +133,7 @@
   class="superCell"
   bind:this={anchor}
   class:inEdit={$cellState == "Editing"}
-  class:inline={cellOptions.role == "tableCell"}
+  class:inline={cellOptions.role == "inlineInput"}
   class:tableCell={cellOptions.role == "tableCell"}
   class:formInput={cellOptions.role == "formInput"}
   class:disabled={cellOptions.disabled}
@@ -155,7 +155,7 @@
   >
     {#if localvalue.length || inEdit}
       <div class="items">
-        {#each localvalue as file}
+        {#each localvalue.slice(0, 5) as file}
           {#if file}
             <div
               class="item pill"
@@ -165,12 +165,15 @@
             </div>
           {/if}
         {/each}
+        {#if localvalue.length > 5}
+          <span class="remaining-count">( + {localvalue.length - 5} )</span>
+        {/if}
       </div>
     {:else}
       <span>{placeholder}</span>
     {/if}
 
-    {#if !readonly && !disabled}
+    {#if !readonly && !disabled && cellOptions.role != "tableCell"}
       <i class="ph ph-caret-down action-icon"></i>
     {/if}
   </div>
@@ -355,5 +358,16 @@
   .btn-upload-empty:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .remaining-count {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: var(--spectrum-global-color-gray-700);
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 0.25rem;
+    white-space: nowrap;
   }
 </style>

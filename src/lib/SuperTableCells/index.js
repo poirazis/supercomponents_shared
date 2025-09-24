@@ -19,6 +19,7 @@ export { default as CellStringMask } from "./CellStringMask.svelte";
 export { default as CellStringSimple } from "./CellStringSimple.svelte";
 export { default as CellTags } from "./CellTags.svelte";
 export { default as CellAttachmentExpanded } from "./CellAttachmentExpanded.svelte";
+export { default as CellAttachmentSlider } from "./CellAttachmentSlider.svelte";
 
 // Export utilities from this directory
 export * as remixIcons from "./remixIcons.js";

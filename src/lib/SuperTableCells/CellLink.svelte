@@ -16,6 +16,7 @@
 
   // In case of a self referencing relationship, the current row cannot be the parent of itself
   export let ownId;
+  export let isUserSelect;
 
   let originalValue = JSON.stringify(value);
   let anchor;
@@ -102,11 +103,12 @@
   });
 
   $: multi = !fieldSchema?.type?.includes("_single");
-  $: isUser = fieldSchema?.type?.includes("bb_reference");
+  $: isUser = fieldSchema?.type?.includes("bb_reference") || isUserSelect;
   $: pills = cellOptions.relViewMode == "pills";
   $: valueIcon =
     fieldSchema.type == "link" ? "ri-edit-box-line" : "ri-user-line";
   $: links = cellOptions.relViewMode == "links" && !isUser;
+  $: ownId = ownId || cellOptions?.ownId;
 
   $: localValue = enrichValue(value);
 
@@ -148,16 +150,20 @@
 
   const enrichValue = (x) => {
     if (fieldSchema.relationshipType == "self" && x && !Array.isArray(x)) {
-      API.fetchRow(fieldSchema.tableId, x).then((row) => {
-        localValue = [
-          {
-            _id: row.id,
-            primaryDisplay: fieldSchema.primaryDisplay
-              ? row[fieldSchema.primaryDisplay]
-              : row.name || row.id,
-          },
-        ];
-      });
+      API.fetchRow(fieldSchema.tableId, x, true)
+        .then((row) => {
+          localValue = [
+            {
+              _id: row.id,
+              primaryDisplay: fieldSchema.primaryDisplay
+                ? row[fieldSchema.primaryDisplay]
+                : row.name || row.id,
+            },
+          ];
+        })
+        .catch((e) => {
+          localValue = [];
+        });
       return localValue || [];
     } else if (multi) {
       return value ? [...value] : [];
@@ -234,7 +240,7 @@
       </div>
     {:else}
       <span>
-        {#if cellOptions.role == "formInput"}
+        {#if cellOptions.role == "formInput" && localValue.length > 1}
           ({localValue.length})
         {/if}
         {localValue.map((v) => v.primaryDisplay).join(", ")}

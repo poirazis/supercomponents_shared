@@ -47,6 +47,7 @@
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
   export let currentUser: string = "unknown";
+  export let formValue: Record<string, any> = {};
 
   const { Provider, ActionTypes, createValidatorFromConstraints } =
     getContext("sdk");
@@ -61,6 +62,7 @@
   });
 
   $: values = deriveFieldProperty(fields, (f) => f.fieldState.value);
+  $: formValue = $values;
   $: errors = deriveFieldProperty(fields, (f) => f.fieldState.error);
   $: enrichments = deriveBindingEnrichments(fields);
   $: valid = !Object.values($errors).some((error) => error != null);
@@ -140,16 +142,6 @@
             url = value[0].url;
           }
           enrichments[`${field.name}_first`] = url;
-        }
-
-        // Enrich array fields that are stored as strings
-        if (field.type == "string" && field.fieldSchema.subtype == "array") {
-          const value = field.fieldState.value;
-          if (Array.isArray(value)) {
-            enrichments[`${field.name}`] = value.join(", ");
-          } else {
-            enrichments[`${field.name}`] = "";
-          }
         }
       });
       return enrichments;

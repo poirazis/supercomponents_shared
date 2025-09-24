@@ -45,7 +45,9 @@
       goTo(state) {
         return state;
       },
-      reset() {
+      reset(newValue) {
+        if (newValue == localValue) return;
+
         localValue = value;
         lastEdit = undefined;
         originalValue = undefined;
@@ -80,6 +82,8 @@
         editor?.focus();
       },
       clear() {
+        console.log("clear");
+
         if (cellOptions.debounce) dispatch("change", null);
         lastEdit = new Date();
         localValue = null;
@@ -89,6 +93,7 @@
         this.submit();
       },
       submit() {
+        console.log({ localValue, value, isDirty });
         if (isDirty) {
           dispatch("change", localValue);
         }
@@ -100,6 +105,9 @@
         return state;
       },
       debounce(e) {
+        console.log("debounce", e.target.value);
+        console.log(timer);
+
         localValue = e.target.value;
         lastEdit = new Date();
         if (cellOptions?.debounce) {
@@ -156,6 +164,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   class="superCell"
+  class:multirow={cellOptions.controlType == "textarea"}
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline={cellOptions.role == "inlineInput"}
@@ -178,33 +187,72 @@
   {/if}
 
   {#if inEdit}
-    <input
-      bind:this={editor}
-      tabindex="0"
-      class="editor"
-      class:with-icon={cellOptions.icon || error}
-      class:placeholder={!value && !formattedValue && !localValue}
-      value={localValue ?? ""}
-      placeholder={cellOptions?.placeholder ?? ""}
-      style:text-align={cellOptions.align == "center"
-        ? "center"
-        : cellOptions.align == "flex-end"
-          ? "right"
-          : "left"}
-      style:padding-right={cellOptions.align != "flex-start"
-        ? "2rem"
-        : "0.75rem"}
-      on:input={cellState.debounce}
-      on:focusout={cellState.focusout}
-      on:keydown={cellState.handleKeyboard}
-      use:focus
-    />
+    {#if cellOptions.controlType == "textarea"}
+      <textarea
+        bind:this={editor}
+        tabindex="0"
+        class="editor textarea"
+        class:with-icon={cellOptions.icon || error}
+        class:placeholder={!value && !formattedValue && !localValue}
+        placeholder={cellOptions?.placeholder ?? ""}
+        style:text-align={cellOptions.align == "center"
+          ? "center"
+          : cellOptions.align == "flex-end"
+            ? "right"
+            : "left"}
+        on:input={cellState.debounce}
+        on:focusout={cellState.focusout}
+        on:keydown={cellState.handleKeyboard}
+        use:focus>{localValue ?? ""}</textarea
+      >
+      {#if localValue && cellOptions?.clearIcon !== false}
+        <i
+          class="ri-close-line clearIcon"
+          on:mousedown|self|preventDefault={cellState.clear}
+        />
+      {/if}
+    {:else}
+      <input
+        bind:this={editor}
+        tabindex="0"
+        class="editor"
+        class:with-icon={cellOptions.icon || error}
+        class:placeholder={!value && !formattedValue && !localValue}
+        value={localValue ?? ""}
+        placeholder={cellOptions?.placeholder ?? ""}
+        style:text-align={cellOptions.align == "center"
+          ? "center"
+          : cellOptions.align == "flex-end"
+            ? "right"
+            : "left"}
+        style:padding-right={cellOptions.align != "flex-start"
+          ? "2rem"
+          : "0.75rem"}
+        on:input={cellState.debounce}
+        on:focusout={cellState.focusout}
+        on:keydown={cellState.handleKeyboard}
+        use:focus
+      />
+    {/if}
     {#if localValue && cellOptions?.clearIcon !== false}
       <i
         class="ri-close-line clearIcon"
         on:mousedown|self|preventDefault={cellState.clear}
       />
     {/if}
+  {:else if cellOptions.controlType == "textarea"}
+    <div
+      class="textarea"
+      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+      class:with-icon={cellOptions.icon || error}
+      class:placeholder={!value && !formattedValue}
+      style:justify-content={cellOptions.align}
+      on:focusin={cellState.focus}
+    >
+      <span>
+        {formattedValue || value || placeholder}
+      </span>
+    </div>
   {:else}
     <div
       class="value"
@@ -220,3 +268,25 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .editor.textarea {
+    flex: 1 1 auto;
+    all: inherit;
+    height: 100%;
+    overflow: auto;
+    padding: 0.5rem;
+  }
+  .textarea {
+    flex: 1 1 auto;
+    height: 100%;
+    overflow: auto;
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+
+  .textarea.placeholder {
+    color: var(--spectrum-global-color-gray-500);
+    font-style: italic;
+  }
+</style>

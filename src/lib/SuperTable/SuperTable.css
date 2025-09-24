@@ -64,8 +64,8 @@
 .super-column {
   display: flex;
   flex: auto;
-  flex-direction: column;
   position: relative;
+  flex-direction: column;
   border-right: var(--super-table-vertical-dividers);
   overflow: hidden;
   scrollbar-width: none;
@@ -92,7 +92,7 @@
   }
 
   &.sticky {
-    background: var(--spectrum-global-color-gray-100);
+    background: var(--spectrum-global-color-gray-75);
     filter: drop-shadow(2px 0 2px rgba(0, 0, 0, 0.5));
     z-index: 1;
   }
