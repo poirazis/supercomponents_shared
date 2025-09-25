@@ -229,11 +229,12 @@
           {arrows}
           {infinite}
           {autoplay}
+          height={"100%"}
         >
           {#each localvalue as attachment, idx (idx)}
             <div
               class="slider-item"
-              style:height={height || "14rem"}
+              style:height={"100%"}
               on:click={() => {
                 openModal(idx);
               }}
@@ -329,11 +330,12 @@
     flex-direction: row;
     align-items: stretch;
     justify-content: stretch;
-    min-width: 15rem;
-    min-height: 15rem;
     height: 100%;
-    position: relative;
     width: 100%;
+  }
+
+  :global(.slider .sc-carousel__content-container) {
+    height: 100%;
   }
 
   .slider-item {

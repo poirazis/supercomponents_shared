@@ -18,7 +18,7 @@
   class:left-label={labelPos == "left"}
   class:multirow
   class:tall
-  style:--height={height ? height : "15rem"}
+  style:--height={height}
 >
   {#if labelPos}
     <div
@@ -58,21 +58,21 @@
   .super-field {
     min-width: 180px;
     width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     overflow: hidden;
+    &.multirow {
+      max-height: var(--height);
+    }
 
     &.left-label {
       flex-direction: row;
       align-items: center;
       gap: 1rem;
     }
-    &.multirow {
-      max-height: var(--height, 15rem);
-    }
     &.tall {
-      height: var(--height, 15rem);
       justify-content: stretch;
     }
 
