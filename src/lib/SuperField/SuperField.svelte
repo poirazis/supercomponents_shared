@@ -7,7 +7,7 @@
   export let helpText;
   export let error;
   export let labelWidth;
-  export let height;
+  export let height = "15rem";
 
   let showHelp;
   $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
