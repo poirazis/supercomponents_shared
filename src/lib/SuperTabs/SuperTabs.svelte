@@ -9,7 +9,7 @@
   export let hAlign;
   export let vAlign;
   export let state;
-  export let theme;
+  export let theme = "buttons";
   export let gap;
   export let tabsAlignment;
   export let tabsIconsOnly;
@@ -17,9 +17,6 @@
   export let list_title;
 
   export let quietTabs;
-
-  let tabs = [];
-  let innerWidth, innerHeight;
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -34,11 +31,8 @@
   >
     <div
       class="tabs"
-      bind:clientWidth={innerWidth}
-      bind:clientHeight={innerHeight}
       class:vertical={direction == "column" || theme == "list"}
       class:buttons={theme == "buttons"}
-      class:negButtons={theme == "negButtons"}
       class:list={theme == "list"}
       style:justify-content={direction == "row" ? hAlign : vAlign}
       style:--tab-alignment={tabsAlignment}
@@ -55,12 +49,10 @@
       {#each containers as container, idx (idx)}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div
-          bind:this={tabs[container.id]}
+        <button
           class="tab"
           class:vertical={direction == "column"}
           class:button={theme == "buttons"}
-          class:negButtons={theme == "negButtons"}
           class:list={theme == "list"}
           class:selected={container.id == selectedTab}
           class:disabled={container.disabled}
@@ -83,7 +75,7 @@
               {container.title || "Tab " + idx}
             </span>
           {/if}
-        </div>
+        </button>
       {/each}
     </div>
   </div>
@@ -106,36 +98,26 @@
       width: 10rem;
       align-items: stretch;
       margin-right: 0.5rem;
-    }
-
-    &.list {
-      width: 15rem;
+      margin-bottom: unset;
+      border-right: 1px solid var(--spectrum-global-color-gray-300);
     }
   }
   .tabs {
-    flex: 1 0 auto;
-    position: relative;
+    flex: auto;
     display: flex;
     gap: 1rem;
-    height: 2.4rem;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem;
     border-bottom: 1px solid var(--spectrum-global-color-gray-200);
 
     &.buttons {
-      gap: 0.25rem;
-      padding: 0.35rem 0.25rem;
-    }
-    &.negButtons {
-      gap: 0.25rem;
-      padding: 0.35rem 0.25rem;
-      background-color: var(--spectrum-global-color-gray-100);
-      border-bottom: unset;
+      gap: 0.5rem;
     }
 
     &.list {
       gap: 0rem;
       background-color: var(--spectrum-global-color-gray-50);
       border: unset;
+      padding: unset;
     }
 
     &.vertical {
@@ -145,16 +127,6 @@
 
       &.list {
         border-right: unset;
-      }
-
-      &.buttons {
-        gap: 0.25rem;
-        padding-right: 0.5rem;
-        border-right: 1px solid var(--spectrum-global-color-gray-300);
-      }
-      &.negButtons {
-        gap: 0.25rem;
-        padding-right: 0.5rem;
       }
     }
   }
@@ -167,8 +139,9 @@
     gap: 0.5rem;
     justify-content: var(--tab-alignment);
     color: var(--spectrum-global-color-gray-600);
-    min-width: 6rem;
-    font-weight: 500;
+    font-size: 13px;
+    background: transparent;
+    border: none;
 
     &.disabled {
       color: var(--spectrum-global-color-gray-400) !important;
@@ -178,32 +151,17 @@
     }
 
     &.button {
-      align-items: center;
-      justify-content: var(--tab-alignment);
       border-radius: 4px;
-      padding: 0.25rem 0.75rem;
-      border: 1px solid transparent;
+      padding: 0.35rem 1rem;
+      border: none;
+      background: transparent;
 
       &:active:not(.list-section):not(.disabled) {
-        border: 1px solid var(--spectrum-global-color-gray-300);
+        background-color: var(--spectrum-global-color-gray-200);
       }
       &.selected {
-        background-color: var(--selected-tab);
-        border: 1px solid var(--spectrum-global-color-gray-300);
-      }
-    }
-    &.negButtons {
-      align-items: center;
-      justify-content: var(--tab-alignment);
-      border-radius: 4px;
-      padding: 0.25rem 0.75rem;
-
-      &:hover {
-        background-color: var(--spectrum-global-color-gray-75);
-      }
-      &.selected {
-        background-color: var(--spectrum-global-color-gray-50);
-        border: 1px solid var(--spectrum-global-color-gray-300);
+        color: var(--spectrum-global-color-gray-800);
+        background-color: var(--spectrum-global-color-gray-200);
       }
     }
 
@@ -212,7 +170,6 @@
       align-items: center;
       padding: 0.5rem 1rem;
       max-width: 100%;
-      font-size: 13px;
       color: var(--spectrum-global-color-gray-700);
       font-weight: 400;
 
@@ -257,11 +214,6 @@
       }
     }
 
-    &.vertical {
-      border: none;
-      min-height: 2rem;
-    }
-
     &:hover:not(.disabled):not(.list-title):not(.list-section) {
       cursor: pointer;
       color: var(--spectrum-global-color-gray-800);
@@ -273,7 +225,6 @@
 
     &.selected {
       color: var(--tab-selected-color);
-      font-weight: 600;
 
       &:hover {
         color: var(--tab-selected-color);
