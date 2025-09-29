@@ -63,6 +63,8 @@
       ? cellOptions.carouselItemsToScroll
       : 1;
 
+  $: marquee = cellOptions.carouselMode === "marquee";
+
   // Handle slide change
 
   export let cellState = fsm(cellOptions.initialState ?? "View", {
@@ -225,12 +227,20 @@
         <Carousel
           {particlesToShow}
           {particlesToScroll}
-          {dots}
-          {arrows}
+          dots={dots && !marquee}
+          arrows={arrows && !marquee}
           {infinite}
-          {autoplay}
+          autoplay={autoplay || marquee}
           height={"100%"}
         >
+          <div
+            slot="prev"
+            let:showPrevPage
+            on:click={showPrevPage}
+            class="slider-navbutton"
+          >
+            <i class="ph ph-caret-left" />
+          </div>
           {#each localvalue as attachment, idx (idx)}
             <div
               class="slider-item"
@@ -245,7 +255,11 @@
                   class:selected={selectedIndices.has(idx)}
                   style="background-image: url('{attachment.url}')"
                   aria-label={attachment.name}
-                ></div>
+                >
+                  <div class="slider-image-overlay">
+                    {attachment.name}
+                  </div>
+                </div>
               {:else if !isGallery}
                 <div class="slider-fallback">
                   <div class="pill">
@@ -256,6 +270,15 @@
               {/if}
             </div>
           {/each}
+
+          <div
+            slot="next"
+            let:showNextPage
+            on:click={showNextPage}
+            class="slider-navbutton"
+          >
+            <i class="ph ph-caret-right" />
+          </div>
         </Carousel>
       {/key}
     {:else if !isGallery}
@@ -350,6 +373,7 @@
   }
 
   .slider-image {
+    position: relative;
     width: 100%;
     height: 100%;
     background-size: cover;
@@ -379,6 +403,25 @@
     font-weight: bold;
   }
 
+  .slider-image:hover .slider-image-overlay {
+    opacity: 1;
+  }
+  .slider-image-overlay {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 0.25rem;
+    font-size: 12px;
+    text-align: center;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+  }
+
   .slider-fallback {
     display: flex;
     flex-direction: column;
@@ -403,6 +446,17 @@
     align-items: center;
     justify-content: center;
     padding: 2rem;
+  }
+
+  .slider-navbutton {
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+  }
+
+  .slider-navbutton:hover {
+    color: var(--spectrum-global-color-blue-600);
+    cursor: pointer;
   }
 
   .btn-upload-empty {

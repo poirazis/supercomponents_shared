@@ -269,6 +269,7 @@
       const stepFields = fields.filter(
         (field) => get(field).step === get(currentStep)
       );
+
       let valid = true;
       let hasScrolled = false;
       stepFields.forEach((field) => {

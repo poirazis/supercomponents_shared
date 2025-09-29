@@ -7,7 +7,7 @@
   export let helpText;
   export let error;
   export let labelWidth;
-  export let height;
+  export let height = "15rem";
 
   let showHelp;
   $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
@@ -58,7 +58,6 @@
   .super-field {
     min-width: 180px;
     width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -73,6 +72,7 @@
       gap: 1rem;
     }
     &.tall {
+      height: 100%;
       justify-content: stretch;
     }
 
@@ -93,7 +93,7 @@
     &.multirow {
       flex-direction: column;
       align-items: stretch;
-      justify-content: stretch;
+      justify-content: flex;
     }
 
     & > .inline-buttons {

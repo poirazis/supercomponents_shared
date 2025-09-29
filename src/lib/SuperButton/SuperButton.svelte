@@ -313,9 +313,12 @@
       }
     }
 
-    &:hover,
-    &:focus {
+    &:hover {
       background-color: var(--spectrum-global-color-gray-300);
+      color: var(--spectrum-global-color-gray-900);
+    }
+    &:focus {
+      border: 1px dashed var(--spectrum-global-color-gray-400);
       color: var(--spectrum-global-color-gray-900);
     }
   }

@@ -82,8 +82,6 @@
         editor?.focus();
       },
       clear() {
-        console.log("clear");
-
         if (cellOptions.debounce) dispatch("change", null);
         lastEdit = new Date();
         localValue = null;
@@ -93,7 +91,6 @@
         this.submit();
       },
       submit() {
-        console.log({ localValue, value, isDirty });
         if (isDirty) {
           dispatch("change", localValue);
         }
@@ -105,9 +102,6 @@
         return state;
       },
       debounce(e) {
-        console.log("debounce", e.target.value);
-        console.log(timer);
-
         localValue = e.target.value;
         lastEdit = new Date();
         if (cellOptions?.debounce) {

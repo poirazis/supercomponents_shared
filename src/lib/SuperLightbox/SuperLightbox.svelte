@@ -243,7 +243,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: 100000;
     cursor: pointer;
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
