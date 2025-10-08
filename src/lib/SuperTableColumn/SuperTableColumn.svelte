@@ -21,7 +21,6 @@
   import CellStringSimple from "../SuperTableCells/CellStringSimple.svelte";
   import CellLinkAdvanced from "../SuperTableCells/CellLinkAdvanced.svelte";
 
-  const stbData = getContext("stbData");
   const stbSettings = getContext("stbSettings");
   const stbSortColumn = getContext("stbSortColumn");
   const stbSortOrder = getContext("stbSortOrder");
@@ -70,6 +69,7 @@
   export let columnOptions;
   export let sticky;
   export let scrollPos;
+  export let stbData;
 
   // Internal Variables
   let id = Math.random() * 100;
@@ -393,7 +393,7 @@
   {/if}
 
   <SuperColumnBody
-    rows={$stbData.rows}
+    rows={$stbData?.rows}
     rowHeight={$stbSettings.appearance.rowHeight}
     field={$columnOptionsStore.name}
     idField={$stbSettings.data.idColumn}

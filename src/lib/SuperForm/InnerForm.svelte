@@ -104,6 +104,7 @@
     __dirty: $dirty,
     __currentStep: $currentStep,
     __currentStepValid: $currentStepValid,
+    __editing: !readonly && !disabled,
   };
 
   const deriveFieldProperty = (

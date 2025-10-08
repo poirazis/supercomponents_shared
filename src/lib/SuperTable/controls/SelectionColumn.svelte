@@ -17,10 +17,10 @@
 
   $: idColumn = $stbSettings.data.idColumn;
   $: partialSelection =
-    $stbSelected.length && $stbSelected.length != $stbData.rows?.length;
+    $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
 
   $: fullSelection =
-    $stbSelected.length == $stbData.rows?.length && $stbData.rows?.length > 0;
+    $stbSelected.length == $stbData?.rows?.length && $stbData?.rows?.length > 0;
 
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
@@ -74,46 +74,50 @@
       class:sticky
       style:margin-top={"var(--super-column-top-offset)"}
     >
-      {#each $stbVisibleRows as visibleRow}
-        {@const row = $stbData?.rows?.[visibleRow]}
-        {@const selected = $stbSelected?.includes(row[idColumn] ?? visibleRow)}
-        {#if row}
-          <div
-            class="super-row selection"
-            class:is-selected={selected}
-            class:is-hovered={$stbHovered == visibleRow ||
-              $stbMenuID == visibleRow}
-            class:is-disabled={$rowMetadata[visibleRow]?.disabled}
-            style:min-height={$rowMetadata[visibleRow]?.height}
-            on:mouseenter={() => ($stbHovered = visibleRow)}
-            on:mouseleave={() => ($stbHovered = null)}
-          >
-            {#if numbering}
-              <div class="row-number">
-                {visibleRow + 1}
-              </div>
-            {/if}
+      {#if $stbData?.rows?.length > 0}
+        {#each $stbVisibleRows as visibleRow}
+          {@const row = $stbData?.rows?.[visibleRow]}
+          {@const selected = $stbSelected?.includes(
+            row[idColumn] ?? visibleRow
+          )}
+          {#if row}
+            <div
+              class="super-row selection"
+              class:is-selected={selected}
+              class:is-hovered={$stbHovered == visibleRow ||
+                $stbMenuID == visibleRow}
+              class:is-disabled={$rowMetadata[visibleRow]?.disabled}
+              style:min-height={$rowMetadata[visibleRow]?.height}
+              on:mouseenter={() => ($stbHovered = visibleRow)}
+              on:mouseleave={() => ($stbHovered = null)}
+            >
+              {#if numbering}
+                <div class="row-number">
+                  {visibleRow + 1}
+                </div>
+              {/if}
 
-            {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-              <div
-                class="checkbox"
-                class:selected
-                on:click={() => stbAPI.selectRow(visibleRow)}
-              >
-                <i class="ri-check-line" style:visibility={"hidden"} />
-              </div>
-            {/if}
+              {#if $stbSettings.features.canSelect && !hideSelectionColumn}
+                <div
+                  class="checkbox"
+                  class:selected
+                  on:click={() => stbAPI.selectRow(visibleRow)}
+                >
+                  <i class="ri-check-line" style:visibility={"hidden"} />
+                </div>
+              {/if}
 
-            {#if canDelete}
-              <i
-                class="ri-delete-bin-line delete"
-                class:selected
-                on:click={(e) => stbAPI.deleteRow(visibleRow)}
-              />
-            {/if}
-          </div>
-        {/if}
-      {/each}
+              {#if canDelete}
+                <i
+                  class="ri-delete-bin-line delete"
+                  class:selected
+                  on:click={(e) => stbAPI.deleteRow(visibleRow)}
+                />
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      {/if}
 
       {#if $stbState == "Inserting"}
         <div class="add-row" style="padding: unset;"></div>

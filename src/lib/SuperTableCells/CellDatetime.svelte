@@ -159,7 +159,7 @@
         ? formatDate(innerDate, currentDateFormat)
         : "";
 
-  $: placeholder = cellOptions?.placeholder ?? "Select Date";
+  $: placeholder = cellOptions?.placeholder || "";
   $: inEdit = $cellState == "Editing";
   $: inline = cellOptions.role == "inlineInpur";
   $: isDirty = inEdit && originalValue != value;
@@ -243,7 +243,13 @@
 </div>
 
 {#if inEdit}
-  <SuperPopover {anchor} dismissible={false} {open} align="right">
+  <SuperPopover
+    {anchor}
+    dismissible={false}
+    {open}
+    align="right"
+    maxHeight={400}
+  >
     <div
       bind:this={picker}
       class="datetime-picker-container"
@@ -279,11 +285,12 @@
 
 <style>
   .datetime-picker-container {
-    display: flex;
+    display: contents;
     flex-direction: column;
     gap: 8px;
     padding: 0.5rem;
     border-radius: 8px;
+    min-height: fit-content;
     z-index: 1000;
   }
   .time-section {

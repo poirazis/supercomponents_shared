@@ -37,6 +37,7 @@
     : value;
 
   $: placeholder = cellOptions?.placeholder ?? "";
+  $: textarea = cellOptions?.controlType == "textarea";
 
   $: cellState.reset(value);
 
@@ -76,7 +77,6 @@
         originalValue = undefined;
         lastEdit = undefined;
         dispatch("exitedit");
-        dispatch("focusout");
       },
       focus() {
         editor?.focus();
@@ -85,9 +85,11 @@
         if (cellOptions.debounce) dispatch("change", null);
         lastEdit = new Date();
         localValue = null;
+        editor?.focus();
         dispatch("clear", null);
       },
       focusout(e) {
+        dispatch("focusout");
         this.submit();
       },
       submit() {
@@ -112,7 +114,7 @@
         }
       },
       handleKeyboard(e) {
-        if (e.key == "Enter") this.submit();
+        if (e.key == "Enter" && !e.shiftKey) this.submit();
         if (e.key == "Escape") this.cancel();
       },
     },
@@ -159,6 +161,7 @@
 <div
   class="superCell"
   class:multirow={cellOptions.controlType == "textarea"}
+  class:textarea={cellOptions.controlType == "textarea"}
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline={cellOptions.role == "inlineInput"}
@@ -181,7 +184,7 @@
   {/if}
 
   {#if inEdit}
-    {#if cellOptions.controlType == "textarea"}
+    {#if textarea}
       <textarea
         bind:this={editor}
         tabindex="0"
@@ -199,12 +202,6 @@
         on:keydown={cellState.handleKeyboard}
         use:focus>{localValue ?? ""}</textarea
       >
-      {#if localValue && cellOptions?.clearIcon !== false}
-        <i
-          class="ri-close-line clearIcon"
-          on:mousedown|self|preventDefault={cellState.clear}
-        />
-      {/if}
     {:else}
       <input
         bind:this={editor}
@@ -227,25 +224,23 @@
         on:keydown={cellState.handleKeyboard}
         use:focus
       />
+      {#if localValue && cellOptions?.clearIcon !== false}
+        <i
+          class="ri-close-line clearIcon"
+          on:mousedown|self|preventDefault={cellState.clear}
+        />
+      {/if}
     {/if}
-    {#if localValue && cellOptions?.clearIcon !== false}
-      <i
-        class="ri-close-line clearIcon"
-        on:mousedown|self|preventDefault={cellState.clear}
-      />
-    {/if}
-  {:else if cellOptions.controlType == "textarea"}
+  {:else if textarea}
     <div
-      class="textarea"
+      class="value textarea"
       tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
       class:with-icon={cellOptions.icon || error}
       class:placeholder={!value && !formattedValue}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}
     >
-      <span>
-        {formattedValue || value || placeholder}
-      </span>
+      {formattedValue || value || placeholder}
     </div>
   {:else}
     <div
@@ -271,12 +266,18 @@
     overflow: auto;
     padding: 0.5rem;
   }
-  .textarea {
-    flex: 1 1 auto;
+  .superCell.textarea {
     height: 100%;
-    overflow: auto;
+  }
+
+  .value.textarea {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: flex-start;
+    white-space: pre-wrap;
     padding: 0.5rem;
-    border-radius: 4px;
+    height: 100%;
+    overflow-y: auto;
   }
 
   .textarea.placeholder {

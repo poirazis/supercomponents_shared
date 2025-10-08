@@ -41,6 +41,7 @@
   $: inEdit = $cellState == "Editing";
   $: canSelect = !readonly && !disabled && !isGallery;
   $: canDelete = !readonly && !disabled && !isGallery;
+  $: slotted = cellOptions.slotted;
 
   export let cellState = fsm(cellOptions.initialState ?? "View", {
     "*": {
@@ -250,15 +251,16 @@
   }
 
   // Unified click handler for items in carousel and grid modes
-  function onItemClick(item: any, index: number) {
-    if (onClickAction === "none") {
+  function onItemClick(index: number) {
+    if (!onClickAction || onClickAction === "none") {
       return;
     } else if (onClickAction === "view") {
       openModal(index);
     } else if (onClickAction === "select") {
       toggleSelection(index);
     } else if (onClickAction === "custom") {
-      cellOptions.onItemClick?.(item, index);
+      let item = localvalue[index];
+      cellOptions.onItemClick?.({ item, index });
     }
   }
 </script>
@@ -461,7 +463,11 @@
                   on:click={() => onItemClick(attachment, idx)}
                   on:keydown={(e) => e.key === "Enter" && toggleSelection(idx)}
                 >
-                  <slot />
+                  {#if slotted}
+                    <div class="slot-container">
+                      <slot />
+                    </div>
+                  {/if}
                   {#if !isGallery && !readonly}
                     <div class="grid-overlay-top">
                       <button
@@ -953,6 +959,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     filter: grayscale(50%);
+    padding: 1rem;
   }
   .grid-image:hover {
     filter: grayscale(0%);
@@ -997,6 +1004,10 @@
   }
 
   .grid-item:hover .grid-overlay-top {
+    opacity: 1;
+  }
+
+  .grid-image:hover .slot-container {
     opacity: 1;
   }
 
@@ -1159,5 +1170,18 @@
   .btn-upload-empty.grid:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .slot-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    pointer-events: none; /* Ensure it doesn't block clicks */
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: all 0.2s ease;
+    border-radius: 8px;
   }
 </style>
