@@ -36,20 +36,18 @@
 >
   {#if rows?.length}
     {#each $stbVisibleRows as index}
-      {#if rows[index]}
-        <SuperColumnRow
-          {isLast}
-          {index}
-          row={rows[index]}
-          {field}
-          {idField}
-          disabled={inserting}
-          {rowHeight}
-          on:resize={(e) => stbState.resizeRow(index, e.detail)}
-        >
-          <slot />
-        </SuperColumnRow>
-      {/if}
+      <SuperColumnRow
+        {isLast}
+        {index}
+        row={rows[index]}
+        {field}
+        {idField}
+        disabled={inserting}
+        {rowHeight}
+        on:resize={(e) => stbState.resizeRow(index, e.detail)}
+      >
+        <slot />
+      </SuperColumnRow>
     {/each}
   {/if}
   {#if inserting}

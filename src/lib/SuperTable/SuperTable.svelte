@@ -133,12 +133,12 @@
 
   const dataSourceStore = memo(dataSource);
   const columnsStore = memo(columnList);
+  const stbRowMetadata = writable([]);
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(dataSource);
 
   $: filterStore.set(filter);
-  $: stbData = createFetch($dataSourceStore);
   $: stbSchema.set($stbData?.definition?.schema);
 
   // Update columnsStore when columnList changes
@@ -310,57 +310,19 @@
     },
   });
 
-  // Enrich Row Metatada
-  $: stbRowMetadata = derivedMemo(
-    [stbData, stbSettings],
-    ([$stbData, $stbSettings]) => {
-      return (
-        $stbData?.rows?.map((row) => ({
-          height: rowHeight
-            ? toNumber(
-                processStringSync(rowHeight, {
-                  ...$context,
-                  [comp_id]: { row },
-                })
-              ) || $stbSettings.appearance.rowHeight
-            : $stbSettings.appearance.rowHeight,
-          bgcolor: rowBGColorTemplate
-            ? processStringSync(rowBGColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          color: rowColorTemplate
-            ? processStringSync(rowColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          disabled: rowDisabledTemplate
-            ? processStringSync(rowDisabledTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-        })) || [{}]
-      );
-    }
-  );
-
-  $: cumulativeHeights = derivedMemo(
-    [stbRowMetadata, stbSettings],
-    ([$meta, $settings]) => {
-      const defaultRowHeight = $settings.appearance?.rowHeight || 36;
-      return $meta?.map((_, i) =>
-        $meta
-          .slice(0, i + 1)
-          .reduce(
-            (sum, meta) => sum + Math.max(meta.height || defaultRowHeight, 0),
-            0
-          )
-      );
-    }
-  );
+  const createFetch = (datasource) => {
+    return fetchData({
+      API,
+      datasource,
+      options: {
+        query,
+        sortColumn,
+        sortOrder,
+        limit,
+        paginate: false,
+      },
+    });
+  };
 
   // The Super Table API
   const tableAPI = {
@@ -774,7 +736,38 @@
       refresh() {
         stbData?.refresh();
       },
-      enrichRows() {},
+      enrichRows() {
+        if ($stbData?.loading) return;
+
+        $stbRowMetadata = $stbData?.rows?.map((row) => ({
+          height: rowHeight
+            ? toNumber(
+                processStringSync(rowHeight, {
+                  ...$context,
+                  [comp_id]: { row },
+                })
+              ) || $stbSettings.appearance.rowHeight
+            : $stbSettings.appearance.rowHeight,
+          bgcolor: rowBGColorTemplate
+            ? processStringSync(rowBGColorTemplate, {
+                ...$context,
+                [comp_id]: { row },
+              })
+            : undefined,
+          color: rowColorTemplate
+            ? processStringSync(rowColorTemplate, {
+                ...$context,
+                [comp_id]: { row },
+              })
+            : undefined,
+          disabled: rowDisabledTemplate
+            ? processStringSync(rowDisabledTemplate, {
+                ...$context,
+                [comp_id]: { row },
+              })
+            : undefined,
+        })) || [{}];
+      },
       lockColumnWidths() {
         if (isScrolling) return; // Already locked
         isScrolling = true;
@@ -1035,6 +1028,7 @@
         if (timer) clearInterval(timer);
         start = 0;
         end = 0;
+
         $stbScrollPos = 0;
         $stbScrollOffset = 0;
         $stbHorizontalScrollPos = 0;
@@ -1042,6 +1036,8 @@
         $columnsStore = [];
         $stbVisibleRows = [];
         if (_limit != limit) _limit = limit;
+
+        stbData = createFetch($dataSourceStore);
 
         // If Initialization takes more than 130ms, show loading state
         initTimer = setTimeout(() => {
@@ -1159,16 +1155,14 @@
     },
   });
 
-  // Virtual List Capabilities reacting to viewport change
-  $: stbState.calculateBoundaries(
-    clientHeight,
-    canInsert,
-    $stbSortColumn,
-    fetchOnScroll,
-    rowHeight,
-    $stbSortColumn,
-    $stbSortOrder,
-    $stbData
+  // Initialize and Enrich Rows
+  $: stbState.init($dataSourceStore);
+  $: stbState.synch($stbData);
+  $: stbState.enrichRows(
+    $stbData,
+    rowBGColorTemplate,
+    rowColorTemplate,
+    rowHeight
   );
 
   // Scroll to Top when filter changes
@@ -1186,13 +1180,12 @@
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
   $: query = extendQuery(defaultQuery, queryExtensions);
-
   $: stbData?.update({
     query,
     sortColumn,
     sortOrder,
   });
-  $: stbState.synch($stbData);
+
   $: tableId = $stbData?.definition?.tableId || $stbData?.definition?._id;
 
   // Derived Store with the columns to be rendered
@@ -1206,6 +1199,25 @@
         $stbSettings.showSpecialColumns
       );
     }
+  );
+
+  $: cumulativeHeights = derivedMemo(stbRowMetadata, ($meta) => {
+    return $meta?.map((_, i) =>
+      $meta
+        .slice(0, i + 1)
+        .reduce((sum, meta) => sum + Math.max(meta.height, 0), 0)
+    );
+  });
+
+  // Virtual List Capabilities reacting to viewport change
+  $: stbState.calculateBoundaries(
+    clientHeight,
+    canInsert,
+    $stbSortColumn,
+    fetchOnScroll,
+    $stbSortColumn,
+    $stbSortOrder,
+    $cumulativeHeights
   );
 
   // Derived Store with common column settings
@@ -1309,21 +1321,6 @@
   $: showButtonColumnRight = rowMenu == "columnRight" && rowMenuItems?.length;
   $: showButtonColumnLeft = rowMenu == "columnLeft" && rowMenuItems?.length;
 
-  const createFetch = (datasource) => {
-    stbState.init();
-    return fetchData({
-      API,
-      datasource,
-      options: {
-        query,
-        sortColumn,
-        sortOrder,
-        limit,
-        paginate: false,
-      },
-    });
-  };
-
   const extendQuery = (
     defaultQuery: SearchFilters,
     extensions: Record<string, any>
@@ -1376,7 +1373,10 @@
   setContext("stbMenuAnchor", stbMenuAnchor);
   setContext("stbAPI", tableAPI);
   setContext("stbVisibleRows", stbVisibleRows);
-  $: setContext("stbRowMetadata", stbRowMetadata);
+  setContext("stbRowMetadata", stbRowMetadata);
+
+  // Reactive Context
+
   $: setContext("stbData", stbData);
   $: setContext("stbSchema", stbSchema);
   $: setContext("new_row", new_row);
@@ -1433,104 +1433,108 @@
   on:touchmove={(e) => stbState.handleTouch(e, "move")}
   on:touchend={(e) => stbState.handleTouch(e, "end")}
 >
-  <Provider {actions} data={dataContext} />
+  {#key stbData}
+    <Provider {actions} data={dataContext} />
 
-  <ControlSection>
-    <SelectionColumn {hideSelectionColumn} />
+    <ControlSection>
+      <SelectionColumn {stbData} {hideSelectionColumn} />
 
-    {#if showButtonColumnLeft}
-      <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-    {/if}
+      {#if showButtonColumnLeft}
+        <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+      {/if}
 
-    {#if stickFirstColumn && $superColumns.length > 1}
-      <SuperTableColumn
-        {stbData}
-        sticky={true}
-        scrollPos={$stbHorizontalScrollPos}
-        columnOptions={{
-          ...$superColumns[0],
-          ...$commonColumnOptions,
-          overflow,
-          isFirst: true,
-          isLast:
-            $superColumns?.length == 1 && !showButtonColumnRight && canScroll,
-        }}
-      />
-    {/if}
-  </ControlSection>
+      {#if stickFirstColumn && $superColumns.length > 1}
+        <SuperTableColumn
+          {stbData}
+          sticky={true}
+          scrollPos={$stbHorizontalScrollPos}
+          columnOptions={{
+            ...$superColumns[0],
+            ...$commonColumnOptions,
+            overflow,
+            isFirst: true,
+            isLast:
+              $superColumns?.length == 1 && !showButtonColumnRight && canScroll,
+          }}
+        />
+      {/if}
+    </ControlSection>
 
-  <ColumnsSection
-    {stbData}
-    {stbSettings}
-    {superColumns}
-    {commonColumnOptions}
-    {canScroll}
-    bind:columnsViewport
-  >
-    {#key stbData}
-      {#key $stbSchema}
-        {#key columnSizing}
-          <slot />
+    <ColumnsSection
+      {stbData}
+      {stbSettings}
+      {superColumns}
+      {commonColumnOptions}
+      {canScroll}
+      bind:columnsViewport
+    >
+      {#key stbData}
+        {#key $stbSchema}
+          {#key columnSizing}
+            <slot />
+          {/key}
         {/key}
       {/key}
-    {/key}
-  </ColumnsSection>
+    </ColumnsSection>
 
-  {#if showButtonColumnRight && !isEmpty}
-    <ControlSection>
-      <RowButtonsColumn
-        {rowMenuItems}
-        {menuItemsVisible}
-        {rowMenu}
-        {canScroll}
-        right={true}
+    {#if showButtonColumnRight && !isEmpty}
+      <ControlSection>
+        <RowButtonsColumn
+          {rowMenuItems}
+          {menuItemsVisible}
+          {rowMenu}
+          {canScroll}
+          right={true}
+        />
+      </ControlSection>
+    {/if}
+
+    <ScrollbarsOverlay
+      anchor={columnsViewport}
+      clientHeight={maxBodyHeight}
+      {scrollHeight}
+      {highlighted}
+      {isEmpty}
+      bind:horizontalVisible
+      on:positionChange={stbState.calculateRowBoundaries}
+    />
+
+    <EmptyResultSetOverlay
+      {isEmpty}
+      message={$stbSettings.data.emptyMessage}
+      top={$superColumns?.length
+        ? $stbSettings.appearance.headerHeight + 16
+        : 16}
+      bottom={horizontalVisible ? 24 : 16}
+    />
+
+    <RowContextMenu {rowContextMenuItems} />
+
+    {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
+      <AddNewRowOverlay
+        {stbState}
+        {tableAPI}
+        {highlighted}
+        {tableActions}
+        footer={$stbSettings.showFooter}
       />
-    </ControlSection>
-  {/if}
+    {/if}
 
-  <ScrollbarsOverlay
-    anchor={columnsViewport}
-    clientHeight={maxBodyHeight}
-    {scrollHeight}
-    {highlighted}
-    {isEmpty}
-    bind:horizontalVisible
-    on:positionChange={stbState.calculateRowBoundaries}
-  />
+    {#if $stbSettings.features.canSelect && selectedActions?.length}
+      <SelectedActionsOverlay
+        {stbSettings}
+        {selectedActions}
+        {stbSelected}
+        {tableAPI}
+        {stbState}
+        {highlighted}
+        {entitySingular}
+        {entityPlural}
+      />
+    {/if}
 
-  <EmptyResultSetOverlay
-    {isEmpty}
-    message={$stbSettings.data.emptyMessage}
-    top={$superColumns?.length ? $stbSettings.appearance.headerHeight + 16 : 16}
-    bottom={horizontalVisible ? 24 : 16}
-  />
-
-  <RowContextMenu {rowContextMenuItems} />
-
-  {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
-    <AddNewRowOverlay
-      {stbState}
-      {tableAPI}
-      {highlighted}
-      {tableActions}
-      footer={$stbSettings.showFooter}
-    />
-  {/if}
-
-  {#if $stbSettings.features.canSelect && selectedActions?.length}
-    <SelectedActionsOverlay
-      {stbSettings}
-      {selectedActions}
-      {stbSelected}
-      {tableAPI}
-      {stbState}
-      {highlighted}
-      {entitySingular}
-      {entityPlural}
-    />
-  {/if}
-
-  {#if $stbData.loading && $stbData.loaded}
-    <LoadingOverlay />
-  {/if}
+    {#if $stbData.loading && $stbData.loaded}
+      <LoadingOverlay />
+    {/if}
+  {/key}
 </div>

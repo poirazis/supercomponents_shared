@@ -16,7 +16,7 @@
     <slot />
   {/if}
 
-  {#each $superColumns as column, idx}
+  {#each $superColumns as column, idx (idx)}
     <SuperTableColumn
       {stbData}
       columnOptions={{
