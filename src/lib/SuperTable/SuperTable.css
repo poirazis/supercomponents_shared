@@ -40,6 +40,10 @@
   }
 }
 
+.super-table.initializing {
+  background-color: var(--spectrum-global-color-gray-75);
+}
+
 .st-control-columns {
   display: flex;
 }
@@ -72,7 +76,7 @@
 
   &.control-column {
     flex: none;
-    min-width: 4px;
+    min-width: 2.4rem;
   }
 
   &.button-column {

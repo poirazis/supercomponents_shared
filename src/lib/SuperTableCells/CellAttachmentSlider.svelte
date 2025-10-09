@@ -31,6 +31,7 @@
   $: readonly = cellOptions.readonly;
   $: canSelect = !readonly && !disabled && !isGallery;
   $: canDelete = !readonly && !disabled && !isGallery;
+  $: slotted = cellOptions.slotted;
 
   // Carousel configuration
   let currentIndex = 0;
@@ -64,6 +65,7 @@
       : 1;
 
   $: marquee = cellOptions.carouselMode === "marquee";
+  $: onClickAction = cellOptions.onClickAction;
 
   // Handle slide change
 
@@ -180,6 +182,20 @@
   let showModal = false;
   let modalImageIndex = 0;
 
+  // Unified click handler for items in carousel and grid modes
+  function onItemClick(index: number) {
+    if (!onClickAction || onClickAction === "none") {
+      return;
+    } else if (onClickAction === "view") {
+      openModal(index);
+    } else if (onClickAction === "select") {
+      toggleSelection(index);
+    } else if (onClickAction === "custom") {
+      let item = localvalue[index];
+      cellOptions.onItemClick?.({ item, index });
+    }
+  }
+
   // Open modal with current carousel slide
   function openModal(index: number = currentIndex) {
     if (
@@ -246,7 +262,7 @@
               class="slider-item"
               style:height={"100%"}
               on:click={() => {
-                openModal(idx);
+                onItemClick(idx);
               }}
             >
               {#if isImage(attachment)}
@@ -256,9 +272,11 @@
                   style="background-image: url('{attachment.url}')"
                   aria-label={attachment.name}
                 >
-                  <div class="slider-image-overlay">
-                    {attachment.name}
-                  </div>
+                  {#if slotted}
+                    <div class="slot-container">
+                      <slot />
+                    </div>
+                  {/if}
                 </div>
               {:else if !isGallery}
                 <div class="slider-fallback">
@@ -381,8 +399,8 @@
     background-repeat: no-repeat;
     border-radius: 4px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 1;
     cursor: pointer;
+    padding: 1rem;
   }
 
   .slider-image.selected::after {
@@ -404,6 +422,10 @@
   }
 
   .slider-image:hover .slider-image-overlay {
+    opacity: 1;
+  }
+
+  .slider-image:hover .slot-container {
     opacity: 1;
   }
   .slider-image-overlay {
@@ -479,5 +501,15 @@
     border-color: var(--spectrum-global-color-blue-500);
     color: var(--spectrum-global-color-blue-500);
     background-color: var(--spectrum-global-color-blue-50);
+  }
+
+  .slot-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
   }
 </style>

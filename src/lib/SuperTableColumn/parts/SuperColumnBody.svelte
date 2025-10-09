@@ -35,21 +35,19 @@
   class:is-editing={editing}
 >
   {#if rows?.length}
-    {#each $stbVisibleRows as index (index)}
-      {#if rows[index]}
-        <SuperColumnRow
-          {isLast}
-          {index}
-          row={rows[index]}
-          {field}
-          {idField}
-          disabled={inserting}
-          {rowHeight}
-          on:resize={(e) => stbState.resizeRow(index, e.detail)}
-        >
-          <slot />
-        </SuperColumnRow>
-      {/if}
+    {#each $stbVisibleRows as index}
+      <SuperColumnRow
+        {isLast}
+        {index}
+        row={rows[index]}
+        {field}
+        {idField}
+        disabled={inserting}
+        {rowHeight}
+        on:resize={(e) => stbState.resizeRow(index, e.detail)}
+      >
+        <slot />
+      </SuperColumnRow>
     {/each}
   {/if}
   {#if inserting}

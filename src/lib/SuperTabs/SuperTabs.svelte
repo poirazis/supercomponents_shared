@@ -15,6 +15,7 @@
   export let tabsIconsOnly;
   export let list_icon;
   export let list_title;
+  export let wide = true;
 
   export let quietTabs;
 </script>
@@ -34,6 +35,7 @@
       class:vertical={direction == "column" || theme == "list"}
       class:buttons={theme == "buttons"}
       class:list={theme == "list"}
+      class:wide
       style:justify-content={direction == "row" ? hAlign : vAlign}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
@@ -94,20 +96,21 @@
     margin-bottom: 0.5rem;
 
     &.vertical {
+      flex: none;
+      width: auto;
       flex-direction: column;
-      width: 10rem;
       align-items: stretch;
       margin-right: 0.5rem;
       margin-bottom: unset;
-      border-right: 1px solid var(--spectrum-global-color-gray-300);
     }
   }
   .tabs {
     flex: auto;
     display: flex;
     gap: 1rem;
-    padding: 0.5rem;
+    padding: 0.35rem 0.5rem;
     border-bottom: 1px solid var(--spectrum-global-color-gray-200);
+    border-top: 1px solid var(--spectrum-global-color-gray-200);
 
     &.buttons {
       gap: 0.5rem;
@@ -124,6 +127,13 @@
       height: 100%;
       flex-direction: column;
       border-bottom: unset;
+      border-top: unset;
+      border-right: 1px solid var(--spectrum-global-color-gray-200);
+      width: 10rem;
+
+      &.wide {
+        width: 12rem;
+      }
 
       &.list {
         border-right: unset;

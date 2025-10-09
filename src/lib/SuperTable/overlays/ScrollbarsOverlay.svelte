@@ -1,5 +1,5 @@
 <script>
-  import { getContext, createEventDispatcher } from "svelte";
+  import { getContext, createEventDispatcher, beforeUpdate } from "svelte";
 
   const stbScrollPos = getContext("stbScrollPos");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
@@ -39,17 +39,20 @@
   $: top = ($stbScrollPos / (scrollHeight + 32)) * 100 + "%";
   $: left = ($stbHorizontalScrollPos / scrollWidth) * 100 + "%";
   $: height = (clientHeight / scrollHeight) * 100 + "%";
-  $: verticalRange = Math.max(scrollHeight - clientHeight, 0);
-  $: horizontalRange = anchor?.scrollWidth - anchor?.clientWidth;
-  $: calculate(localWidth, $stbScrollPos);
 
   export const calculate = () => {
     if (!anchor) return;
+    verticalRange = Math.max(scrollHeight - clientHeight, 0);
+    horizontalRange = anchor?.scrollWidth - anchor?.clientWidth;
     visible = verticalRange;
     horizontalVisible = horizontalRange;
     scrollWidth = anchor?.scrollWidth;
     width = (anchor?.clientWidth / anchor?.scrollWidth) * 100 + "%";
   };
+
+  beforeUpdate(() => {
+    calculate();
+  });
 </script>
 
 <svelte:window
@@ -77,7 +80,7 @@
           e.stopPropagation();
           mouseoffset =
             (e.clientX - horizontalStartPos) *
-              (anchor?.clientWidth / anchor?.scrollWidth) +
+              (anchor?.scrollWidth / anchor?.clientWidth) +
             startScrollPos;
           if (mouseoffset > 0 && mouseoffset <= horizontalRange)
             $stbHorizontalScrollPos = mouseoffset;
@@ -85,7 +88,6 @@
         anchor.scrollLeft = $stbHorizontalScrollPos;
       }
     : () => {}}
-  <
 />
 
 {#if verticalRange}

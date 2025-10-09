@@ -219,6 +219,7 @@
         originalValue = JSON.stringify(
           Array.isArray(value) ? value : value ? [value] : []
         );
+        anchor?.focus();
         dispatch("enteredit");
       },
       _exit() {
@@ -250,6 +251,7 @@
       },
       clear() {
         localValue = [];
+        anchor?.focus();
         if (cellOptions.debounce) dispatch("change", localValue[0]);
       },
       cancel() {

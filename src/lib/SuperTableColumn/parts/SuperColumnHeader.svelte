@@ -126,7 +126,7 @@
       multi={filterOperator == "containsAny" || filterOperator == "oneOf"}
       on:change={handleValueChange}
       on:cancel={columnState.cancel}
-      on:exitedit={handleBlur}
+      on:focusout={handleBlur}
     />
   {:else}
     <div

@@ -3,24 +3,24 @@
 
   const stbState = getContext("stbState");
   const stbSettings = getContext("stbSettings");
-  const stbData = getContext("stbData");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
   const stbHovered = getContext("stbHovered");
   const stbMenuID = getContext("stbMenuID");
   const stbSelected = getContext("stbSelected");
   const stbAPI = getContext("stbAPI");
-  const rowMetadata = getContext("stbRowMetadata");
   const stbVisibleRows = getContext("stbVisibleRows");
+  const stbRowMetadata = getContext("stbRowMetadata");
 
   export let sticky;
   export let hideSelectionColumn;
+  export let stbData;
 
   $: idColumn = $stbSettings.data.idColumn;
   $: partialSelection =
-    $stbSelected.length && $stbSelected.length != $stbData.rows?.length;
+    $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
 
   $: fullSelection =
-    $stbSelected.length == $stbData.rows?.length && $stbData.rows?.length > 0;
+    $stbSelected.length == $stbData?.rows?.length && $stbData?.rows?.length > 0;
 
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
@@ -83,8 +83,8 @@
             class:is-selected={selected}
             class:is-hovered={$stbHovered == visibleRow ||
               $stbMenuID == visibleRow}
-            class:is-disabled={$rowMetadata[visibleRow]?.disabled}
-            style:min-height={$rowMetadata[visibleRow]?.height}
+            class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
+            style:min-height={$stbRowMetadata[visibleRow]?.height}
             on:mouseenter={() => ($stbHovered = visibleRow)}
             on:mouseleave={() => ($stbHovered = null)}
           >

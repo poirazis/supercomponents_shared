@@ -7,6 +7,7 @@
   export let columnsViewport;
   export let showActionColumn;
   export let canScroll;
+  export let stbData;
   let overflow;
 </script>
 
@@ -17,6 +18,7 @@
 
   {#each $superColumns as column, idx (idx)}
     <SuperTableColumn
+      {stbData}
       columnOptions={{
         ...$commonColumnOptions,
         ...column,

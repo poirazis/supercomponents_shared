@@ -69,6 +69,7 @@
         localValue = null;
       },
       focusout(e: FocusEvent) {
+        dispatch("focusout", e);
         this.submit();
       },
       submit() {

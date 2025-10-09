@@ -104,6 +104,7 @@
   $: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
   $: inEdit = $cellState == "Editing";
   $: radios = controlType == "radio";
+  $: isButtons = controlType == "buttons";
   $: allSelected = filteredOptions.length == localValue.length;
 
   export let cellState = fsm("Loading", {
@@ -405,34 +406,49 @@
         anchor.focus();
       }}
     />
-  {:else if controlType == "checkbox" || controlType == "radio"}
-    <div
-      class="radios"
-      class:column={cellOptions.direction == "column"}
-      on:mouseleave={() => (focusedOptionIdx = -1)}
-    >
-      {#each $options as option, idx (idx)}
-        <div
-          class="radio"
-          class:selected={localValue?.includes(option)}
-          class:focused={focusedOptionIdx === idx}
-          style:--option-color={$colors[option]}
-          on:mousedown={(e) => editorState.toggleOption(idx)}
-          on:mouseenter={() => (focusedOptionIdx = idx)}
-        >
-          <i
-            class={radios && localValue.includes(option)
-              ? "ri-checkbox-circle-fill"
-              : radios
-                ? "ri-checkbox-blank-circle-fill"
-                : localValue.includes(option)
-                  ? "ri-checkbox-fill"
-                  : "ri-checkbox-blank-fill"}
-          />
-          {labels[option] || option}
-        </div>
-      {/each}
-    </div>
+  {:else if controlType == "checkbox" || controlType == "radio" || controlType == "buttons"}
+    {#if isButtons}
+      <div class="buttons">
+        {#each $options as option, idx (idx)}
+          <div
+            class="button"
+            class:selected={localValue?.includes(option)}
+            style:--option-color={$colors[option]}
+            on:click={() => editorState.toggleOption(idx)}
+          >
+            {labels[option] || option}
+          </div>
+        {/each}
+      </div>
+    {:else if radios}
+      <div
+        class="radios"
+        class:column={cellOptions.direction == "column"}
+        on:mouseleave={() => (focusedOptionIdx = -1)}
+      >
+        {#each $options as option, idx (idx)}
+          <div
+            class="radio"
+            class:selected={localValue?.includes(option)}
+            class:focused={focusedOptionIdx === idx}
+            style:--option-color={$colors[option]}
+            on:mousedown={(e) => editorState.toggleOption(idx)}
+            on:mouseenter={() => (focusedOptionIdx = idx)}
+          >
+            <i
+              class={radios && localValue.includes(option)
+                ? "ri-checkbox-circle-fill"
+                : radios
+                  ? "ri-checkbox-blank-circle-fill"
+                  : localValue.includes(option)
+                    ? "ri-checkbox-fill"
+                    : "ri-checkbox-blank-fill"}
+            />
+            {labels[option] || option}
+          </div>
+        {/each}
+      </div>
+    {/if}
   {:else if controlType == "switch"}
     <div
       class="radios"
@@ -574,6 +590,39 @@
       color: var(--option-color);
       font-size: larger;
     }
+  }
+
+  .buttons {
+    flex: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-items: flex-start;
+  }
+  .buttons .button {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: 4px;
+    background-color: var(--spectrum-global-color-gray-100);
+    color: var(--spectrum-global-color-gray-700);
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .button.selected {
+    background-color: var(
+      --option-color,
+      var(--spectrum-global-color-gray-300)
+    );
+    border-color: var(--option-color, var(--spectrum-global-color-gray-300));
+    color: var(--spectrum-global-color-gray-100);
   }
 
   .radios {

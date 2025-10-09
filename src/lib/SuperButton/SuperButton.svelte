@@ -15,6 +15,9 @@
   export let buttonClass = "actionButton";
   export let type = "primary";
 
+  // Visibility Conditions
+  export let conditions = []; // Array of condition objects {field, operator, value}
+
   export let actionsMode = "normal";
   export let condition = undefined; // For backward compatibility
   export let loopSource = undefined;
@@ -33,6 +36,8 @@
   export let onFalseCondition = undefined;
 
   $: loop = safeParse(loopSource);
+  $: icon_class =
+    icon && !icon.startsWith("ri-") ? "ph ph-" + icon : icon ? icon : undefined;
 
   let working = false;
   let ui_timer = undefined;
@@ -128,11 +133,11 @@
   class:disabled={disabled || working}
 >
   {#if !iconAfterText}
-    <i class={icon} />
+    <i class={icon_class} />
     <span>{text}</span>
   {:else}
     <span>{text}</span>
-    <i class={icon} />
+    <i class={icon_class} />
   {/if}
 </button>
 
@@ -227,9 +232,9 @@
     color: white;
 
     &.quiet {
-      border-color: transparent;
       background-color: transparent;
-      color: var(--spectrum-global-color-blue-600);
+      border: 1px solid var(--spectrum-global-color-blue-100);
+      color: var(--spectrum-global-color-blue-700);
       &:hover {
         background-color: var(--spectrum-global-color-blue-400);
         color: white;
@@ -264,7 +269,7 @@
       &:hover,
       &:focus {
         color: var(--spectrum-global-color-gray-50);
-        background-color: var(--spectrum-global-color-gray-600);
+        background-color: var(--spectrum-global-color-gray-800);
       }
     }
     &:hover,
@@ -324,18 +329,17 @@
   }
 
   .warning {
+    border: 1px solid transparent;
     background-color: var(--spectrum-global-color-red-400);
     color: white;
     &.quiet {
       border-color: transparent;
       background-color: transparent;
-      color: var(--spectrum-global-color-red-600);
+      color: var(--spectrum-global-color-red-400);
 
       &:hover {
         border-color: var(--spectrum-global-color-red-400);
-        background-color: transparent;
         font-weight: bolder;
-        color: var(--spectrum-global-color-red-700);
       }
 
       &:focus {
@@ -343,12 +347,12 @@
         font-weight: bolder;
       }
     }
-    &:hover {
+    &:hover:not(.quiet) {
       background-color: var(--spectrum-global-color-red-700);
       font-weight: bolder;
     }
     &:focus {
-      border: 2px dashed var(--spectrum-global-color-red-700);
+      border: 1px dashed var(--spectrum-global-color-red-700);
       font-weight: bolder;
     }
   }
