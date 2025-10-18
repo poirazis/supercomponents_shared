@@ -174,8 +174,8 @@
   }
 
   .checkbox {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: 1px solid var(--spectrum-global-color-gray-500);
     background-color: var(--spectrum-global-color-gray-50);
     border-radius: 2px;

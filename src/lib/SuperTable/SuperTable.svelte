@@ -26,7 +26,6 @@
 
   // Components
   import SuperTableColumn from "../SuperTableColumn/SuperTableColumn.svelte";
-  import CellSkeleton from "../SuperTableCells/CellSkeleton.svelte";
   import RowButtonsColumn from "./controls/RowButtonsColumn.svelte";
   import SelectionColumn from "./controls/SelectionColumn.svelte";
   import RowContextMenu from "./overlays/RowContextMenu.svelte";
@@ -77,6 +76,7 @@
   export let showHeader = true;
   export let size = "M";
   export let canInsert, canDelete, canEdit, canResize, canFilter, canSelect;
+  export let insertFieldsConfig;
   export let superColumnsPos;
   export let showAutoColumns;
   export let showSpecialColumns;
@@ -693,7 +693,7 @@
               (entityPlural || "Rows") +
               " ?",
             tableId: tableId,
-            rowId: $stbSelected,
+            rowId: $stbSelected.map((x) => ({ _id: x.toString() })),
           },
           "##eventHandlerType": "Delete Row",
         },
@@ -839,12 +839,11 @@
         this.calculateRowBoundaries();
       },
       calculateRowBoundaries() {
-        let rows = $stbData?.rows;
-        if (!rows?.length || !viewport || !$cumulativeHeights.length) return;
+        let start = 0;
+        let end = 0;
+        let rows = $stbData?.rows || [];
 
-        const defaultRowHeight = $stbSettings.appearance.rowHeight;
-        let start = 0,
-          end = rows.length;
+        end = rows.length;
 
         // Find start index
         for (let i = 0; i < rows.length; i++) {
@@ -1126,6 +1125,13 @@
         isEmpty = false;
         columnStates.forEach(({ state }) => state.addRow());
         $new_row = {};
+
+        // Set Field Default Values if configured
+        insertFieldsConfig?.forEach((cfg) => {
+          if (cfg.defaultValue)
+            $new_row[cfg.field] = processStringSync(cfg.defaultValue, $context);
+        });
+
         temp_scroll_pos = $stbScrollPos;
         this.scrollToEnd();
       },

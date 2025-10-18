@@ -331,7 +331,19 @@
     opacity: 1;
   }
 
+  &.add-row-overlay {
+    width: 1.75rem;
+    height: 1.75rem;
+
+    &:hover {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+  }
+
   &.add-row-overlay.in-insert {
+    width: 2.25rem;
+    height: 2.25rem;
     transform: rotate(45deg);
     border-color: var(--spectrum-global-color-red-500);
     color: var(--spectrum-global-color-red-700);
@@ -365,6 +377,8 @@
     cursor: default;
     background: none;
     border: none;
+    width: 1.75rem;
+    height: 1.75rem;
 
     .ri-refresh-line {
       font-size: 1.25rem;
