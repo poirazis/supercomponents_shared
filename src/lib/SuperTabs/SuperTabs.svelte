@@ -103,7 +103,7 @@
   .outer-tabs.vertical {
     flex-direction: column;
     align-items: stretch;
-    margin-right: 0.5rem;
+    margin-right: 1rem;
     margin-bottom: unset;
     width: 14rem;
   }
@@ -132,7 +132,7 @@
     flex-direction: column;
     border-bottom: unset;
     border-top: unset;
-    border-right: 1px solid var(--spectrum-global-color-gray-200);
+    border-right: 1px solid var(--spectrum-global-color-gray-300);
     gap: 0.25rem;
   }
 
@@ -166,13 +166,18 @@
     padding: 0.35rem 1rem;
   }
 
+  .tab.button.vertical {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+  }
+
   .tab.button:active:not(.disabled):not(.list-section) {
     background-color: var(--spectrum-global-color-gray-200);
   }
 
   .tab.button.selected {
     color: var(--spectrum-global-color-gray-800);
-    background-color: var(--spectrum-global-color-gray-200);
+    background-color: var(--spectrum-global-color-gray-300);
   }
 
   .tab.list {
@@ -226,7 +231,7 @@
   }
 
   .tab.button:hover:not(.selected) {
-    background-color: var(--spectrum-global-color-gray-100);
+    background-color: var(--spectrum-global-color-gray-200);
   }
 
   .tab.selected {

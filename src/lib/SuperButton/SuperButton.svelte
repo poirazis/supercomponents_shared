@@ -43,8 +43,7 @@
   let ui_timer = undefined;
   let elapsed = 0;
 
-  async function handleClick() {
-    await tick();
+  async function handleClick(e) {
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
       if (Array.isArray(loop) && loopEvent) {
@@ -58,7 +57,7 @@
       if (condition == true) await onTrueCondition?.();
       else await onFalseCondition?.();
     } else if (onClick) {
-      onClick?.();
+      onClick?.(e);
     }
     working = false;
   }
@@ -101,12 +100,11 @@
 </script>
 
 <button
-  tabindex={disabled ? "-1" : "0"}
+  tabindex={disabled ? -1 : 0}
   on:click={(e) => {
     if (!disabled && !working) {
-      dispatch("click", e.target);
       working = true;
-      handleClick();
+      handleClick(e);
     }
   }}
   class:super-button={true}

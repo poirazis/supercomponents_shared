@@ -30,10 +30,9 @@
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
-    if (!colorColumn) return obj;
     $options.forEach(
       (option, index) =>
-        (obj[option] = optionColors[option] || colorsArray[index % 14])
+        (obj[option] = optionColors[option] ?? colorsArray[index % 14])
     );
     return obj;
   });
@@ -364,8 +363,8 @@
 <div
   bind:this={anchor}
   class="superCell multirow"
-  tabindex={cellOptions?.disabled ? "-1" : "0"}
-  class:inEdit
+  tabindex={cellOptions?.disabled ? -1 : 0}
+  class:inEdit={inEdit && controlType != "buttons"}
   class:isDirty={isDirty && cellOptions.showDirty}
   class:disabled
   class:readonly
@@ -376,6 +375,7 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
+  class:naked-field={controlType == "buttons"}
   on:focusin={cellState.focus}
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
@@ -406,9 +406,9 @@
         anchor.focus();
       }}
     />
-  {:else if controlType == "checkbox" || controlType == "radio" || controlType == "buttons"}
+  {:else if controlType == "radio" || controlType == "buttons"}
     {#if isButtons}
-      <div class="buttons">
+      <div class="buttons" class:vertical={cellOptions.direction == "column"}>
         {#each $options as option, idx (idx)}
           <div
             class="button"
@@ -463,7 +463,7 @@
           on:click={cellOptions.toggleAll ? editorState.toggleAll : undefined}
           on:mouseenter
         >
-          <div class="text title">{label ?? ""}</div>
+          <div class="text title">{label ?? "Toggle All"}</div>
           {#if cellOptions.toggleAll && !(readonly || disabled)}
             <div class="spectrum-Switch spectrum-Switch--emphasized">
               <input
@@ -599,15 +599,20 @@
     gap: 0.5rem;
     justify-items: flex-start;
   }
+
+  .buttons.vertical {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
   .buttons .button {
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--spectrum-global-color-gray-300);
+    border: 1px solid var(--spectrum-global-color-gray-200);
     border-radius: 4px;
-    background-color: var(--spectrum-global-color-gray-100);
-    color: var(--spectrum-global-color-gray-700);
+    background-color: var(--spectrum-global-color-gray-50);
+    color: var(--spectrum-global-color-gray-500);
     cursor: pointer;
     user-select: none;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     transition: all 0.15s ease-in-out;
     white-space: nowrap;
@@ -622,7 +627,7 @@
       var(--spectrum-global-color-gray-300)
     );
     border-color: var(--option-color, var(--spectrum-global-color-gray-300));
-    color: var(--spectrum-global-color-gray-100);
+    color: var(--spectrum-global-color-gray-800);
   }
 
   .radios {

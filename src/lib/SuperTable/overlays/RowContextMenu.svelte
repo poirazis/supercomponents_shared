@@ -38,7 +38,7 @@
           quiet={true}
           menuItem
           menuAlign={right ? "right" : "left"}
-          on:click={() => {
+          onClick={() => {
             stbAPI.executeRowContextMenuAction($stbMenuID, onClick);
           }}
         />

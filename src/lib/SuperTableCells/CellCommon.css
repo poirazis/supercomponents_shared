@@ -254,7 +254,7 @@
     background-color: unset !important;
     padding-left: 2px !important;
     border-color: transparent !important;
-    border-width: 0px !important;
+    border-width: 1px !important;
 
     &.with-icon {
       padding-left: 32px !important;
@@ -269,11 +269,11 @@
   background: var(--spectrum-global-color-gray-50);
   min-height: 2rem;
 
-  &:focus-within {
+  &:focus-within:not(.naked-field) {
     border: 1px solid var(--spectrum-global-color-blue-400) !important;
   }
 
-  &.inEdit {
+  &.inEdit:not(.naked-field) {
     border: 1px solid var(--spectrum-global-color-blue-400) !important;
   }
 
@@ -283,6 +283,7 @@
 
   &.disabled {
     background-color: var(--spectrum-global-color-gray-100) !important;
+    border: 1px solid var(--spectrum-global-color-gray-200);
     color: var(--spectrum-global-color-gray-600) !important;
     cursor: not-allowed !important;
 
@@ -304,6 +305,10 @@
   &.error {
     border-color: var(--spectrum-global-color-red-400) !important;
   }
+
+  &.naked-field:focus-within {
+    border: 1px solid transparent !important;
+  }
 }
 
 .superCell.tableCell {
@@ -323,6 +328,7 @@
 }
 
 .superCell > .editor {
+  min-width: none;
   width: 100%;
   height: 100%;
   display: flex;
