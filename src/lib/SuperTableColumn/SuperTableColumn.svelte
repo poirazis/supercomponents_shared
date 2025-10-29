@@ -185,7 +185,7 @@
         }
       },
       lockWidth() {
-        if (!resizing) $lockWidth = viewport.clientWidth;
+        if (!resizing) $lockWidth = viewport?.clientWidth;
       },
       unlockWidth() {
         if (resizing) return;

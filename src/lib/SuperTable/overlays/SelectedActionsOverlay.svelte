@@ -42,7 +42,7 @@
       quiet={true}
       size="S"
       type="secondary"
-      on:click={() => (hidden = true)}
+      onClick={() => (hidden = true)}
     />
     <span class="text">
       {$stbSelected.length == 1
@@ -57,7 +57,7 @@
         {type}
         {disabled}
         {size}
-        on:click={tableAPI.executeSelectedRowsAction(onClick)}
+        onClick={tableAPI.executeSelectedRowsAction(onClick)}
       />
     {/each}
   </div>

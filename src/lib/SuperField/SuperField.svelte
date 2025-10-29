@@ -64,6 +64,9 @@
     overflow: hidden;
     &.multirow {
       max-height: var(--height);
+      & > .inline-cells.inline-buttons {
+        flex-direction: column;
+      }
     }
 
     &.left-label {
@@ -74,6 +77,9 @@
     &.tall {
       height: 100%;
       justify-content: stretch;
+      & > .inline-cells > .inline-buttons {
+        flex-direction: column;
+      }
     }
 
     &:focus-within {

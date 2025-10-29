@@ -42,7 +42,7 @@
       : [];
 
   const handleMenu = (e, index) => {
-    menuAnchor = e.detail;
+    menuAnchor = e.target;
     openMenu = !openMenu;
     $stbMenuID = openMenu ? index : -1;
   };
@@ -91,7 +91,7 @@
                   $rowMetadata[visibleRow].disabled}
                 {quiet}
                 type={type == "primary" ? "ink" : type}
-                on:click={() => {
+                onClick={() => {
                   stbAPI.executeRowButtonAction(visibleRow, onClick);
                 }}
               />
@@ -105,7 +105,7 @@
               text=""
               quiet="true"
               type="secondary"
-              on:click={(e) => handleMenu(e, visibleRow)}
+              onClick={(e) => handleMenu(e, visibleRow)}
             />
           {/if}
         </div>
@@ -143,7 +143,7 @@
             {disabled}
             menuItem
             menuAlign={right ? "right" : "left"}
-            on:click={() => {
+            onClick={() => {
               stbAPI.executeRowButtonAction($stbMenuID, onClick);
               openMenu = false;
               $stbMenuID = undefined;

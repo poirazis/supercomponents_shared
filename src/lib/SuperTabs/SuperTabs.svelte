@@ -18,6 +18,10 @@
   export let wide = true;
 
   export let quietTabs;
+
+  // Computed for repeated logic
+  $: isVertical = direction === "column" || theme === "list";
+  $: justify = direction === "row" ? hAlign : vAlign;
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -26,21 +30,21 @@
   <div
     class="outer-tabs"
     class:quietTabs
-    class:list={theme == "list"}
-    class:vertical={direction == "column"}
-    style:justify-content={direction == "row" ? hAlign : vAlign}
+    class:list={theme === "list"}
+    class:vertical={isVertical}
+    style:justify-content={justify}
   >
     <div
       class="tabs"
-      class:vertical={direction == "column" || theme == "list"}
-      class:buttons={theme == "buttons"}
-      class:list={theme == "list"}
+      class:vertical={isVertical}
+      class:buttons={theme === "buttons"}
+      class:list={theme === "list"}
       class:wide
-      style:justify-content={direction == "row" ? hAlign : vAlign}
+      style:justify-content={justify}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
     >
-      {#if theme == "list" && list_title}
+      {#if theme === "list" && list_title}
         <div class="tab list-title">
           {#if list_icon}
             <i class={list_icon} />
@@ -53,10 +57,10 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <button
           class="tab"
-          class:vertical={direction == "column"}
-          class:button={theme == "buttons"}
-          class:list={theme == "list"}
-          class:selected={container.id == selectedTab}
+          class:vertical={isVertical}
+          class:button={theme === "buttons"}
+          class:list={theme === "list"}
+          class:selected={container.id === selectedTab}
           class:disabled={container.disabled}
           class:list-section={container.isTabSection}
           on:click={() => {
@@ -94,16 +98,16 @@
     justify-content: stretch;
     --selected-tab: var(--spectrum-global-color-gray-200);
     margin-bottom: 0.5rem;
-
-    &.vertical {
-      flex: none;
-      width: auto;
-      flex-direction: column;
-      align-items: stretch;
-      margin-right: 0.5rem;
-      margin-bottom: unset;
-    }
   }
+
+  .outer-tabs.vertical {
+    flex-direction: column;
+    align-items: stretch;
+    margin-right: 1rem;
+    margin-bottom: unset;
+    width: 14rem;
+  }
+
   .tabs {
     flex: auto;
     display: flex;
@@ -111,34 +115,29 @@
     padding: 0.35rem 0.5rem;
     border-bottom: 1px solid var(--spectrum-global-color-gray-200);
     border-top: 1px solid var(--spectrum-global-color-gray-200);
+  }
 
-    &.buttons {
-      gap: 0.5rem;
-    }
+  .tabs.buttons {
+    gap: 0.5rem;
+  }
 
-    &.list {
-      gap: 0rem;
-      background-color: var(--spectrum-global-color-gray-50);
-      border: unset;
-      padding: unset;
-    }
+  .tabs.list {
+    gap: 0;
+    background-color: var(--spectrum-global-color-gray-50);
+    border: unset;
+    padding: unset;
+  }
 
-    &.vertical {
-      height: 100%;
-      flex-direction: column;
-      border-bottom: unset;
-      border-top: unset;
-      border-right: 1px solid var(--spectrum-global-color-gray-200);
-      width: 10rem;
+  .tabs.vertical {
+    flex-direction: column;
+    border-bottom: unset;
+    border-top: unset;
+    border-right: 1px solid var(--spectrum-global-color-gray-300);
+    gap: 0.25rem;
+  }
 
-      &.wide {
-        width: 12rem;
-      }
-
-      &.list {
-        border-right: unset;
-      }
-    }
+  .tabs.vertical.list {
+    border-right: unset;
   }
 
   .tab {
@@ -152,95 +151,95 @@
     font-size: 13px;
     background: transparent;
     border: none;
+  }
 
-    &.disabled {
-      color: var(--spectrum-global-color-gray-400) !important;
-      &:hover {
-        cursor: not-allowed;
-      }
-    }
+  .tab.disabled {
+    color: var(--spectrum-global-color-gray-400);
+  }
 
-    &.button {
-      border-radius: 4px;
-      padding: 0.35rem 1rem;
-      border: none;
-      background: transparent;
+  .tab.disabled:hover {
+    cursor: not-allowed;
+  }
 
-      &:active:not(.list-section):not(.disabled) {
-        background-color: var(--spectrum-global-color-gray-200);
-      }
-      &.selected {
-        color: var(--spectrum-global-color-gray-800);
-        background-color: var(--spectrum-global-color-gray-200);
-      }
-    }
+  .tab.button {
+    border-radius: 4px;
+    padding: 0.35rem 1rem;
+  }
 
-    &.list {
-      display: flex;
-      align-items: center;
-      padding: 0.5rem 1rem;
-      max-width: 100%;
-      color: var(--spectrum-global-color-gray-700);
-      font-weight: 400;
+  .tab.button.vertical {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+  }
 
-      &.selected {
-        color: var(--tab-selected-color);
-        background-color: var(--selected-tab) !important;
-        font-weight: 500;
-      }
+  .tab.button:active:not(.disabled):not(.list-section) {
+    background-color: var(--spectrum-global-color-gray-200);
+  }
 
-      &:hover:not(.disabled):not(.list-section) {
-        background-color: var(--spectrum-global-color-gray-75);
-      }
-    }
+  .tab.button.selected {
+    color: var(--spectrum-global-color-gray-800);
+    background-color: var(--spectrum-global-color-gray-300);
+  }
 
-    &.list-title {
-      display: flex;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      max-width: 100%;
-      font-size: 12px;
-      color: var(--spectrum-global-color-gray-800);
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      font-weight: 500;
-      border-bottom: 1px solid var(--spectrum-global-color-gray-300);
-      height: 3rem;
-    }
+  .tab.list {
+    padding: 0.5rem 1rem;
+    max-width: 100%;
+    color: var(--spectrum-global-color-gray-700);
+    font-weight: 400;
+  }
 
-    &.list-section {
-      text-transform: uppercase;
-      font-size: 11px;
-      font-weight: 400;
-      letter-spacing: 1.2px;
-      background-color: transparent;
+  .tab.list.selected {
+    color: var(--tab-selected-color);
+    background-color: var(--selected-tab);
+    font-weight: 500;
+  }
 
-      &.vertical {
-        margin-top: 12px;
-      }
+  .tab.list:hover:not(.disabled):not(.list-section) {
+    background-color: var(--spectrum-global-color-gray-75);
+  }
 
-      &:hover {
-        cursor: default;
-      }
-    }
+  .tab.list-title {
+    padding: 0.75rem 1rem;
+    max-width: 100%;
+    font-size: 12px;
+    color: var(--spectrum-global-color-gray-800);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--spectrum-global-color-gray-300);
+    height: 3rem;
+  }
 
-    &:hover:not(.disabled):not(.list-title):not(.list-section) {
-      cursor: pointer;
-      color: var(--spectrum-global-color-gray-800);
+  .tab.list-section {
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 1.2px;
+    background-color: transparent;
+  }
 
-      &.button:not(.selected) {
-        background-color: var(--spectrum-global-color-gray-100);
-      }
-    }
+  .tab.list-section.vertical {
+    margin-top: 12px;
+  }
 
-    &.selected {
-      color: var(--tab-selected-color);
+  .tab.list-section:hover {
+    cursor: default;
+  }
 
-      &:hover {
-        color: var(--tab-selected-color);
-        cursor: default;
-      }
-    }
+  .tab:hover:not(.disabled):not(.list-title):not(.list-section) {
+    cursor: pointer;
+    color: var(--spectrum-global-color-gray-800);
+  }
+
+  .tab.button:hover:not(.selected) {
+    background-color: var(--spectrum-global-color-gray-200);
+  }
+
+  .tab.selected {
+    color: var(--tab-selected-color);
+  }
+
+  .tab.selected:hover {
+    cursor: default;
   }
 
   .tab-text {

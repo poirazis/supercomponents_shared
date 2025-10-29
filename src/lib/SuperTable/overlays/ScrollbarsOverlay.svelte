@@ -1,5 +1,5 @@
 <script>
-  import { getContext, createEventDispatcher, beforeUpdate } from "svelte";
+  import { getContext, createEventDispatcher, afterUpdate } from "svelte";
 
   const stbScrollPos = getContext("stbScrollPos");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
@@ -42,6 +42,7 @@
 
   export const calculate = () => {
     if (!anchor) return;
+
     verticalRange = Math.max(scrollHeight - clientHeight, 0);
     horizontalRange = anchor?.scrollWidth - anchor?.clientWidth;
     visible = verticalRange;
@@ -50,8 +51,8 @@
     width = (anchor?.clientWidth / anchor?.scrollWidth) * 100 + "%";
   };
 
-  beforeUpdate(() => {
-    calculate();
+  afterUpdate(() => {
+    calculate?.();
   });
 </script>
 
