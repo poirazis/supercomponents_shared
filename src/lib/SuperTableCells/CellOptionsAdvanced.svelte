@@ -220,7 +220,7 @@
           else localValue[0] = option;
         }
 
-        if (cellOptions.debounce) {
+        if (cellOptions.debounce || isButtons) {
           clearTimeout(timer);
           timer = setTimeout(() => {
             dispatch("change", multi ? localValue : localValue[0]);

@@ -9,14 +9,18 @@
 
   export let rowContextMenuItems;
   export let right = true;
+  export let row;
 
   $: isOpen = $stbMenuAnchor != -1;
+  $: buttons = rowContextMenuItems?.filter(({ conditions }) =>
+    stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext(row))
+  );
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 
-{#if isOpen && rowContextMenuItems?.length}
+{#if isOpen && buttons?.length}
   <SuperPopover
     open
     anchor={$stbMenuAnchor}
@@ -28,7 +32,7 @@
     }}
   >
     <div class="action-menu">
-      {#each rowContextMenuItems as { text, icon, disabled, onClick, size, type }}
+      {#each buttons as { text, icon, disabled, onClick, size, type, conditions }}
         <SuperButton
           {size}
           {type}

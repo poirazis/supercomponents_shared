@@ -108,7 +108,6 @@
   on:mouseleave={() => ($stbHovered = undefined)}
   on:click={() =>
     stbState.handleRowClick(index, field, deepGet(row, field), id)}
-  on:dblclick={() => stbAPI.executeRowOnDblClickAction(id)}
   on:contextmenu|preventDefault={() => {
     stbAPI.showContextMenu(index, viewport);
   }}

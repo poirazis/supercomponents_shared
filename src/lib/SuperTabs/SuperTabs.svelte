@@ -8,9 +8,7 @@
   export let selectedTab;
   export let hAlign;
   export let vAlign;
-  export let state;
   export let theme = "buttons";
-  export let gap;
   export let tabsAlignment;
   export let tabsIconsOnly;
   export let list_icon;
@@ -22,6 +20,7 @@
   // Computed for repeated logic
   $: isVertical = direction === "column" || theme === "list";
   $: justify = direction === "row" ? hAlign : vAlign;
+  $: button = theme === "buttons" || theme === "wideButtons";
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -32,14 +31,15 @@
     class:quietTabs
     class:list={theme === "list"}
     class:vertical={isVertical}
+    class:wide={theme === "wideButtons" && wide}
     style:justify-content={justify}
   >
     <div
       class="tabs"
       class:vertical={isVertical}
-      class:buttons={theme === "buttons"}
+      class:buttons={button}
       class:list={theme === "list"}
-      class:wide
+      class:wide={theme === "wideButtons" && wide}
       style:justify-content={justify}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
@@ -58,7 +58,7 @@
         <button
           class="tab"
           class:vertical={isVertical}
-          class:button={theme === "buttons"}
+          class:button
           class:list={theme === "list"}
           class:selected={container.id === selectedTab}
           class:disabled={container.disabled}
@@ -96,15 +96,21 @@
     overflow: hidden;
     position: relative;
     justify-content: stretch;
-    --selected-tab: var(--spectrum-global-color-gray-200);
     margin-bottom: 0.5rem;
+    --selected-tab: var(--spectrum-global-color-gray-100);
   }
 
   .outer-tabs.vertical {
     flex-direction: column;
     align-items: stretch;
-    margin-right: 1rem;
+    margin-right: 0.75rem;
     margin-bottom: unset;
+    width: 10rem;
+    background-color: var(--spectrum-global-color-gray-100);
+    --selected-tab: var(--spectrum-global-color-gray-200);
+  }
+
+  .outer-tabs.vertical.wide {
     width: 14rem;
   }
 
@@ -132,7 +138,6 @@
     flex-direction: column;
     border-bottom: unset;
     border-top: unset;
-    border-right: 1px solid var(--spectrum-global-color-gray-300);
     gap: 0.25rem;
   }
 
@@ -168,7 +173,6 @@
 
   .tab.button.vertical {
     width: 100%;
-    padding: 0.5rem 0.75rem;
   }
 
   .tab.button:active:not(.disabled):not(.list-section) {
