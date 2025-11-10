@@ -30,6 +30,7 @@
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
+    if (cellOptions.optionsSource == "custom") return obj;
     $options.forEach(
       (option, index) =>
         (obj[option] = optionColors[option] ?? colorsArray[index % 14])
@@ -219,7 +220,7 @@
           else localValue[0] = option;
         }
 
-        if (cellOptions.debounce) {
+        if (cellOptions.debounce || isButtons) {
           clearTimeout(timer);
           timer = setTimeout(() => {
             dispatch("change", multi ? localValue : localValue[0]);
@@ -344,10 +345,6 @@
     });
   };
 
-  const focus = (node) => {
-    node?.focus();
-  };
-
   onMount(() => {
     if (autofocus)
       setTimeout(() => {
@@ -408,7 +405,7 @@
     />
   {:else if controlType == "radio" || controlType == "buttons"}
     {#if isButtons}
-      <div class="buttons" class:vertical={cellOptions.direction == "column"}>
+      <div class="buttons">
         {#each $options as option, idx (idx)}
           <div
             class="button"
@@ -605,11 +602,15 @@
     gap: 0.25rem;
   }
   .buttons .button {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--spectrum-global-color-gray-200);
+    border: 1px solid var(--spectrum-global-color-gray-300);
     border-radius: 4px;
-    background-color: var(--spectrum-global-color-gray-50);
-    color: var(--spectrum-global-color-gray-500);
+    background-color: var(--spectrum-global-color-gray-75);
+    color: var(--spectrum-global-color-gray-600);
     cursor: pointer;
     user-select: none;
     font-size: 12px;
@@ -621,13 +622,20 @@
     max-width: 100%;
   }
 
+  .button:hover {
+    background-color: var(--spectrum-global-color-gray-100);
+    border-color: var(--spectrum-global-color-gray-300);
+    color: var(--spectrum-global-color-gray-700);
+    cursor: pointer;
+  }
   .button.selected {
     background-color: var(
       --option-color,
-      var(--spectrum-global-color-gray-300)
+      var(--spectrum-global-color-gray-200)
     );
-    border-color: var(--option-color, var(--spectrum-global-color-gray-300));
+    border-color: var(--spectrum-global-color-gray-400);
     color: var(--spectrum-global-color-gray-800);
+    font-weight: 600;
   }
 
   .radios {
@@ -663,7 +671,7 @@
   .radio {
     height: 1.75rem;
     display: flex;
-    gap: 0.25rem;
+    gap: 0.55rem;
     align-items: center;
     cursor: pointer;
     padding: 0 0.5rem;
@@ -674,6 +682,8 @@
 
     &.selected {
       color: var(--spectrum-global-color-gray-800);
+      background-color: var(--spectrum-global-color-gray-100);
+      font-weight: 600;
     }
   }
 

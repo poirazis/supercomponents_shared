@@ -16,6 +16,8 @@
 
   const stbAPI = getContext("stbAPI");
 
+  const { processStringSync } = getContext("sdk");
+
   export let right;
   export let rowMenu;
   export let rowMenuItems;
@@ -50,7 +52,7 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div class="super-column" class:right class:sticky>
+<div class="super-column" class:right class:sticky style:flex="none">
   {#if $stbSettings.showHeader}
     <div class="super-column-header"><span> </span></div>
   {/if}
@@ -81,20 +83,22 @@
           style:gap={inlineButtons.length > 1 ? "0.5rem" : "0rem"}
         >
           {#if rowMenu && inlineButtons?.length}
-            {#each inlineButtons as { text, icon, disabled, onClick, quiet, type }}
-              <SuperButton
-                size="S"
-                {icon}
-                {text}
-                disabled={disabled ||
-                  $stbEditing == visibleRow ||
-                  $rowMetadata[visibleRow].disabled}
-                {quiet}
-                type={type == "primary" ? "ink" : type}
-                onClick={() => {
-                  stbAPI.executeRowButtonAction(visibleRow, onClick);
-                }}
-              />
+            {#each inlineButtons as { text, icon, disabled, onClick, quiet, type, conditions }}
+              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext(row))}
+                <SuperButton
+                  size="S"
+                  {icon}
+                  {text}
+                  disabled={disabled ||
+                    $stbEditing == visibleRow ||
+                    $rowMetadata[visibleRow].disabled}
+                  {quiet}
+                  type={type == "primary" ? "ink" : type}
+                  onClick={() => {
+                    stbAPI.executeRowButtonAction(visibleRow, onClick);
+                  }}
+                />
+              {/if}
             {/each}
           {/if}
           {#if rowMenu && menuItems?.length}

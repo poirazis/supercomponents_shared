@@ -123,7 +123,6 @@
   export let onRowClick;
   export let onCellClick;
   export let onLinkClick;
-  export let onRowDblClick;
   export let onInsert;
   export let afterInsert;
   export let onDelete;
@@ -302,7 +301,6 @@
     },
     events: {
       onRowClick,
-      onRowDblClick,
       onCellChange,
       onRowSelect,
       onDelete,
@@ -481,6 +479,69 @@
         columnStates = columnStates;
       }
     },
+    shouldShowButton: (conditions, context) => {
+      function parseValue(val, typ) {
+        switch (typ.toLowerCase()) {
+          case "number":
+            return Number(val);
+          case "string":
+            return String(val);
+          case "boolean":
+            return val === "true" || val === true;
+          default:
+            return val;
+        }
+      }
+
+      function evaluateOperator(left, op, right) {
+        switch (op.toLowerCase()) {
+          case "equal":
+          case "equals":
+            return left == right; // loose for mixed types
+          case "not equal":
+          case "not equals":
+            return left != right;
+          case "greater than":
+            return left > right;
+          case "less than":
+            return left < right;
+          case "greater than or equal":
+            return left >= right;
+          case "less than or equal":
+            return left <= right;
+          case "contains":
+            return typeof left === "string" && left.includes(right);
+          case "not contains":
+            return typeof left === "string" && !left.includes(right);
+          case "starts with":
+            return typeof left === "string" && left.startsWith(right);
+          case "ends with":
+            return typeof left === "string" && left.endsWith(right);
+          case "is empty":
+            return left == null || left === "";
+          case "is not empty":
+            return left != null && left !== "";
+          default:
+            return false;
+        }
+      }
+      if (!conditions || conditions.length === 0) return true;
+      const hasShow = conditions.some(
+        (cond) => cond.action.toLowerCase() === "show"
+      );
+      let visible = !hasShow;
+      for (const cond of conditions) {
+        const refVal = processStringSync(cond.referenceValue, context);
+        const newVal = processStringSync(cond.newValue, context);
+        const parsedRef = parseValue(refVal, cond.type);
+        const parsedNew = parseValue(newVal, cond.valueType);
+        const matches = evaluateOperator(parsedRef, cond.operator, parsedNew);
+        if (matches) {
+          visible = cond.action.toLowerCase() === "show";
+        }
+      }
+      return visible;
+    },
     executeRowButtonAction: async (index, action) => {
       let cmd = enrichButtonActions(
         action,
@@ -509,9 +570,6 @@
         id: linkItem._id,
         primaryDisplay: linkItem.primaryDisplay,
       });
-    },
-    executeRowOnDblClickAction: async (id) => {
-      await tableAPI.executeRowButtonAction(id, onRowDblClick);
     },
     executeRowOnSelectAction: async (index) => {
       await tick();
@@ -997,11 +1055,6 @@
         $stbSortColumn = column;
         $stbSortOrder = order;
       },
-      resizeRow(index, size) {
-        $stbRowMetadata[index].height =
-          size || $stbSettings.appearance.rowHeight;
-        this.calculateBoundaries.debounce(20);
-      },
       handleRowClick(index, column, value, id) {
         if (canSelect && !canEdit) tableAPI.selectRow(index);
         if (onCellClick) {
@@ -1032,7 +1085,7 @@
         $stbScrollOffset = 0;
         $stbHorizontalScrollPos = 0;
         $stbSelected = [];
-        $columnsStore = [];
+
         $stbVisibleRows = [];
         if (_limit != limit) _limit = limit;
 
@@ -1285,22 +1338,6 @@
     },
   ];
 
-  const addQueryExtension = (key, extension) => {
-    if (!key || !extension) {
-      return;
-    }
-    queryExtensions = { ...queryExtensions, [key]: extension };
-  };
-
-  const removeQueryExtension = (key) => {
-    if (!key) {
-      return;
-    }
-    const newQueryExtensions = { ...queryExtensions };
-    delete newQueryExtensions[key];
-    queryExtensions = newQueryExtensions;
-  };
-
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
@@ -1348,6 +1385,22 @@
     return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
       ? extended
       : {};
+  };
+
+  const addQueryExtension = (key, extension) => {
+    if (!key || !extension) {
+      return;
+    }
+    queryExtensions = { ...queryExtensions, [key]: extension };
+  };
+
+  const removeQueryExtension = (key) => {
+    if (!key) {
+      return;
+    }
+    const newQueryExtensions = { ...queryExtensions };
+    delete newQueryExtensions[key];
+    queryExtensions = newQueryExtensions;
   };
 
   const beautifyLabel = (label) => {
@@ -1405,7 +1458,7 @@
   ) {
     previousTableWidth = tableWidth;
     // Unlock all columns to allow responsive re-rendering
-    columnStates.forEach(({ state }) => state.unlockWidth());
+    columnStates?.forEach(({ state }) => state.unlockWidth());
   }
 </script>
 
@@ -1474,12 +1527,8 @@
       {canScroll}
       bind:columnsViewport
     >
-      {#key stbData}
-        {#key $stbSchema}
-          {#key columnSizing}
-            <slot />
-          {/key}
-        {/key}
+      {#key columnSizing}
+        <slot />
       {/key}
     </ColumnsSection>
 
@@ -1514,7 +1563,7 @@
       bottom={horizontalVisible ? 24 : 16}
     />
 
-    <RowContextMenu {rowContextMenuItems} />
+    <RowContextMenu {rowContextMenuItems} row={$stbData?.rows?.[$stbMenuID]} />
 
     {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
       <AddNewRowOverlay

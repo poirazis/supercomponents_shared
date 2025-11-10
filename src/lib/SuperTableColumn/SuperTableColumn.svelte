@@ -190,7 +190,7 @@
       unlockWidth() {
         if (resizing) return;
         $lockWidth = 0;
-        if (!columnOptions.asComponent) this.lockWidth.debounce(200);
+        if (!columnOptions.asComponent) this.lockWidth.debounce(50);
       },
       startResizing(e) {
         e.stopPropagation();
@@ -357,12 +357,16 @@
 </script>
 
 <svelte:window
-  on:mouseup={(e) => {
-    if (resizing) columnState.stopResizing(e);
-  }}
-  on:mousemove={(e) => {
-    if (resizing) columnState.resize(e);
-  }}
+  on:mouseup={$columnOptionsStore.canResize
+    ? (e) => {
+        if (resizing) columnState.stopResizing(e);
+      }
+    : null}
+  on:mousemove={$columnOptionsStore.canResize
+    ? (e) => {
+        if (resizing) columnState.resize(e);
+      }
+    : null}
 />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -400,7 +404,6 @@
     zebra={$stbSettings.appearance.zebraColors}
     isLast={$columnOptionsStore.isLast}
     isFirst={$columnOptionsStore.isFirst}
-    canInsert={$stbSettings.features.canInsert}
   >
     <slot />
   </SuperColumnBody>

@@ -36,14 +36,22 @@
   export let onFalseCondition = undefined;
 
   $: loop = safeParse(loopSource);
-  $: icon_class =
-    icon && !icon.startsWith("ri-") ? "ph ph-" + icon : icon ? icon : undefined;
+  $: icon_class = working
+    ? "ph ph-spinner-gap ph-spin"
+    : icon && !icon.startsWith("ri-")
+      ? "ph ph-" + icon
+      : icon
+        ? icon
+        : undefined;
 
   let working = false;
   let ui_timer = undefined;
   let elapsed = 0;
 
   async function handleClick(e) {
+    if (disabled || working) return;
+    working = true;
+    await tick();
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
       if (Array.isArray(loop) && loopEvent) {
@@ -57,7 +65,7 @@
       if (condition == true) await onTrueCondition?.();
       else await onFalseCondition?.();
     } else if (onClick) {
-      onClick?.(e);
+      await onClick?.(e);
     }
     working = false;
   }
@@ -101,12 +109,7 @@
 
 <button
   tabindex={disabled ? -1 : 0}
-  on:click={(e) => {
-    if (!disabled && !working) {
-      working = true;
-      handleClick(e);
-    }
-  }}
+  on:click={handleClick}
   class:super-button={true}
   class:xsmall={size == "XS"}
   class:small={size == "S"}
@@ -120,7 +123,7 @@
   class:ink={type == "ink"}
   class:menu={type == "menu"}
   class:quiet
-  class:icon
+  class:icon={icon_class}
   class:iconOnly={iconOnly || !text}
   class:full-width={fullWidth}
   class:menu-item={menuItem}
@@ -128,15 +131,11 @@
   class={buttonClass == "actionButton"
     ? "spectrum-ActionButton spectrum-ActionButton--size" + size
     : "spectrum-Button spectrum-Button--size" + size}
-  class:disabled={disabled || working}
+  class:disabled
+  class:working
 >
-  {#if !iconAfterText}
-    <i class={icon_class} />
-    <span>{text}</span>
-  {:else}
-    <span>{text}</span>
-    <i class={icon_class} />
-  {/if}
+  <i class={icon_class} style:order={iconAfterText ? 1 : 0} />
+  <span>{text}</span>
 </button>
 
 <style>
@@ -163,7 +162,6 @@
       min-width: 4rem;
       padding: 0rem 0.5rem;
       gap: 0.5rem;
-      font-size: smaller;
       height: 1.85rem;
 
       &.ink {
@@ -189,6 +187,8 @@
       min-width: unset;
       aspect-ratio: 1/1;
       border-radius: 0.25rem;
+      font-weight: 600;
+      font-size: 14px;
       & > span {
         display: none;
       }
@@ -378,6 +378,19 @@
     &.quiet {
       background-color: unset !important;
       border: unset !important;
+    }
+  }
+
+  .working {
+    cursor: progress;
+    border: 1px solid var(--spectrum-global-color-gray-300) !important;
+    & > span {
+      color: var(--spectrum-global-color-gray-600);
+    }
+    & > i {
+      display: block;
+      animation: spin 1s linear infinite;
+      color: var(--spectrum-global-color-blue-700);
     }
   }
 </style>
