@@ -1055,11 +1055,6 @@
         $stbSortColumn = column;
         $stbSortOrder = order;
       },
-      resizeRow(index, size) {
-        $stbRowMetadata[index].height =
-          size || $stbSettings.appearance.rowHeight;
-        this.calculateBoundaries.debounce(20);
-      },
       handleRowClick(index, column, value, id) {
         if (canSelect && !canEdit) tableAPI.selectRow(index);
         if (onCellClick) {
@@ -1343,22 +1338,6 @@
     },
   ];
 
-  const addQueryExtension = (key, extension) => {
-    if (!key || !extension) {
-      return;
-    }
-    queryExtensions = { ...queryExtensions, [key]: extension };
-  };
-
-  const removeQueryExtension = (key) => {
-    if (!key) {
-      return;
-    }
-    const newQueryExtensions = { ...queryExtensions };
-    delete newQueryExtensions[key];
-    queryExtensions = newQueryExtensions;
-  };
-
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
@@ -1406,6 +1385,22 @@
     return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
       ? extended
       : {};
+  };
+
+  const addQueryExtension = (key, extension) => {
+    if (!key || !extension) {
+      return;
+    }
+    queryExtensions = { ...queryExtensions, [key]: extension };
+  };
+
+  const removeQueryExtension = (key) => {
+    if (!key) {
+      return;
+    }
+    const newQueryExtensions = { ...queryExtensions };
+    delete newQueryExtensions[key];
+    queryExtensions = newQueryExtensions;
   };
 
   const beautifyLabel = (label) => {

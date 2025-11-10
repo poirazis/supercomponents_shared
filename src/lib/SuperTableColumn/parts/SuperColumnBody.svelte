@@ -44,7 +44,6 @@
         {idField}
         disabled={inserting}
         {rowHeight}
-        on:resize={(e) => stbState.resizeRow(index, e.detail)}
       >
         <slot />
       </SuperColumnRow>
