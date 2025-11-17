@@ -497,7 +497,7 @@
 <div
   bind:this={anchor}
   class="superCell"
-  tabindex={cellOptions?.disabled ? "-1" : "0"}
+  tabindex={cellOptions?.disabled ? -1 : 0}
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inEdit
   class:disabled
@@ -505,7 +505,6 @@
   class:error
   style:color
   style:background
-  style:font-weight={cellOptions.fontWeight}
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
@@ -663,7 +662,8 @@
               class:focused={focusedOptionIdx === idx}
               class:selected={localValue?.includes(option)}
               style:--option-color={$colors[option]}
-              on:mousedown|preventDefault={(e) => editorState.toggleOption(idx)}
+              on:mousedown|preventDefault|stopPropagation={(e) =>
+                editorState.toggleOption(idx)}
               on:mouseenter={() => (focusedOptionIdx = idx)}
             >
               <span>
@@ -706,7 +706,8 @@
             class:focused={focusedOptionIdx === idx}
             class:selected={localValue?.includes(option)}
             style:--option-color={$colors[option]}
-            on:mousedown|preventDefault={(e) => editorState.toggleOption(idx)}
+            on:mousedown|preventDefault|stopPropagation={(e) =>
+              editorState.toggleOption(idx)}
             on:mouseenter={() => (focusedOptionIdx = idx)}
           >
             <span>
