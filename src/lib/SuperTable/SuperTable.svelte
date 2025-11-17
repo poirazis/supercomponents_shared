@@ -1460,6 +1460,8 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
+
+  $: console.log($stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

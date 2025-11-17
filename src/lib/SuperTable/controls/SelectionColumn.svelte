@@ -43,7 +43,7 @@
           <span class="row-number"></span>
         {/if}
 
-        {#if checkBoxes && $stbSettings.features.maxSelected != 1}
+        {#if checkBoxes && $stbSettings.features.maxSelected != 1 && $stbVisibleRows.length > 0}
           <div
             class="checkbox"
             class:selected={fullSelection}
