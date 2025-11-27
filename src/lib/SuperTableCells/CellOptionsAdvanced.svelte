@@ -123,7 +123,7 @@
       loadDataOptions(rows) {
         if (rows && rows.length) {
           rows.forEach((row) => {
-            $options.push(row[valueColumn]);
+            $options.push(row[valueColumn]?.toString());
             labels[row[valueColumn]] =
               row[labelColumn || $fetch.definition.primaryDisplay];
             optionColors[row[valueColumn]] = row[colorColumn];

@@ -23,6 +23,8 @@
       defaultValue: T;
       disabled: boolean;
       readonly: boolean;
+      fieldDisabled: boolean;
+      fieldReadOnly: boolean;
       validator: ((_value: T) => string | null) | null;
       error: string | null | undefined;
       lastUpdate: number;
@@ -46,7 +48,6 @@
   export let editAutoColumns: boolean = false;
   export let provideContext: boolean = true;
   export let currentStep: Writable<number>;
-  export let currentUser: string = "unknown";
   export let formValue: Record<string, any> = {};
 
   const { Provider, ActionTypes, createValidatorFromConstraints } =
@@ -67,6 +68,7 @@
   $: enrichments = deriveBindingEnrichments(fields);
   $: valid = !Object.values($errors).some((error) => error != null);
   $: dirty = deriveDirtyStatus(fields, initialValues);
+  $: updateFieldStates(disabled, readonly);
 
   $: currentStepValid = derived(
     [currentStep, ...fields],
@@ -249,6 +251,8 @@
             disabled || fieldDisabled || (isAutoColumn && !editAutoColumns),
           readonly:
             readonly || fieldReadOnly || (schema?.[field] as any)?.readonly,
+          fieldDisabled,
+          fieldReadOnly,
           defaultValue,
           validator,
           lastUpdate: Date.now(),
@@ -374,9 +378,21 @@
 
     const setDisabled = (fieldDisabled: boolean) => {
       const fieldInfo = getField(field);
-      const isAutoColumn = !!schema?.[field]?.autocolumn;
       fieldInfo.update((state) => {
-        state.fieldState.disabled = disabled || fieldDisabled || isAutoColumn;
+        state.fieldState.fieldDisabled = fieldDisabled;
+        const isAutoColumn = !!schema?.[state.name]?.autocolumn;
+        state.fieldState.disabled =
+          disabled || fieldDisabled || (isAutoColumn && !editAutoColumns);
+        return state;
+      });
+    };
+
+    const setReadOnly = (fieldReadOnly: boolean) => {
+      const fieldInfo = getField(field);
+      fieldInfo.update((state) => {
+        state.fieldState.fieldReadOnly = fieldReadOnly;
+        state.fieldState.readonly =
+          readonly || fieldReadOnly || (schema?.[state.name] as any)?.readonly;
         return state;
       });
     };
@@ -385,6 +401,7 @@
       setValue,
       reset,
       setDisabled,
+      setReadOnly,
       deregister,
       validate: () => {
         const fieldInfo = getField(field);
@@ -532,6 +549,26 @@
     }
     current[pathArray[pathArray.length - 1]] = value;
   }
+
+  // Update field disabled/readonly states when props change
+  const updateFieldStates = (formDisabled: boolean, formReadonly: boolean) => {
+    if (fields.length > 0) {
+      fields.forEach((field) => {
+        field.update((state) => {
+          const isAutoColumn = !!schema?.[state.name]?.autocolumn;
+          state.fieldState.disabled =
+            formDisabled ||
+            state.fieldState.fieldDisabled ||
+            (isAutoColumn && !editAutoColumns);
+          state.fieldState.readonly =
+            formReadonly ||
+            state.fieldState.fieldReadOnly ||
+            (schema?.[state.name] as any)?.readonly;
+          return state;
+        });
+      });
+    }
+  };
 </script>
 
 {#if provideContext}

@@ -24,6 +24,7 @@
     <div
       class="superlabel"
       class:left={labelPos == "left"}
+      class:tall
       class:error
       style:--label-width={width}
     >
@@ -56,12 +57,13 @@
 
 <style>
   .super-field {
-    min-width: 140px;
+    min-width: 120px;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     overflow: hidden;
+
     &.multirow {
       max-height: var(--height);
       & > .inline-cells.inline-buttons {
@@ -80,6 +82,11 @@
       & > .inline-cells > .inline-buttons {
         flex-direction: column;
       }
+    }
+
+    &.tall.left-label {
+      flex-direction: row;
+      align-items: stretch;
     }
 
     &:focus-within {
@@ -127,6 +134,11 @@
       justify-content: center;
       line-height: 1rem;
       gap: 0px;
+
+      &.tall {
+        justify-content: flex-start;
+        padding-top: 0.5rem;
+      }
 
       & > .label {
         width: var(--label-width);

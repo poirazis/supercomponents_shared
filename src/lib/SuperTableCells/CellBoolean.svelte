@@ -11,7 +11,6 @@
   let editor;
 
   const dispatch = createEventDispatcher();
-  const { processStringSync } = getContext("sdk");
 
   export let cellState = fsm(cellOptions.initialState ?? "View", {
     "*": {
@@ -46,7 +45,6 @@
         dispatch("exitedit");
       },
       focus() {
-        if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
         editor?.focus();
       },
       change(e) {
@@ -66,15 +64,14 @@
     },
   });
 
-  $: formattedValue = cellOptions.template
-    ? processStringSync(cellOptions.template, { value })
-    : undefined;
-
   $: inline = cellOptions.role == "inlineInput";
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue !== value;
   $: checkbox = cellOptions?.controlType == "checkbox";
   $: tableCell = cellOptions.role == "tableCell";
+  $: inlineLabel = cellOptions.inlineLabel;
+  $: icon = cellOptions.error ? "ri-error-warning-line" : cellOptions.icon;
+  $: error = cellOptions.error;
 
   const focus = (node) => {
     if (cellOptions.role == "tableCell") node.focus();
@@ -89,33 +86,25 @@
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline
-  class:naked-field={!tableCell}
   class:tableCell
   class:disabled={cellOptions.disabled}
   class:readonly={cellOptions.readonly}
+  class:naked-field={!tableCell}
   style:color={cellOptions.color}
   style:background={$cellState == "Editing" && cellOptions.role != "inline"
     ? "var(--spectrum-global-color-gray-50)"
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
-  {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+  {#if icon}
+    <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
 
-  {#if $cellState == "Editing" || cellOptions.role != "tableCell"}
+  {#if $cellState == "Editing" || (cellOptions.role != "tableCell" && !formattedValue)}
     <div
       class="editor"
-      class:with-icon={cellOptions.icon}
       class:naked-field={!tableCell}
       style:justify-content={cellOptions.align ?? "center"}
-      on:mousedown|self|preventDefault|stopPropagation={$cellState == "Editing"
-        ? () => {
-            value = !value;
-          }
-        : () => {
-            cellState.focus();
-          }}
     >
       {#if !checkbox}
         <div class="spectrum-Switch spectrum-Switch--emphasized">
@@ -131,6 +120,9 @@
             use:focus
           />
           <span class="spectrum-Switch-switch" />
+          {#if inlineLabel}
+            <span class="spectrum-Switch-label">{inlineLabel}</span>
+          {/if}
         </div>
       {:else}
         <input
@@ -144,6 +136,9 @@
           on:change={cellState.change}
           use:focus
         />
+        {#if inlineLabel}
+          <span class="checkbox-label">{inlineLabel}</span>
+        {/if}
       {/if}
     </div>
   {:else}
@@ -154,9 +149,7 @@
       class:with-icon={cellOptions.icon}
       on:focusin={cellState.focus}
     >
-      {#if formattedValue}
-        {formattedValue}
-      {:else if value}
+      {#if value}
         <i class="ri-check-line valueicon"></i>
       {:else if cellOptions.showFalse}
         <i class="ri-close-line valueicon"></i>
@@ -164,3 +157,13 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .spectrum-Switch {
+    margin-left: 0.25rem !important;
+  }
+
+  .checkbox-label {
+    margin-left: 0.25rem;
+  }
+</style>

@@ -125,6 +125,7 @@
 
   $: returnSingle = isUser && !multi;
   $: placeholder = cellOptions.placeholder || "";
+  $: readonly = cellOptions.readonly || cellOptions.disabled;
 
   const handleKeyboard = (e) => {
     if (e.key == "Escape" && $editorState == "Open") {
@@ -178,7 +179,7 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
   class="superCell"
-  tabindex={cellOptions?.disabled ? "-1" : "0"}
+  tabindex={cellOptions?.disabled ? -1 : 0}
   bind:this={anchor}
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inEdit
@@ -187,7 +188,7 @@
   class:tableCell={cellOptions.role == "tableCell"}
   class:formInput={cellOptions.role == "formInput"}
   class:disabled={cellOptions.disabled}
-  class:readonly={cellOptions.readonly}
+  class:readonly
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
@@ -198,14 +199,10 @@
   on:focusout={cellState.focusout}
 >
   {#if cellOptions?.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
-  <div
-    class="value"
-    class:with-icon={cellOptions?.icon}
-    class:placeholder={localValue?.length < 1}
-  >
+  <div class="value" class:placeholder={localValue?.length < 1}>
     {#if localValue?.length < 1}
       <span> {placeholder} </span>
     {:else if pills || links}
@@ -246,19 +243,10 @@
         {localValue.map((v) => v.primaryDisplay).join(", ")}
       </span>
     {/if}
-
-    {#if inEdit && localValue?.length}
-      <i
-        class="ri-close-line clearIcon"
-        style:right={"28px"}
-        on:mousedown|preventDefault={cellState.clear}
-      ></i>
-    {/if}
-
-    {#if !cellOptions.readonly && (cellOptions.role == "formInput" || inEdit)}
-      <i class="ph ph-caret-down controlIcon"></i>
-    {/if}
   </div>
+  {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
+    <i class="ph ph-caret-down control-icon"></i>
+  {/if}
 </div>
 
 {#if inEdit}

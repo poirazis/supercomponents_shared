@@ -3,6 +3,7 @@
   import fsm from "svelte-fsm";
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import CellLinkPickerTree from "../../lib/SuperTableCells/CellLinkPickerTree.svelte";
+  import { readonly } from "svelte/store";
   const dispatch = createEventDispatcher();
 
   export let value;
@@ -229,10 +230,10 @@
         on:mousedown|preventDefault={cellState.clear}
       ></i>
     {/if}
-    {#if cellOptions.role == "formInput" || inEdit}
-      <i class="ph ph-caret-down controlIcon"></i>
-    {/if}
   </div>
+  {#if !cellOptions.readonly && (cellOptions.role == "formInput" || inEdit)}
+    <i class="ph ph-caret-down control-icon"></i>
+  {/if}
 </div>
 
 {#if inEdit}

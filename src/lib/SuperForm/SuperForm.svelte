@@ -48,8 +48,6 @@
     return parsedFormStep;
   };
 
-  let currentUser = $context?.user?.email || "unknown";
-
   let definition: Table | undefined;
   let schema: TableSchema | undefined;
   let loaded = false;
@@ -66,7 +64,7 @@
     row
   );
   $: resetKey = hashString(
-    schemaKey + JSON.stringify(initialValues) + disabled + readonly + actionType
+    schemaKey + JSON.stringify(initialValues) + actionType
   );
 
   const getInitialValues = (
@@ -144,7 +142,6 @@
       {editAutoColumns}
       {currentStep}
       {provideContext}
-      {currentUser}
       on:change
       on:reset
     >

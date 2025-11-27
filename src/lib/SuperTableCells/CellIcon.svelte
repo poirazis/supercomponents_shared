@@ -34,22 +34,14 @@
   const dispatch = createEventDispatcher();
 
   // Icon state management
-  let weight = "regular";
   let iconName = "";
 
-  // Update icon name and weight when value changes
+  // Update icon name when value changes
   $: if (value) {
-    const match = value.match(/^ph-(.+?)(?:-(bold|fill))?$/);
-    if (match) {
-      iconName = match[1];
-      weight = match[2] || "regular";
-    } else {
-      iconName = value.replace(/^ph-/, "");
-      weight = "regular";
-    }
+    let cleanValue = value.startsWith("ph-") ? value.slice(3) : value;
+    iconName = cleanValue;
   } else {
     iconName = "";
-    weight = "regular";
   }
 
   // Filter icons (no variants in Budibase list)
@@ -70,7 +62,6 @@
   $: itemsPerRow = cellOptions?.showCategories ? 9 : 6;
   $: containerHeight = buttonSize * rowsToShow + containerPadding * 2;
   $: rowData = generateRowData(
-    weight,
     value,
     itemsPerRow,
     selectedCategory,
@@ -78,7 +69,6 @@
   );
 
   function generateRowData(
-    useWeight,
     currentValue,
     itemsPerRow,
     selectedCategory,
@@ -112,7 +102,7 @@
   // Reactive updates are handled in the reactive block above
 
   const onChange = (icon) => {
-    const newValue = `ph-${icon}${weight !== "regular" ? `-${weight}` : ""}`;
+    const newValue = icon;
     const selectedValue = newValue === value ? "" : newValue;
     value = selectedValue;
     dispatch("change", selectedValue);
@@ -121,7 +111,7 @@
 
   // Handle mouse enter on icon button
   function handleMouseEnter(icon) {
-    hoveredIcon = `ph ph-${icon}${weight !== "regular" ? ` ph-${weight}` : ""}`;
+    hoveredIcon = `ph ph-${icon}`;
   }
 
   const handleKeydown = (event, icon) => {
@@ -163,7 +153,7 @@
   aria-label="Select icon"
 >
   {#if value}
-    <i class="ph ph-{iconName}{weight !== 'regular' ? ` ph-${weight}` : ''}" />
+    <i class="ph ph-{iconName}" />
   {:else}
     <div class="empty-state">
       <i class="ph ph-image" />
@@ -241,11 +231,7 @@
                 aria-label={`Select ${icon} icon`}
                 tabindex="0"
               >
-                <i
-                  class="ph ph-{icon}{weight !== 'regular'
-                    ? ` ph-${weight}`
-                    : ''}"
-                />
+                <i class="ph ph-{icon}" />
               </button>
             {/each}
           </div>
@@ -259,16 +245,6 @@
     </div>
 
     <div class="footer">
-      <div class="footer-left">
-        <label class="weight-selector">
-          <span class="weight-label">Weight:</span>
-          <select bind:value={weight} class="weight-select">
-            <option value="regular">Normal</option>
-            <option value="bold">Bold</option>
-            <option value="fill">Filled</option>
-          </select>
-        </label>
-      </div>
       {#if value}
         <button class="clear-button" on:click={clearSelection}>
           <i class="ph ph-x" /> Clear
@@ -497,42 +473,9 @@
     border-top: 1px solid var(--spectrum-global-color-gray-200);
     height: 2rem;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     font-size: 0.75rem;
-  }
-
-  .footer-left {
-    display: flex;
-    align-items: center;
-    height: 100%;
-  }
-
-  .weight-selector {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .weight-label {
-    font-size: 0.75rem;
-    color: var(--spectrum-global-color-gray-700);
-  }
-
-  .weight-select {
-    padding: 4px 8px;
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    border-radius: 4px;
-    background: var(--spectrum-global-color-white);
-    font-size: 0.75rem;
-    color: var(--spectrum-global-color-gray-800);
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-  }
-
-  .weight-select:focus {
-    outline: none;
-    border-color: var(--spectrum-global-color-blue-500);
   }
 
   .clear-button {
