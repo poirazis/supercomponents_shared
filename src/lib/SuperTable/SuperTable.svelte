@@ -210,18 +210,6 @@
   const stbSelected = memo([]);
   const maxSelectedStore = memo(maxSelected);
   $: maxSelectedStore.set(maxSelected);
-  $: stbSelectedRows = derivedMemo(
-    [stbData, stbSelected, maxSelectedStore],
-    ([$stbData, $stbSelected, $maxSelectedStore]) => {
-      const selectedRows = $stbData?.rows?.filter((row) =>
-        $stbSelected?.includes(row[idColumn])
-      );
-      if ($maxSelectedStore === 1) {
-        return selectedRows.length > 0 ? selectedRows[0] : null;
-      }
-      return selectedRows;
-    }
-  );
 
   const stbHovered = memo(-1);
   const stbEditing = memo(-1);
@@ -633,6 +621,9 @@
 
       tableAPI.executeRowOnSelectAction();
     },
+    clearSelection: () => {
+      $stbSelected = [];
+    },
     insertRow: async (row) => {
       let cmd_after = enrichButtonActions(afterInsert, $context);
       let saved_row;
@@ -758,6 +749,7 @@
       ];
       let cmd = enrichButtonActions(autoDelete, {});
       let cmd_after = enrichButtonActions(afterDelete, $context);
+      $stbSelected = [];
       await cmd?.();
       await cmd_after?.();
       stbData.refresh();
@@ -1224,6 +1216,25 @@
     rowHeight
   );
 
+  $: if ($stbData?.rows) {
+    $stbSelected = $stbSelected.filter((id) =>
+      $stbData.rows.some((row) => row[idColumn] === id)
+    );
+  }
+
+  $: stbSelectedRows = derivedMemo(
+    [stbData, stbSelected, maxSelectedStore],
+    ([$stbData, $stbSelected, $maxSelectedStore]) => {
+      const selectedRows = $stbData?.rows?.filter((row) =>
+        $stbSelected?.includes(row[idColumn])
+      );
+      if ($maxSelectedStore === 1) {
+        return selectedRows.length > 0 ? selectedRows[0] : [];
+      }
+      return selectedRows;
+    }
+  );
+
   // Scroll to Top when filter changes
   $: stbState.scrollToTop(query);
 
@@ -1320,13 +1331,11 @@
   $: actions = [
     {
       type: ActionTypes.ClearRowSelection,
-      callback: () => {
-        $stbSelected = [];
-      },
+      callback: tableAPI.clearSelection,
     },
     {
       type: ActionTypes.RefreshDatasource,
-      callback: () => stbData?.refresh(),
+      callback: stbData?.refresh,
     },
     {
       type: ActionTypes.AddDataProviderQueryExtension,

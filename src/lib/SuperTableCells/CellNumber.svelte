@@ -255,7 +255,7 @@
         : cellOptions.align == "center"
           ? "center"
           : "right "}
-      value={localValue.toFixed(decimals)}
+      value={localValue || ""}
       on:keydown={(e) => cellState.handleKeyboard(e)}
       on:input={(e) => cellState.handleInput(e)}
       on:focusout={(e) => cellState.focusout(e)}
