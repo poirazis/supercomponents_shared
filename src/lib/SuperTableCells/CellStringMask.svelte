@@ -177,6 +177,8 @@
   $: inEdit = $cellState == "Editing";
   $: isDirty = originalValue !== localValue;
   $: placeholder = cellOptions?.placeholder ? cellOptions.placeholder : mask;
+  $: error = cellOptions?.error;
+  $: icon = error ? "ph ph-warning" : cellOptions?.icon;
   $: cellState.reset(value);
 
   const focus = (node) => {
@@ -257,8 +259,8 @@
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
-  {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+  {#if icon}
+    <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
 
   {#if inEdit}

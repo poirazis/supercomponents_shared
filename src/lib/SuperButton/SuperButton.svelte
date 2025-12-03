@@ -51,7 +51,6 @@
   async function handleClick(e) {
     if (disabled || working) return;
     working = true;
-    await tick();
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
       if (Array.isArray(loop) && loopEvent) {

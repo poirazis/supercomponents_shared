@@ -35,7 +35,7 @@
   class:is-editing={editing}
 >
   {#if rows?.length}
-    {#each $stbVisibleRows as index}
+    {#each $stbVisibleRows as index (index)}
       <SuperColumnRow
         {isLast}
         {index}

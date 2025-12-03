@@ -17,8 +17,8 @@
   export let autofocus: boolean;
 
   let originalValue: number | null = value;
+  let localValue: number = value ?? 0;
   let inEdit: boolean;
-  let localValue: number | null = value;
   let editor: HTMLInputElement;
   let lastEdit: Date | undefined;
   let timer: ReturnType<typeof setTimeout>;
@@ -31,24 +31,19 @@
     },
     View: {
       _enter() {
-        localValue = value;
+        const num = Number(value);
+        localValue = isNaN(num) ? null : num;
         originalValue = value;
         lastEdit = undefined;
       },
-      reset() {
-        localValue = value;
+      reset(value: number | null) {
+        const num = Number(value);
+        localValue = isNaN(num) ? null : num;
         originalValue = value;
         lastEdit = undefined;
-        formattedValue = cellOptions.template
-          ? processStringSync(cellOptions.template, {
-              ...$context,
-              value: localValue,
-            })
-          : value || localValue || cellOptions.placeholder;
 
         return cellOptions.initialState ?? "View";
       },
-
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
@@ -60,7 +55,7 @@
         dispatch("enteredit");
       },
       _exit() {
-        originalValue = undefined;
+        originalValue = null;
         dispatch("exitedit");
       },
       clear() {
@@ -73,7 +68,6 @@
         this.submit();
       },
       submit() {
-        localValue = editor.value;
         if (isDirty) {
           dispatch("change", localValue);
         }
@@ -84,8 +78,7 @@
         dispatch("cancel");
         return "View";
       },
-      debounce(e: KeyboardEvent) {
-        lastEdit = new Date();
+      debouncedDispatch() {
         if (cellOptions?.debounce) {
           clearTimeout(timer);
           timer = setTimeout(() => {
@@ -99,10 +92,28 @@
 
         // Handle control keys
         if (
-          ["Enter", "Escape", "ArrowLeft", "ArrowRight", "Tab"].includes(key)
+          [
+            "Enter",
+            "Escape",
+            "ArrowLeft",
+            "ArrowRight",
+            "Tab",
+            "ArrowUp",
+            "ArrowDown",
+          ].includes(key)
         ) {
           if (key === "Enter") return this.submit();
           if (key === "Escape") return this.cancel();
+          if (key === "ArrowUp") {
+            e.preventDefault();
+            this.increment(e);
+            return;
+          }
+          if (key === "ArrowDown") {
+            e.preventDefault();
+            this.decrement(e);
+            return;
+          }
           return;
         }
 
@@ -110,6 +121,7 @@
         if (
           (key.length === 1 && !/[\d.-]/.test(key)) || // Allow digits, decimal, negative sign
           (key === "." && input.value.includes(".")) || // Prevent multiple decimal points
+          (key === "." && decimals === 0) || // Prevent decimal point if no decimals allowed
           (key === "-" &&
             (input.value.includes("-") || input.selectionStart !== 0)) // Negative sign only at start
         ) {
@@ -130,14 +142,47 @@
           return;
         }
 
+        // Check decimal places
+        if (
+          newValue.includes(".") &&
+          newValue.split(".")[1].length > decimals
+        ) {
+          input.value = localValue?.toString() ?? "";
+          return;
+        }
+
         localValue =
-          newValue === "" || newValue === "-" ? null : Number(newValue);
+          newValue === "" || newValue === "-" ? 0 : Number(newValue) || 0;
+        localValue = Number(localValue.toFixed(decimals));
         lastEdit = new Date();
-        if (cellOptions?.debounce) {
-          clearTimeout(timer);
-          timer = setTimeout(() => {
-            dispatch("change", localValue);
-          }, cellOptions.debounce ?? 0);
+        this.debouncedDispatch();
+      },
+      increment(e: Event) {
+        const multiplier = (e as any).shiftKey ? 10 : 1;
+        localValue += stepSize * multiplier;
+        lastEdit = new Date();
+        this.debouncedDispatch();
+      },
+      decrement(e: Event) {
+        const multiplier = (e as any).shiftKey ? 10 : 1;
+        localValue -= stepSize * multiplier;
+        lastEdit = new Date();
+        this.debouncedDispatch();
+      },
+      handleWheel(e: WheelEvent) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          if (e.deltaX < 0) {
+            this.increment(e);
+          } else {
+            this.decrement(e);
+          }
+        } else {
+          if (e.deltaY < 0) {
+            this.increment(e);
+          } else {
+            this.decrement(e);
+          }
         }
       },
     },
@@ -146,15 +191,20 @@
   $: inEdit = $cellState == "Editing";
   $: inline = cellOptions.role == "inlineInput";
   $: isDirty = lastEdit && originalValue != localValue;
+  $: error = cellOptions?.error;
+  $: icon = error ? "ph ph-warning" : "ph ph-" + cellOptions?.icon;
+  $: stepper = cellOptions?.showStepper;
+  $: stepSize = cellOptions?.stepSize ?? 1;
+  $: decimals = cellOptions?.decimals ?? 0;
+
+  $: cellState.reset(value);
 
   $: formattedValue = cellOptions.template
     ? processStringSync(cellOptions.template, {
         ...$context,
-        value: localValue,
+        value: localValue?.toFixed(decimals),
       })
-    : value || localValue || cellOptions.placeholder;
-
-  $: cellState.reset(value);
+    : localValue?.toFixed(decimals);
 
   function focus(element: HTMLElement) {
     setTimeout(() => element?.focus(), 10);
@@ -170,11 +220,9 @@
 
   onDestroy(() => {
     clearTimeout(timer);
-    cellState.reset();
   });
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
@@ -188,15 +236,13 @@
   class:tableCell={cellOptions?.role == "tableCell"}
   class:formInput={cellOptions?.role == "formInput"}
   style:color={cellOptions?.color}
-  style:background={inEdit
-    ? "var(--spectrum-global-color-gray-50)"
-    : cellOptions?.background}
+  style:background={cellOptions?.background}
   style:font-weight={cellOptions?.fontWeight}
-  tabIndex={cellOptions.disabled ? "-1" : 0}
+  tabIndex={cellOptions.disabled ? -1 : 0}
   on:focusin={cellState.focus}
 >
-  {#if cellOptions?.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+  {#if icon}
+    <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
 
   {#if $cellState == "Editing"}
@@ -204,30 +250,70 @@
       class="editor"
       bind:this={editor}
       class:placeholder={!localValue}
-      style:padding-right={"32px"}
-      class:with-icon={cellOptions.icon}
       style:text-align={cellOptions.align == "flex-start"
         ? "left"
         : cellOptions.align == "center"
           ? "center"
           : "right "}
-      placeholder={cellOptions?.placeholder}
-      value={localValue || null}
+      value={localValue || ""}
       on:keydown={(e) => cellState.handleKeyboard(e)}
       on:input={(e) => cellState.handleInput(e)}
       on:focusout={(e) => cellState.focusout(e)}
+      on:wheel={(e) => cellState.handleWheel(e)}
       use:focus
     />
-    <i class="ri-close-line clearIcon" on:mousedown|self={cellState.clear}> </i>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <i
+      class="ri-close-line clear-icon visible"
+      on:mousedown|preventDefault|stopPropagation={cellState.clear}
+    >
+    </i>
+    {#if stepper}
+      <div class="controls">
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <i
+          class="ph ph-minus"
+          on:mousedown|preventDefault|stopPropagation={(e) =>
+            cellState.decrement(e)}
+        ></i>
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <i
+          class="ph ph-plus"
+          on:mousedown|preventDefault|stopPropagation={(e) =>
+            cellState.increment(e)}
+        ></i>
+      </div>
+    {/if}
   {:else}
     <div
       class="value"
       style:padding-right={"12px"}
-      class:placeholder={!value}
-      class:with-icon={cellOptions.icon}
+      class:placeholder={!(typeof value === "number" && !isNaN(value))}
       style:justify-content={cellOptions.align ?? "flex-end"}
     >
-      {formattedValue ?? ""}
+      {value != null ? formattedValue : cellOptions?.placeholder || ""}
     </div>
   {/if}
 </div>
+
+<style>
+  .controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    padding-right: 0.5rem;
+    margin-left: -0.25rem;
+  }
+
+  .controls i {
+    cursor: pointer;
+    padding: 0.15rem;
+    background-color: var(--spectrum-global-color-gray-100);
+    border-radius: 0.25rem;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .controls i:hover {
+    background-color: var(--spectrum-global-color-gray-200);
+  }
+</style>

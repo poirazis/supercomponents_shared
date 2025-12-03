@@ -28,6 +28,7 @@
 
   $: errors = [];
   $: error = cellOptions?.error || errors.length > 0;
+  $: icon = error ? "ph ph-warning" : cellOptions?.icon;
   $: inEdit = $cellState == "Editing";
   $: isDirty = lastEdit && originalValue != localValue;
   $: formattedValue = cellOptions?.template
@@ -176,11 +177,8 @@
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
-  {#if cellOptions.icon || error}
-    <i
-      class={error ? "ph ph-warning icon" : cellOptions.icon + " icon"}
-      style:color={error ? "var(--spectrum-global-color-red-600)" : "inherit"}
-    ></i>
+  {#if icon}
+    <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
 
   {#if inEdit}
@@ -189,7 +187,6 @@
         bind:this={editor}
         tabindex="0"
         class="editor textarea"
-        class:with-icon={cellOptions.icon || error}
         class:placeholder={!value && !formattedValue && !localValue}
         placeholder={cellOptions?.placeholder ?? ""}
         style:text-align={cellOptions.align == "center"
@@ -207,7 +204,6 @@
         bind:this={editor}
         tabindex="0"
         class="editor"
-        class:with-icon={cellOptions.icon || error}
         class:placeholder={!value && !formattedValue && !localValue}
         value={localValue ?? ""}
         placeholder={cellOptions?.placeholder ?? ""}
@@ -246,7 +242,6 @@
     <div
       class="value"
       tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
-      class:with-icon={cellOptions.icon || error}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}

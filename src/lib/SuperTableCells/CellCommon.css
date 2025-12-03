@@ -26,7 +26,7 @@
       color: var(--spectrum-global-color-blue-500);
     }
 
-    .value.controlIcon {
+    .control-icon {
       color: var(--spectrum-global-color-gray-700);
     }
   }
@@ -51,6 +51,19 @@
       color: var(--spectrum-global-color-red-700);
       cursor: pointer;
     }
+  }
+
+  .field-icon {
+    padding-left: 0.5rem;
+    color: var(--spectrum-global-color-gray-600);
+  }
+
+  .field-icon.with-error {
+    color: var(--spectrum-global-color-red-600);
+  }
+
+  .field-icon.active {
+    color: var(--spectrum-global-color-blue-700);
   }
 
   .value {
@@ -104,13 +117,6 @@
       z-index: 1;
     }
 
-    .controlIcon {
-      position: absolute;
-      color: var(--spectrum-global-color-gray-600);
-      cursor: pointer;
-      right: 0.5rem;
-    }
-
     & > .valueicon {
       font-size: 16px;
       color: var(--spectrum-global-color-green-700);
@@ -123,7 +129,6 @@
       align-items: stretch;
       align-self: stretch;
       gap: 0.5rem;
-      margin-right: 1rem;
       padding: 0.15rem 0rem;
 
       .item {
@@ -223,6 +228,25 @@
     }
   }
 
+  .clear-icon {
+    display: none;
+    color: var(--spectrum-global-color-red-400);
+    cursor: pointer;
+  }
+
+  .clear-icon.visible {
+    display: block;
+    color: var(--spectrum-global-color-red-400);
+    padding-right: 0.5rem;
+  }
+
+  .control-icon {
+    color: var(--spectrum-global-color-gray-600);
+    cursor: pointer;
+    padding: 0.5rem;
+    padding-left: 0.25rem;
+  }
+
   &.error {
     border: 1px solid var(--spectrum-global-color-red-400) !important;
   }
@@ -313,6 +337,7 @@
 
 .superCell.tableCell {
   min-height: unset;
+  max-height: unset;
   border: 1px solid transparent;
 
   &:hover:not(.readonly):not(.inEdit) {
@@ -329,6 +354,7 @@
 
 .superCell > .editor {
   min-width: none;
+  flex: auto;
   width: 100%;
   height: 100%;
   display: flex;
