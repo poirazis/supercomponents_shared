@@ -6,9 +6,16 @@
   export let open = false;
   export let nodeSelection;
   export let selectedNodes;
+  export let selectedGroups;
 
   $: if (tree.disabled) open = false;
-  $: selected = $selectedNodes.find((x) => x.id == tree.id);
+  $: selected = tree.isGroup
+    ? $selectedGroups.includes(tree.id)
+    : !!$selectedNodes.find((x) => x.id == tree.id);
+
+  let labelElement;
+  $: isOverflowing = labelElement && labelElement.scrollWidth > labelElement.clientWidth;
+  $: tooltip = isOverflowing ? tree.label || "Not Set" : null;
 
   const toggleOpen = (e) => {
     if (tree.disabled) return;
@@ -32,8 +39,13 @@
   };
 
   const toggleNode = (e) => {
-    if (!tree.disabled)
-      dispatch("nodeSelect", { id: tree.id, label: tree.label });
+    if (tree.selectable && !tree.disabled)
+      dispatch("nodeSelect", {
+        id: tree.id,
+        label: tree.label,
+        row: tree.row,
+        group: tree.group,
+      });
   };
 </script>
 
@@ -65,7 +77,7 @@
       style:width={"100%"}
       on:mousedown|preventDefault|stopPropagation={toggleNode}
     >
-      <span class="spectrum-TreeView-itemLabel" style:padding-left={"0.25rem"}
+      <span class="spectrum-TreeView-itemLabel" style:padding-left={"0.25rem"} bind:this={labelElement} title={tooltip}
         >{tree.label || "Not Set"}</span
       >
     </div>
@@ -86,6 +98,7 @@
           tree={node}
           {nodeSelection}
           {selectedNodes}
+          {selectedGroups}
           open={node.open}
           on:nodeSelect
           on:nodeClick
