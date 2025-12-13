@@ -876,11 +876,11 @@
       return fields.join(" - ");
     },
     detectPK: () => {
-      if ($stbData?.definition?.primary) return $stbData.definition.primary;
+      if ($stbData?.definition?.primary?.length > 0) return $stbData.definition.primary[0];
       const schema = $stbData?.definition?.schema || {};
-      if ("id" in schema) return ["id"];
-      if ("_id" in schema) return ["_id"];
-      return [];
+      if ("id" in schema) return "id";
+      if ("_id" in schema) return "_id";
+      return "_id";
     },
   };
 
@@ -1349,8 +1349,8 @@
     stbSelected.set((preselectedIds ?? []).map((id) => id.toString()));
   else stbSelected.set([]);
 
-  $: primaryKeys = tableAPI.detectPK();
-  $: idColumn = primaryKeys.length > 0 ? primaryKeys[0] : "_id";
+  $: idColumn = tableAPI.detectPK();
+  $: primaryKeys = idColumn !== "_id" ? [idColumn] : [];
 
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
