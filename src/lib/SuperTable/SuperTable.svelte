@@ -140,8 +140,6 @@
   $: dataSourceStore.set(dataSource);
   $: fetchOnScroll = pagination == "cursor";
 
-  $: console.log(fetchOnScroll);
-
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
 
@@ -471,7 +469,9 @@
         defaultFilteringOperator: defaultOperatorMap[type],
         headerAlign: bbcolumn.align ? bbcolumn.align : "flex-start",
         type,
-        displayName: tableAPI.beautifyLabel(bbcolumn.displayName ?? bbcolumn.name),
+        displayName: tableAPI.beautifyLabel(
+          bbcolumn.displayName ?? bbcolumn.name
+        ),
         schema: columnSchema,
       };
     },
@@ -814,12 +814,8 @@
           .map((key) => row[key])
           .filter((v) => v != null)
           .join("-");
-        console.log(
-          `Using primary keys: ${primaryKeys.join(", ")} -> ID: ${id}`
-        );
         return id;
       } else {
-        console.log(`No primary keys, using row index: ${index}`);
         return index.toString();
       }
     },
