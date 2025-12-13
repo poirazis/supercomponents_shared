@@ -875,6 +875,13 @@
       });
       return fields.join(" - ");
     },
+    detectPK: () => {
+      if ($stbData?.definition?.primary) return $stbData.definition.primary;
+      const schema = $stbData?.definition?.schema || {};
+      if ("id" in schema) return ["id"];
+      if ("_id" in schema) return ["_id"];
+      return [];
+    },
   };
 
   // Super Table State Machine
@@ -1342,11 +1349,7 @@
     stbSelected.set((preselectedIds ?? []).map((id) => id.toString()));
   else stbSelected.set([]);
 
-  $: primaryKeys = $stbData?.definition?.primary || (() => {
-    const schema = $stbData?.definition?.schema || [];
-    const idCol = schema.find(col => col.name === 'id' || col.name === '_id');
-    return idCol ? [idCol.name] : [];
-  })();
+  $: primaryKeys = tableAPI.detectPK();
   $: idColumn = primaryKeys.length > 0 ? primaryKeys[0] : "_id";
 
   // Data Related
