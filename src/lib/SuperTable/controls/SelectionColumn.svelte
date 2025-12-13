@@ -28,8 +28,6 @@
   $: visible = numbering || checkBoxes || canDelete;
   $: zebra = $stbSettings.appearance.zebraColors;
   $: quiet = $stbSettings.appearance.quiet;
-
-  $: console.log("stbRowMetadata", $stbRowMetadata);
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->

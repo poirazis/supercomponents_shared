@@ -137,7 +137,6 @@
 
   $: dataSourceStore.set(dataSource);
   $: tableAPI.decidePagination($dataSourceStore);
-  $: console.log("Pagination mode:", pagination);
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
 
