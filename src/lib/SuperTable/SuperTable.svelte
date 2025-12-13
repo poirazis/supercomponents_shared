@@ -1342,7 +1342,11 @@
     stbSelected.set((preselectedIds ?? []).map((id) => id.toString()));
   else stbSelected.set([]);
 
-  $: primaryKeys = $stbData?.definition?.primary || [];
+  $: primaryKeys = $stbData?.definition?.primary || (() => {
+    const schema = $stbData?.definition?.schema || [];
+    const idCol = schema.find(col => col.name === 'id' || col.name === '_id');
+    return idCol ? [idCol.name] : [];
+  })();
   $: idColumn = primaryKeys.length > 0 ? primaryKeys[0] : "_id";
 
   // Data Related
