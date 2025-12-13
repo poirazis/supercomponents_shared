@@ -76,7 +76,9 @@
     >
       {#each $stbVisibleRows as visibleRow}
         {@const row = $stbData?.rows?.[visibleRow]}
-        {@const selected = $stbSelected?.includes(stbAPI.getRowId(row, visibleRow))}
+        {@const selected = $stbSelected?.includes(
+          stbAPI.getRowId(row, visibleRow)
+        )}
         {#if row}
           <div
             class="super-row selection"

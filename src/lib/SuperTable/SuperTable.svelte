@@ -471,7 +471,7 @@
         defaultFilteringOperator: defaultOperatorMap[type],
         headerAlign: bbcolumn.align ? bbcolumn.align : "flex-start",
         type,
-        displayName: beautifyLabel(bbcolumn.displayName ?? bbcolumn.name),
+        displayName: tableAPI.beautifyLabel(bbcolumn.displayName ?? bbcolumn.name),
         schema: columnSchema,
       };
     },
@@ -743,7 +743,10 @@
 
       // Remove row from the selected list if selected
       if ($stbSelected.includes(tableAPI.getRowId(row, index))) {
-        $stbSelected.splice($stbSelected.indexOf(tableAPI.getRowId(row, index)), 1);
+        $stbSelected.splice(
+          $stbSelected.indexOf(tableAPI.getRowId(row, index)),
+          1
+        );
         $stbSelected = $stbSelected;
       }
 
@@ -807,8 +810,13 @@
     },
     getRowId: (row, index) => {
       if (primaryKeys.length > 0) {
-        const id = primaryKeys.map(key => row[key]).filter(v => v != null).join('-');
-        console.log(`Using primary keys: ${primaryKeys.join(', ')} -> ID: ${id}`);
+        const id = primaryKeys
+          .map((key) => row[key])
+          .filter((v) => v != null)
+          .join("-");
+        console.log(
+          `Using primary keys: ${primaryKeys.join(", ")} -> ID: ${id}`
+        );
         return id;
       } else {
         console.log(`No primary keys, using row index: ${index}`);
@@ -821,6 +829,55 @@
       } else {
         return $stbData.rows[id];
       }
+    },
+    extendQuery: (
+      defaultQuery: SearchFilters,
+      extensions: Record<string, any>
+    ): SearchFilters => {
+      if (!Object.keys(extensions).length) {
+        return defaultQuery;
+      }
+      const extended: SearchFilters = {
+        [LogicalOperator.AND]: {
+          conditions: [
+            ...(defaultQuery ? [defaultQuery] : []),
+            ...Object.values(extensions || {}),
+          ],
+        },
+        onEmptyFilter: EmptyFilterOption.RETURN_NONE,
+      };
+
+      // If there are no conditions applied at all, clear the request.
+      return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
+        ? extended
+        : {};
+    },
+    addQueryExtension: (key, extension) => {
+      if (!key || !extension) {
+        return;
+      }
+      queryExtensions = { ...queryExtensions, [key]: extension };
+    },
+    removeQueryExtension: (key) => {
+      if (!key) {
+        return;
+      }
+      const newQueryExtensions = { ...queryExtensions };
+      delete newQueryExtensions[key];
+      queryExtensions = newQueryExtensions;
+    },
+    beautifyLabel: (label) => {
+      if (!beautifyLabels || !label) return label;
+
+      let fields = label.split(".");
+      fields.forEach((field, index) => {
+        let words = field.split("_");
+        words.forEach((word, index) => {
+          if (word) words[index] = word[0]?.toUpperCase() + word?.slice(1);
+        });
+        fields[index] = words.join(" ");
+      });
+      return fields.join(" - ");
     },
   };
 
@@ -1161,7 +1218,7 @@
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
         stbColumnFilters.add(filterObj.id);
-        addQueryExtension(filterObj.id, extention);
+        tableAPI.addQueryExtension(filterObj.id, extention);
         return "Filtered";
       },
       fetchMoreRows(size) {
@@ -1176,20 +1233,20 @@
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
         removeQueryExtension(filterObj.id);
         stbColumnFilters.add(filterObj.id);
-        addQueryExtension(filterObj.id, extention);
+        tableAPI.addQueryExtension(filterObj.id, extention);
       },
       removeFilter(id) {
         stbColumnFilters.delete(id);
-        removeQueryExtension(id);
+        tableAPI.removeQueryExtension(id);
       },
       clearFilter(id) {
         stbColumnFilters.delete(id);
-        removeQueryExtension(id);
+        tableAPI.removeQueryExtension(id);
         return "Idle";
       },
       clear() {
         stbColumnFilters.forEach((id) => {
-          removeQueryExtension(id);
+          tableAPI.removeQueryExtension(id);
         });
         stbColumnFilters.clear();
         columnStates.forEach(({ state }) => state.reset());
@@ -1294,7 +1351,7 @@
 
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: query = extendQuery(defaultQuery, queryExtensions);
+  $: query = tableAPI.extendQuery(defaultQuery, queryExtensions);
   $: stbData?.update({
     query,
     sortColumn,
@@ -1384,11 +1441,11 @@
     },
     {
       type: ActionTypes.AddDataProviderQueryExtension,
-      callback: addQueryExtension,
+      callback: tableAPI.addQueryExtension,
     },
     {
       type: ActionTypes.RemoveDataProviderQueryExtension,
-      callback: removeQueryExtension,
+      callback: tableAPI.removeQueryExtension,
     },
   ];
 
@@ -1418,59 +1475,6 @@
   // Show Action Buttons Column
   $: showButtonColumnRight = rowMenu == "columnRight" && rowMenuItems?.length;
   $: showButtonColumnLeft = rowMenu == "columnLeft" && rowMenuItems?.length;
-
-  const extendQuery = (
-    defaultQuery: SearchFilters,
-    extensions: Record<string, any>
-  ): SearchFilters => {
-    if (!Object.keys(extensions).length) {
-      return defaultQuery;
-    }
-    const extended: SearchFilters = {
-      [LogicalOperator.AND]: {
-        conditions: [
-          ...(defaultQuery ? [defaultQuery] : []),
-          ...Object.values(extensions || {}),
-        ],
-      },
-      onEmptyFilter: EmptyFilterOption.RETURN_NONE,
-    };
-
-    // If there are no conditions applied at all, clear the request.
-    return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
-      ? extended
-      : {};
-  };
-
-  const addQueryExtension = (key, extension) => {
-    if (!key || !extension) {
-      return;
-    }
-    queryExtensions = { ...queryExtensions, [key]: extension };
-  };
-
-  const removeQueryExtension = (key) => {
-    if (!key) {
-      return;
-    }
-    const newQueryExtensions = { ...queryExtensions };
-    delete newQueryExtensions[key];
-    queryExtensions = newQueryExtensions;
-  };
-
-  const beautifyLabel = (label) => {
-    if (!beautifyLabels || !label) return label;
-
-    let fields = label.split(".");
-    fields.forEach((field, index) => {
-      let words = field.split("_");
-      words.forEach((word, index) => {
-        if (word) words[index] = word[0]?.toUpperCase() + word?.slice(1);
-      });
-      fields[index] = words.join(" ");
-    });
-    return fields.join(" - ");
-  };
 
   // Expose Context
   setContext("stbScrollPos", stbScrollPos);
