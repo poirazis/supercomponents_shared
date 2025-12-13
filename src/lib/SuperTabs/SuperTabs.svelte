@@ -9,7 +9,9 @@
   export let hAlign;
   export let vAlign;
   export let theme = "buttons";
+  export let tabsPosition = "top";
   export let tabsAlignment;
+  export let buttonsAlignment = "flex-start";
   export let tabsIconsOnly;
   export let list_icon;
   export let list_title;
@@ -18,7 +20,7 @@
   export let quietTabs;
 
   // Computed for repeated logic
-  $: isVertical = direction === "column" || theme === "list";
+  $: isVertical = tabsPosition == "left" || theme === "list";
   $: justify = direction === "row" ? hAlign : vAlign;
   $: button = theme === "buttons" || theme === "wideButtons";
 </script>
@@ -40,7 +42,7 @@
       class:buttons={button}
       class:list={theme === "list"}
       class:wide={theme === "wideButtons" && wide}
-      style:justify-content={justify}
+      style:justify-content={buttonsAlignment}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
     >
@@ -59,6 +61,7 @@
           class="tab"
           class:vertical={isVertical}
           class:button
+          style:flex={buttonsAlignment == "stretch" ? "1" : null}
           class:list={theme === "list"}
           class:selected={container.id === selectedTab}
           class:disabled={container.disabled}

@@ -70,7 +70,7 @@
         class="super-row"
         on:mouseenter={() => ($stbHovered = visibleRow)}
         on:mouseleave={() => ($stbHovered = null)}
-        class:is-selected={$stbSelected?.includes(row[idColumn] ?? visibleRow)}
+        class:is-selected={$stbSelected?.includes(stbAPI.getRowId(row, visibleRow))}
         class:is-hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
         class:is-editing={$stbEditing == visibleRow}
         class:is-disabled={$rowMetadata[visibleRow].disabled}

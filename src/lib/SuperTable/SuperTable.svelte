@@ -8,7 +8,6 @@
     SearchFilters,
   } from "@budibase/types";
 
-  import "./SuperTable.css";
   import {
     sizingMap,
     defaultOperatorMap,
@@ -33,6 +32,7 @@
   // Sections
   import ControlSection from "./controls/ControlSection.svelte";
   import ColumnsSection from "./controls/ColumnsSection.svelte";
+  import PaginationLimitOffset from "./controls/PaginationLimitOffset.svelte";
 
   const {
     API,
@@ -63,7 +63,9 @@
   export let sortColumn;
   export let sortOrder;
   export let limit = 50;
-  export let fetchOnScroll = true;
+  export let pagination;
+  export let fetchOnScroll = pagination == "cursor";
+
   export let autoRefreshRate;
   export let paginate;
   export let filter;
@@ -136,6 +138,9 @@
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(dataSource);
+  $: fetchOnScroll = pagination == "cursor";
+
+  $: console.log(fetchOnScroll);
 
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
@@ -168,10 +173,10 @@
   let overflow;
   let isEmpty;
   let _limit = limit;
-  let start = 0;
-  let end = 0;
   let initializing = true;
   let initTimer;
+  let start,
+    end = 0;
 
   let stbData = writable({ rows: [], count: 0, definition: {} });
 
@@ -335,6 +340,28 @@
       }, {});
     },
     populateColumns: (schema, list, auto, special) => {
+      if (!obj) return {};
+
+      return Object.keys(obj).reduce((res, k) => {
+        const keys = k.split(delimiter);
+        keys.reduce((acc, e, i) => {
+          // Check if this is the last key in the path
+          if (i === keys.length - 1) {
+            acc[e] = obj[k]; // Assign the original value (including booleans)
+            return acc;
+          }
+
+          // Determine the type for the next level
+          const nextKey = keys[i + 1];
+          if (!acc[e]) {
+            acc[e] = isNaN(Number(nextKey)) ? {} : [];
+          }
+          return acc[e];
+        }, res);
+        return res;
+      }, {});
+    },
+    populateColumns: (schema, list, auto, special) => {
       let jsoncolumnslist = [];
       let autocolumnsList = [];
       let specialColumnsList = [];
@@ -372,7 +399,7 @@
                 !specialColumns.includes(v) &&
                 !schema[v].nestedJSON &&
                 schema[v]?.visible != false &&
-                v != idColumn
+                !primaryKeys.includes(v)
             )
             .map((v) => {
               return tableAPI.enrichColumn(schema, schema[v]);
@@ -585,7 +612,7 @@
       tableAPI.executeRowButtonAction(null, action);
     },
     selectRow: (index) => {
-      let id = $stbData?.rows[index][idColumn] ?? index;
+      let id = tableAPI.getRowId($stbData?.rows[index], index);
       let disabled = $stbRowMetadata[index]["disabled"];
 
       if (maxSelected != 1) {
@@ -616,10 +643,8 @@
     },
     selectAllRows: () => {
       if ($stbSelected.length != $stbData?.rows.length)
-        $stbSelected = $stbData?.rows.map((x) => x[idColumn]);
+        $stbSelected = $stbData?.rows.map((x, i) => tableAPI.getRowId(x, i));
       else $stbSelected = [];
-
-      tableAPI.executeRowOnSelectAction();
     },
     clearSelection: () => {
       $stbSelected = [];
@@ -678,8 +703,8 @@
       }
     },
     deleteRow: async (index) => {
-      let id = $stbData?.rows[index][idColumn];
       let row = $stbData?.rows[index];
+      let id = row._id;
 
       let autoDelete = [
         {
@@ -717,8 +742,8 @@
       await cmd_after?.({ row });
 
       // Remove row from the selected list if selected
-      if ($stbSelected.includes(id)) {
-        $stbSelected.splice($stbSelected.indexOf(id), 1);
+      if ($stbSelected.includes(tableAPI.getRowId(row, index))) {
+        $stbSelected.splice($stbSelected.indexOf(tableAPI.getRowId(row, index)), 1);
         $stbSelected = $stbSelected;
       }
 
@@ -726,6 +751,10 @@
       stbData.refresh();
     },
     deleteSelectedRows: async () => {
+      let rowsToDelete = $stbSelected
+        .map((id) => tableAPI.getRowById(id))
+        .filter((row) => row);
+      let idsToDelete = rowsToDelete.map((row) => row._id);
       let autoDelete = [
         {
           parameters: {
@@ -742,7 +771,7 @@
               (entityPlural || "Rows") +
               " ?",
             tableId: tableId,
-            rowId: $stbSelected.map((x) => ({ _id: x.toString() })),
+            rowId: idsToDelete.map((x) => ({ _id: x.toString() })),
           },
           "##eventHandlerType": "Delete Row",
         },
@@ -750,6 +779,7 @@
       let cmd = enrichButtonActions(autoDelete, {});
       let cmd_after = enrichButtonActions(afterDelete, $context);
       $stbSelected = [];
+      console.log("Selected IDs after delete selected:", $stbSelected);
       await cmd?.();
       await cmd_after?.();
       stbData.refresh();
@@ -773,6 +803,23 @@
         let cmd_after = enrichButtonActions(afterEdit, richContext);
         await cmd_after?.({ row });
         return row;
+      }
+    },
+    getRowId: (row, index) => {
+      if (primaryKeys.length > 0) {
+        const id = primaryKeys.map(key => row[key]).filter(v => v != null).join('-');
+        console.log(`Using primary keys: ${primaryKeys.join(', ')} -> ID: ${id}`);
+        return id;
+      } else {
+        console.log(`No primary keys, using row index: ${index}`);
+        return index.toString();
+      }
+    },
+    getRowById: (id) => {
+      if (primaryKeys.length > 0) {
+        return $stbData.rows.find((row, i) => tableAPI.getRowId(row, i) === id);
+      } else {
+        return $stbData.rows[id];
       }
     },
   };
@@ -1218,15 +1265,15 @@
 
   $: if ($stbData?.rows) {
     $stbSelected = $stbSelected.filter((id) =>
-      $stbData.rows.some((row) => row[idColumn] === id)
+      $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id)
     );
   }
 
   $: stbSelectedRows = derivedMemo(
     [stbData, stbSelected, maxSelectedStore],
     ([$stbData, $stbSelected, $maxSelectedStore]) => {
-      const selectedRows = $stbData?.rows?.filter((row) =>
-        $stbSelected?.includes(row[idColumn])
+      const selectedRows = $stbData?.rows?.filter((row, i) =>
+        $stbSelected?.includes(tableAPI.getRowId(row, i))
       );
       if ($maxSelectedStore === 1) {
         return selectedRows.length > 0 ? selectedRows[0] : [];
@@ -1238,14 +1285,12 @@
   // Scroll to Top when filter changes
   $: stbState.scrollToTop(query);
 
-  $: if (canSelect) stbSelected.set(preselectedIds ?? []);
+  $: if (canSelect)
+    stbSelected.set((preselectedIds ?? []).map((id) => id.toString()));
   else stbSelected.set([]);
 
-  $: idColumn = $stbData?.definition?.primary?.[0]
-    ? $stbData?.definition?.primary?.[0]
-    : $stbSchema?.id
-      ? "id"
-      : "_id";
+  $: primaryKeys = $stbData?.definition?.primary || [];
+  $: idColumn = primaryKeys.length > 0 ? primaryKeys[0] : "_id";
 
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
@@ -1350,6 +1395,7 @@
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
+    newRow: $new_row,
     rows: $stbData?.rows,
     selectedRows: $stbSelectedRows,
     selectedIds: $stbSelected,
@@ -1474,131 +1520,156 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-  class="super-table"
-  class:quiet
-  class:initializing
-  bind:this={viewport}
-  bind:clientWidth={tableWidth}
-  bind:clientHeight
-  style:font-size={sizingMap[size].rowFontSize}
-  style:--super-table-devider-color={dividersStyles.color}
-  style:--super-table-body-height={maxBodyHeight}
-  style:--super-table-header-height={$stbSettings.appearance.headerHeight}
-  style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
-  style:--super-table-horizontal-dividers={dividersStyles.horizontal}
-  style:--super-table-vertical-dividers={dividersStyles.vertical}
-  style:--super-table-cell-padding={sizingMap[size].cellPadding}
-  style:--super-column-top-offset={$stbScrollOffset * -1}
-  on:mouseenter={() => (highlighted = true)}
-  on:mouseleave={() => {
-    highlighted = false;
-    $stbHovered = null;
-  }}
-  on:keydown={stbState.handleKeyboard}
-  on:wheel={stbState.handleWheel}
-  on:touchstart={(e) => stbState.handleTouch(e, "start")}
-  on:touchmove={(e) => stbState.handleTouch(e, "move")}
-  on:touchend={(e) => stbState.handleTouch(e, "end")}
->
-  {#key stbData}
-    <Provider {actions} data={dataContext} />
+<div class="wrapper">
+  <div
+    class="super-table"
+    class:quiet
+    class:initializing
+    bind:this={viewport}
+    bind:clientWidth={tableWidth}
+    bind:clientHeight
+    style:font-size={sizingMap[size].rowFontSize}
+    style:--super-table-devider-color={dividersStyles.color}
+    style:--super-table-body-height={maxBodyHeight}
+    style:--super-table-header-height={$stbSettings.appearance.headerHeight}
+    style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
+    style:--super-table-horizontal-dividers={dividersStyles.horizontal}
+    style:--super-table-vertical-dividers={dividersStyles.vertical}
+    style:--super-table-cell-padding={sizingMap[size].cellPadding}
+    style:--super-column-top-offset={$stbScrollOffset * -1}
+    on:mouseenter={() => (highlighted = true)}
+    on:mouseleave={() => {
+      highlighted = false;
+      $stbHovered = null;
+    }}
+    on:keydown={stbState.handleKeyboard}
+    on:wheel={stbState.handleWheel}
+    on:touchstart={(e) => stbState.handleTouch(e, "start")}
+    on:touchmove={(e) => stbState.handleTouch(e, "move")}
+    on:touchend={(e) => stbState.handleTouch(e, "end")}
+  >
+    {#key stbData}
+      <Provider {actions} data={dataContext} />
 
-    <ControlSection>
-      <SelectionColumn {stbData} {hideSelectionColumn} />
-
-      {#if showButtonColumnLeft}
-        <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-      {/if}
-
-      {#if stickFirstColumn && $superColumns.length > 1}
-        <SuperTableColumn
-          {stbData}
-          sticky={true}
-          scrollPos={$stbHorizontalScrollPos}
-          columnOptions={{
-            ...$superColumns[0],
-            ...$commonColumnOptions,
-            overflow,
-            isFirst: true,
-            isLast:
-              $superColumns?.length == 1 && !showButtonColumnRight && canScroll,
-          }}
-        />
-      {/if}
-    </ControlSection>
-
-    <ColumnsSection
-      {stbData}
-      {stbSettings}
-      {superColumns}
-      {commonColumnOptions}
-      {canScroll}
-      bind:columnsViewport
-    >
-      {#key columnSizing}
-        <slot />
-      {/key}
-    </ColumnsSection>
-
-    {#if showButtonColumnRight && !isEmpty}
       <ControlSection>
-        <RowButtonsColumn
-          {rowMenuItems}
-          {menuItemsVisible}
-          {rowMenu}
-          {canScroll}
-          right={true}
-        />
+        <SelectionColumn {stbData} {hideSelectionColumn} />
+
+        {#if showButtonColumnLeft}
+          <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+        {/if}
+
+        {#if stickFirstColumn && $superColumns.length > 1}
+          <SuperTableColumn
+            {stbData}
+            sticky={true}
+            scrollPos={$stbHorizontalScrollPos}
+            columnOptions={{
+              ...$superColumns[0],
+              ...$commonColumnOptions,
+              overflow,
+              isFirst: true,
+              isLast:
+                $superColumns?.length == 1 &&
+                !showButtonColumnRight &&
+                canScroll,
+            }}
+          />
+        {/if}
       </ControlSection>
-    {/if}
 
-    <ScrollbarsOverlay
-      anchor={columnsViewport}
-      clientHeight={maxBodyHeight}
-      {scrollHeight}
-      {highlighted}
-      {isEmpty}
-      bind:horizontalVisible
-      on:positionChange={stbState.calculateRowBoundaries}
-    />
-
-    <EmptyResultSetOverlay
-      {isEmpty}
-      message={$stbSettings.data.emptyMessage}
-      top={$superColumns?.length
-        ? $stbSettings.appearance.headerHeight + 16
-        : 16}
-      bottom={horizontalVisible ? 24 : 16}
-    />
-
-    <RowContextMenu {rowContextMenuItems} row={$stbData?.rows?.[$stbMenuID]} />
-
-    {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
-      <AddNewRowOverlay
-        {stbState}
-        {tableAPI}
-        {highlighted}
-        {tableActions}
-        footer={$stbSettings.showFooter}
-      />
-    {/if}
-
-    {#if $stbSettings.features.canSelect && selectedActions?.length}
-      <SelectedActionsOverlay
+      <ColumnsSection
+        {stbData}
         {stbSettings}
-        {selectedActions}
-        {stbSelected}
-        {tableAPI}
-        {stbState}
-        {highlighted}
-        {entitySingular}
-        {entityPlural}
-      />
-    {/if}
+        {superColumns}
+        {commonColumnOptions}
+        {canScroll}
+        bind:columnsViewport
+      >
+        {#key columnSizing}
+          <slot />
+        {/key}
+      </ColumnsSection>
 
-    {#if $stbData.loading && $stbData.loaded}
-      <LoadingOverlay />
-    {/if}
-  {/key}
+      {#if showButtonColumnRight && !isEmpty}
+        <ControlSection>
+          <RowButtonsColumn
+            {rowMenuItems}
+            {menuItemsVisible}
+            {rowMenu}
+            {canScroll}
+            right={true}
+          />
+        </ControlSection>
+      {/if}
+
+      <ScrollbarsOverlay
+        anchor={columnsViewport}
+        clientHeight={maxBodyHeight}
+        {scrollHeight}
+        {highlighted}
+        {isEmpty}
+        bind:horizontalVisible
+        on:positionChange={stbState.calculateRowBoundaries}
+      />
+
+      <EmptyResultSetOverlay
+        {isEmpty}
+        message={$stbSettings.data.emptyMessage}
+        top={$superColumns?.length
+          ? $stbSettings.appearance.headerHeight + 16
+          : 16}
+        bottom={horizontalVisible ? 24 : 16}
+      />
+
+      <RowContextMenu
+        {rowContextMenuItems}
+        row={$stbData?.rows?.[$stbMenuID]}
+      />
+
+      {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
+        <AddNewRowOverlay
+          {stbState}
+          {tableAPI}
+          {highlighted}
+          {tableActions}
+          footer={$stbSettings.showFooter}
+        />
+      {/if}
+
+      {#if $stbSettings.features.canSelect && selectedActions?.length}
+        <SelectedActionsOverlay
+          {stbSettings}
+          {selectedActions}
+          {stbSelected}
+          {tableAPI}
+          {stbState}
+          {highlighted}
+          {entitySingular}
+          {entityPlural}
+        />
+      {/if}
+
+      {#if $stbData.loading && $stbData.loaded}
+        <LoadingOverlay />
+      {/if}
+    {/key}
+  </div>
+
+  <PaginationLimitOffset
+    {pagination}
+    {limit}
+    dataSource={dataSourceStore}
+    fetch={stbData}
+  />
 </div>
+
+<style>
+  .wrapper {
+    flex: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+    gap: 0.25rem;
+  }
+</style>

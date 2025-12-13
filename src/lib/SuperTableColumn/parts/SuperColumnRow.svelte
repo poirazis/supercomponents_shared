@@ -38,7 +38,7 @@
   $: id = row?.[idField] ?? index;
   $: value = deepGet(row, field);
   $: isHovered = $stbHovered == index || $stbMenuID == index;
-  $: isSelected = $stbSelected.includes(id);
+  $: isSelected = $stbSelected.includes(stbAPI.getRowId(row, index));
   $: hasChildren = $columnSettings.hasChildren > 0;
 
   const patchRow = async (change) => {

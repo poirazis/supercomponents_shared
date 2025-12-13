@@ -163,6 +163,8 @@
     role: "inlineInput",
     debounce: 50,
   };
+
+  export const api = {};
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -212,6 +214,7 @@
     align-items: stretch;
     justify-content: stretch;
     overflow-x: hidden;
+    overflow-y: auto;
     gap: 0.25rem;
     min-height: 260px;
     max-height: 260px;

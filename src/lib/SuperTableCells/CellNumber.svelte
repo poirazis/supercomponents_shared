@@ -288,7 +288,7 @@
     <div
       class="value"
       style:padding-right={"12px"}
-      class:placeholder={!(typeof value === "number" && !isNaN(value))}
+      class:placeholder={!value && value !== 0}
       style:justify-content={cellOptions.align ?? "flex-end"}
     >
       {value != null ? formattedValue : cellOptions?.placeholder || ""}

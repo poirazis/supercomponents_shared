@@ -7,6 +7,7 @@ export { default as CellDateRange } from "./CellDateRange.svelte";
 export { default as CellIcon } from "./CellIcon.svelte";
 export { default as CellJSON } from "./CellJSON.svelte";
 export { default as CellLink } from "./CellLink.svelte";
+export { default as CellSQLLink } from "./CellSQLLink.svelte";
 export { default as CellLinkAdvanced } from "./CellLinkAdvanced.svelte";
 export { default as CellLinkPickerSelect } from "./CellLinkPickerSelect.svelte";
 export { default as CellLinkPickerTree } from "./CellLinkPickerTree.svelte";
