@@ -183,8 +183,6 @@
   let isScrolling = false;
   let tableWidth = 0;
 
-  let loadedId = null;
-
   // Keep track of the applied query extentions when filtering
   let stbColumnFilters = new Set();
   let queryExtensions = {};
@@ -704,7 +702,7 @@
     },
     deleteRow: async (index) => {
       let row = $stbData?.rows[index];
-      let id = row._id;
+      let id = row[idColumn];
 
       let autoDelete = [
         {
@@ -1362,7 +1360,10 @@
     sortOrder,
   });
 
-  $: tableId = $stbData?.definition?.tableId || $stbData?.definition?._id;
+  $: tableId = $stbData?.definition?.tableId;
+  $: console.log(idColumn);
+  $: console.log("Primary Keys:", primaryKeys);
+  $: console.log($stbSchema);
 
   // Derived Store with the columns to be rendered
   $: superColumns = derivedMemo(
