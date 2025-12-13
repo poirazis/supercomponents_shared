@@ -14,7 +14,6 @@
   const rowCellOptions = getContext("stRowCellOptions");
   const rowMetadata = getContext("stbRowMetadata");
   const stbHovered = getContext("stbHovered");
-  const stbSelected = getContext("stbSelected");
   const stbEditing = getContext("stbEditing");
   const stbAPI = getContext("stbAPI");
   const stbState = getContext("stbState");
@@ -30,7 +29,6 @@
 
   // the default height
   export let rowHeight;
-  let mounted;
   let viewport;
   let info;
 
@@ -38,7 +36,7 @@
   $: id = row?.[idField] ?? index;
   $: value = deepGet(row, field);
   $: isHovered = $stbHovered == index || $stbMenuID == index;
-  $: isSelected = $stbSelected.includes(stbAPI.getRowId(row, index));
+  $: isSelected = $rowMetadata?.[index]?.selected ?? false;
   $: hasChildren = $columnSettings.hasChildren > 0;
 
   const patchRow = async (change) => {
@@ -80,7 +78,6 @@
       return obj;
     } else return obj[path] ?? undefined;
   };
-  onMount(() => (mounted = $columnSettings.superColumn));
 
   onDestroy(() => {
     if ($stbEditing == index) {

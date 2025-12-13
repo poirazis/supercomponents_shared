@@ -15,7 +15,6 @@
   export let hideSelectionColumn;
   export let stbData;
 
-  $: idColumn = $stbSettings.data.idColumn;
   $: partialSelection =
     $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
 
@@ -25,12 +24,12 @@
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
   $: canDelete = $stbSettings.features.canDelete;
-
   $: sticky = $stbHorizontalScrollPos > 0;
-
   $: visible = numbering || checkBoxes || canDelete;
   $: zebra = $stbSettings.appearance.zebraColors;
   $: quiet = $stbSettings.appearance.quiet;
+
+  $: console.log("stbRowMetadata", $stbRowMetadata);
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -74,47 +73,42 @@
       class:sticky
       style:margin-top={"var(--super-column-top-offset)"}
     >
-      {#each $stbVisibleRows as visibleRow}
-        {@const row = $stbData?.rows?.[visibleRow]}
-        {@const selected = $stbSelected?.includes(
-          stbAPI.getRowId(row, visibleRow)
-        )}
-        {#if row}
-          <div
-            class="super-row selection"
-            class:is-selected={selected}
-            class:is-hovered={$stbHovered == visibleRow ||
-              $stbMenuID == visibleRow}
-            class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
-            style:min-height={$stbRowMetadata[visibleRow]?.height}
-            on:mouseenter={() => ($stbHovered = visibleRow)}
-            on:mouseleave={() => ($stbHovered = null)}
-          >
-            {#if numbering}
-              <div class="row-number">
-                {visibleRow + 1}
-              </div>
-            {/if}
+      {#each $stbVisibleRows as visibleRow (visibleRow)}
+        {@const selected = $stbRowMetadata[visibleRow]?.selected}
+        <div
+          class="super-row selection"
+          class:is-selected={selected}
+          class:is-hovered={$stbHovered == visibleRow ||
+            $stbMenuID == visibleRow}
+          class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
+          style:min-height={$stbRowMetadata[visibleRow]?.height}
+          on:mouseenter={() => ($stbHovered = visibleRow)}
+          on:mouseleave={() => ($stbHovered = null)}
+        >
+          {#if numbering}
+            <div class="row-number">
+              {visibleRow + 1}
+            </div>
+          {/if}
 
-            {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-              <div
-                class="checkbox"
-                class:selected
-                on:click={() => stbAPI.selectRow(visibleRow)}
-              >
-                <i class="ri-check-line" style:visibility={"hidden"} />
-              </div>
-            {/if}
+          {#if $stbSettings.features.canSelect && !hideSelectionColumn}
+            <div
+              class="checkbox"
+              class:selected
+              on:click={() => stbAPI.selectRow(visibleRow)}
+            >
+              <i class="ri-check-line" style:visibility={"hidden"} />
+            </div>
+          {/if}
 
-            {#if canDelete}
-              <i
-                class="ri-delete-bin-line delete"
-                class:selected
-                on:click={(e) => stbAPI.deleteRow(visibleRow)}
-              />
-            {/if}
-          </div>
-        {/if}
+          {#if canDelete}
+            <i
+              class="ri-delete-bin-line delete"
+              class:selected
+              on:click={(e) => stbAPI.deleteRow(visibleRow)}
+            />
+          {/if}
+        </div>
       {/each}
 
       {#if $stbState == "Inserting"}

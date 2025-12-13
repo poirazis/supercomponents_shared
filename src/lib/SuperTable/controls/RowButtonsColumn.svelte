@@ -8,15 +8,12 @@
   const stbData = getContext("stbData");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
   const stbHovered = getContext("stbHovered");
-  const stbSelected = getContext("stbSelected");
   const stbEditing = getContext("stbEditing");
   const stbMenuID = getContext("stbMenuID");
   const rowMetadata = getContext("stbRowMetadata");
   const stbVisibleRows = getContext("stbVisibleRows");
 
   const stbAPI = getContext("stbAPI");
-
-  const { processStringSync } = getContext("sdk");
 
   export let right;
   export let rowMenu;
@@ -29,7 +26,6 @@
 
   $: quiet = $stbSettings.appearance.quiet;
   $: menuIcon = $stbSettings.rowMenuIcon;
-  $: idColumn = $stbSettings.data.idColumn;
   $: sticky = $stbHorizontalScrollPos > 0 && !right;
   $: inInsert = $stbState == "Inserting";
 
@@ -65,14 +61,11 @@
     class:zebra={$stbSettings.appearance.zebraColors}
   >
     {#each $stbVisibleRows as visibleRow}
-      {@const row = $stbData?.rows?.[visibleRow]}
       <div
         class="super-row"
         on:mouseenter={() => ($stbHovered = visibleRow)}
         on:mouseleave={() => ($stbHovered = null)}
-        class:is-selected={$stbSelected?.includes(
-          stbAPI.getRowId(row, visibleRow)
-        )}
+        class:is-selected={$rowMetadata[visibleRow].selected}
         class:is-hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
         class:is-editing={$stbEditing == visibleRow}
         class:is-disabled={$rowMetadata[visibleRow].disabled}
@@ -86,7 +79,7 @@
         >
           {#if rowMenu && inlineButtons?.length}
             {#each inlineButtons as { text, icon, disabled, onClick, quiet, type, conditions }}
-              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext(row))}
+              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($stbData?.rows?.[visibleRow]))}
                 <SuperButton
                   size="S"
                   {icon}
@@ -107,7 +100,6 @@
             <SuperButton
               size="S"
               icon={menuIcon}
-              fillOnHover="true"
               text=""
               quiet="true"
               type="secondary"

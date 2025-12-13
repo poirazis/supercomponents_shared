@@ -59,12 +59,10 @@
 
   // Properties
   export let dataSource;
-  export let idColumn = "_id";
+
   export let sortColumn;
   export let sortOrder;
   export let limit = 50;
-  export let pagination;
-  export let fetchOnScroll = pagination == "cursor";
 
   export let autoRefreshRate;
   export let paginate;
@@ -138,8 +136,8 @@
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(dataSource);
-  $: fetchOnScroll = pagination == "cursor";
-
+  $: tableAPI.decidePagination($dataSourceStore);
+  $: console.log("Pagination mode:", pagination);
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
 
@@ -155,6 +153,10 @@
     : sizingMap[size].rowHeight;
 
   // Internal Variables
+  let tableId;
+  let idColumn;
+  let pagination;
+  let fetchOnScroll = false;
   let timer;
 
   let highlighted;
@@ -306,7 +308,7 @@
         sortColumn,
         sortOrder,
         limit,
-        paginate: false,
+        paginate: true,
       },
     });
   };
@@ -314,28 +316,6 @@
   // The Super Table API
   const tableAPI = {
     unflattenObject: (obj, delimiter = ".") => {
-      if (!obj) return {};
-
-      return Object.keys(obj).reduce((res, k) => {
-        const keys = k.split(delimiter);
-        keys.reduce((acc, e, i) => {
-          // Check if this is the last key in the path
-          if (i === keys.length - 1) {
-            acc[e] = obj[k]; // Assign the original value (including booleans)
-            return acc;
-          }
-
-          // Determine the type for the next level
-          const nextKey = keys[i + 1];
-          if (!acc[e]) {
-            acc[e] = isNaN(Number(nextKey)) ? {} : [];
-          }
-          return acc[e];
-        }, res);
-        return res;
-      }, {});
-    },
-    populateColumns: (schema, list, auto, special) => {
       if (!obj) return {};
 
       return Object.keys(obj).reduce((res, k) => {
@@ -395,7 +375,7 @@
                 !specialColumns.includes(v) &&
                 !schema[v].nestedJSON &&
                 schema[v]?.visible != false &&
-                !primaryKeys.includes(v)
+                v !== idColumn
             )
             .map((v) => {
               return tableAPI.enrichColumn(schema, schema[v]);
@@ -415,6 +395,7 @@
       let type;
       let columnSchema;
       let isSelf;
+      let tableId = dataSource?.tableId;
 
       if (bbcolumn.name.includes(".")) {
         let words = bbcolumn.name.split(".");
@@ -440,9 +421,17 @@
         if (bbcolumn.name.startsWith("fk_self_")) {
           isSelf = true;
           type = "link";
+
+          bbcolumn.displayName =
+            bbcolumn.displayName ||
+            bbcolumn.name
+              .replace("fk_self_", "")
+              .replace("_id", "")
+              .replace(/_/g, " ");
+
           columnSchema = {
             ...columnSchema,
-            tableId: $dataSourceStore.tableId,
+            tableId: tableId,
             relationshipType: "self",
             recursiveTable: true,
             primaryDisplay: $stbData?.definition?.primaryDisplay,
@@ -456,6 +445,8 @@
         widthOverride: bbcolumn.width,
         readonly: columnSchema?.readonly,
         canEdit:
+          !inBuilder &&
+          tableId &&
           supportEditingMap[type] &&
           canEdit &&
           !columnSchema?.readonly &&
@@ -704,15 +695,19 @@
       let row = $stbData?.rows[index];
       let id = row[idColumn];
 
+      if (!id || !tableId) return;
+
       let autoDelete = [
         {
           parameters: {
             confirm: true,
-            notificationOverride: true,
+            notificationOverride: false,
             customTitleText: "Delete " + (entitySingular || "Row") + " ?",
             confirmText:
               "Are you sure you want to delete this " +
               (entitySingular || "Row") +
+              "ID" +
+              id +
               " ?",
             tableId: tableId,
             rowId: id,
@@ -786,42 +781,39 @@
       stbData.refresh();
     },
     patchRow: async (patch) => {
+      // We can only patch tables
+      if (!tableId) return;
       patch = tableAPI.unflattenObject(patch);
-      if (tableId) {
-        let row = await API.patchRow(
-          {
-            tableId,
-            ...patch,
-          },
-          true
-        );
 
-        stbState.refresh();
-        let richContext = {
-          ...$context,
-          [comp_id]: { row },
-        };
-        let cmd_after = enrichButtonActions(afterEdit, richContext);
-        await cmd_after?.({ row });
-        return row;
-      }
+      let row = await API.patchRow(
+        {
+          tableId,
+          ...patch,
+        },
+        true
+      );
+
+      stbState.refresh();
+      let richContext = {
+        ...$context,
+        [comp_id]: { row },
+      };
+      let cmd_after = enrichButtonActions(afterEdit, richContext);
+      await cmd_after?.({ row });
+      return row;
     },
     getRowId: (row, index) => {
-      if (primaryKeys.length > 0) {
-        const id = primaryKeys
-          .map((key) => row[key])
-          .filter((v) => v != null)
-          .join("-");
-        return id;
+      if (idColumn) {
+        return row[idColumn]?.toString() ?? index.toString();
       } else {
         return index.toString();
       }
     },
     getRowById: (id) => {
-      if (primaryKeys.length > 0) {
-        return $stbData.rows.find((row, i) => tableAPI.getRowId(row, i) === id);
+      if (idColumn) {
+        return $stbData.rows.find((row) => row[idColumn]?.toString() === id);
       } else {
-        return $stbData.rows[id];
+        return $stbData.rows[parseInt(id)];
       }
     },
     extendQuery: (
@@ -873,13 +865,37 @@
       });
       return fields.join(" - ");
     },
-    detectPK: () => {
-      if ($stbData?.definition?.primary?.length > 0)
-        return $stbData.definition.primary[0];
-      const schema = $stbData?.definition?.schema || {};
+    detectPK: (fetchState) => {
+      if (fetchState?.definition?.primary?.length === 1)
+        return fetchState.definition.primary[0];
+      const schema = fetchState?.definition?.schema || fetchState?.schema || {};
       if ("id" in schema) return "id";
       if ("_id" in schema) return "_id";
-      return "_id";
+      return null;
+    },
+    loadPreSelections: (ids) => {
+      $stbSelected = Array.isArray(ids)
+        ? ids.map((s) => s.toString())
+        : typeof ids === "string"
+          ? ids.split(",").map((s) => s.trim())
+          : ids
+            ? [ids]
+            : [];
+    },
+    decidePagination: (ds) => {
+      if (!ds) {
+        pagination = "none";
+        return;
+      }
+
+      if (ds.parameters && ds.parameters.length) {
+        const paramNames = ds.parameters.map((p) => p.name.toLowerCase());
+        if (paramNames.includes("offset") && paramNames.includes("limit"))
+          pagination = "limitOffset";
+      } else if (dataSource.tableId) pagination = "cursor";
+      else pagination = "none";
+
+      fetchOnScroll = pagination == "cursor";
     },
   };
 
@@ -892,37 +908,47 @@
       refresh() {
         stbData?.refresh();
       },
-      enrichRows() {
-        if ($stbData?.loading) return;
+      enrichRows(
+        stbData,
+        rowBGColorTemplate,
+        rowColorTemplate,
+        rowHeight,
+        rowDisabledTemplate,
+        stbSelected
+      ) {
+        if (stbData?.loading) return;
 
-        $stbRowMetadata = $stbData?.rows?.map((row) => ({
-          height: rowHeight
-            ? toNumber(
-                processStringSync(rowHeight, {
+        $stbRowMetadata = stbData?.rows?.map((row, index) => {
+          return {
+            height: rowHeight
+              ? toNumber(
+                  processStringSync(rowHeight, {
+                    ...$context,
+                    [comp_id]: { row },
+                  })
+                ) || $stbSettings.appearance.rowHeight
+              : $stbSettings.appearance.rowHeight,
+            bgcolor: rowBGColorTemplate
+              ? processStringSync(rowBGColorTemplate, {
                   ...$context,
                   [comp_id]: { row },
                 })
-              ) || $stbSettings.appearance.rowHeight
-            : $stbSettings.appearance.rowHeight,
-          bgcolor: rowBGColorTemplate
-            ? processStringSync(rowBGColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          color: rowColorTemplate
-            ? processStringSync(rowColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          disabled: rowDisabledTemplate
-            ? processStringSync(rowDisabledTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-        })) || [{}];
+              : undefined,
+            color: rowColorTemplate
+              ? processStringSync(rowColorTemplate, {
+                  ...$context,
+                  [comp_id]: { row },
+                })
+              : undefined,
+            disabled: rowDisabledTemplate
+              ? processStringSync(rowDisabledTemplate, {
+                  ...$context,
+                  [comp_id]: { row },
+                })
+              : undefined,
+            selected: stbSelected.includes(tableAPI.getRowId(row, index)),
+          };
+        }) || [{}];
       },
       lockColumnWidths() {
         if (isScrolling) return; // Already locked
@@ -1192,16 +1218,21 @@
         // If Initialization takes more than 130ms, show loading state
         initTimer = setTimeout(() => {
           initializing = true;
-        }, 130);
+        }, 230);
       },
       synch(fetchState) {
         if (fetchState.loaded) {
+          idColumn = tableAPI.detectPK(fetchState);
+          tableId = $dataSourceStore.tableId;
+          tableAPI.loadPreSelections(preselectedIds);
+
           if (autoRefreshRate && !inBuilder) {
             timer = setInterval(() => {
               if (!$stbData?.loading) stbData?.refresh();
               onRefresh?.();
             }, autoRefreshRate * 1000);
           }
+
           return "Idle";
         }
       },
@@ -1211,11 +1242,15 @@
         clearTimeout(initTimer);
         initializing = false;
         isEmpty = $stbData?.rows.length < 1;
+        this.calculateRowBoundaries();
       },
       _exit() {},
       synch(fetchState) {
         if (fetchState.loading && !fetchState.loaded) return;
         isEmpty = !$stbData?.rows.length;
+        if (fetchState.loaded) {
+          this.calculateRowBoundaries();
+        }
       },
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
@@ -1233,7 +1268,7 @@
       _exit() {},
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
-        removeQueryExtension(filterObj.id);
+        tableAPI.removeQueryExtension(filterObj.id);
         stbColumnFilters.add(filterObj.id);
         tableAPI.addQueryExtension(filterObj.id, extention);
       },
@@ -1257,6 +1292,7 @@
       synch(fetchState) {
         if (fetchState.loaded) {
           isEmpty = fetchState.rows.length < 1;
+          this.calculateRowBoundaries();
         }
       },
     },
@@ -1319,18 +1355,19 @@
     $stbData,
     rowBGColorTemplate,
     rowColorTemplate,
-    rowHeight
+    rowHeight,
+    rowDisabledTemplate,
+    $stbSelected
   );
-
-  $: if ($stbData?.rows) {
-    $stbSelected = $stbSelected.filter((id) =>
-      $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id)
-    );
-  }
 
   $: stbSelectedRows = derivedMemo(
     [stbData, stbSelected, maxSelectedStore],
     ([$stbData, $stbSelected, $maxSelectedStore]) => {
+      if ($stbData?.rows) {
+        $stbSelected = $stbSelected.filter((id) =>
+          $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id)
+        );
+      }
       const selectedRows = $stbData?.rows?.filter((row, i) =>
         $stbSelected?.includes(tableAPI.getRowId(row, i))
       );
@@ -1344,13 +1381,6 @@
   // Scroll to Top when filter changes
   $: stbState.scrollToTop(query);
 
-  $: if (canSelect)
-    stbSelected.set((preselectedIds ?? []).map((id) => id.toString()));
-  else stbSelected.set([]);
-
-  $: idColumn = tableAPI.detectPK();
-  $: primaryKeys = idColumn !== "_id" ? [idColumn] : [];
-
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
   $: query = tableAPI.extendQuery(defaultQuery, queryExtensions);
@@ -1359,11 +1389,6 @@
     sortColumn,
     sortOrder,
   });
-
-  $: tableId = $stbData?.definition?.tableId;
-  $: console.log(idColumn);
-  $: console.log("Primary Keys:", primaryKeys);
-  $: console.log($stbSchema);
 
   // Derived Store with the columns to be rendered
   $: superColumns = derivedMemo(
@@ -1421,7 +1446,7 @@
     };
   });
 
-  $: dividersStyles = {
+  const tableStyles = derivedMemo(stbSettings, ($stbSettings: any) => ({
     color:
       $stbSettings.dividersColor ?? "var(--spectrum-global-color-gray-200)",
     horizontal:
@@ -1432,7 +1457,9 @@
       $stbSettings.dividers == "both" || $stbSettings.dividers == "vertical"
         ? "1px solid var(--super-table-devider-color)"
         : "none",
-  };
+    headerHeight: $stbSettings.appearance?.headerHeight || "0px",
+    footerHeight: $stbSettings.appearance?.footerHeight || "0px",
+  }));
 
   // Build our data and actions ontext
   $: actions = [
@@ -1460,7 +1487,11 @@
     newRow: $new_row,
     rows: $stbData?.rows,
     selectedRows: $stbSelectedRows,
-    selectedIds: $stbSelected,
+    selectedIds: Array.isArray($stbSelectedRows)
+      ? $stbSelectedRows.map((row) => row[idColumn])
+      : $stbSelectedRows && typeof $stbSelectedRows === "object"
+        ? [$stbSelectedRows[idColumn]]
+        : [],
     id: $component.id,
     info: $stbData?.info,
     datasource: $dataSourceStore || {},
@@ -1471,10 +1502,6 @@
     loaded: $stbData?.loaded,
     rowsLength: $stbData?.rows.length,
     pageNumber: $stbData?.pageNumber + 1,
-    entitySingular,
-    entityPlural,
-    offset: 0,
-    limit: 100,
   };
 
   // Show Action Buttons Column
@@ -1538,12 +1565,12 @@
     bind:clientWidth={tableWidth}
     bind:clientHeight
     style:font-size={sizingMap[size].rowFontSize}
-    style:--super-table-devider-color={dividersStyles.color}
+    style:--super-table-devider-color={$tableStyles.color}
     style:--super-table-body-height={maxBodyHeight}
-    style:--super-table-header-height={$stbSettings.appearance.headerHeight}
-    style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
-    style:--super-table-horizontal-dividers={dividersStyles.horizontal}
-    style:--super-table-vertical-dividers={dividersStyles.vertical}
+    style:--super-table-header-height={$tableStyles.headerHeight}
+    style:--super-table-footer-height={$tableStyles.footerHeight}
+    style:--super-table-horizontal-dividers={$tableStyles.horizontal}
+    style:--super-table-vertical-dividers={$tableStyles.vertical}
     style:--super-table-cell-padding={sizingMap[size].cellPadding}
     style:--super-column-top-offset={$stbScrollOffset * -1}
     on:mouseenter={() => (highlighted = true)}
@@ -1557,111 +1584,104 @@
     on:touchmove={(e) => stbState.handleTouch(e, "move")}
     on:touchend={(e) => stbState.handleTouch(e, "end")}
   >
-    {#key stbData}
-      <Provider {actions} data={dataContext} />
+    <Provider {actions} data={dataContext} />
 
+    <ControlSection>
+      <SelectionColumn {stbData} {hideSelectionColumn} />
+
+      {#if showButtonColumnLeft}
+        <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+      {/if}
+
+      {#if stickFirstColumn && $superColumns.length > 1}
+        <SuperTableColumn
+          {stbData}
+          sticky={true}
+          scrollPos={$stbHorizontalScrollPos}
+          columnOptions={{
+            ...$superColumns[0],
+            ...$commonColumnOptions,
+            overflow,
+            isFirst: true,
+            isLast:
+              $superColumns?.length == 1 && !showButtonColumnRight && canScroll,
+          }}
+        />
+      {/if}
+    </ControlSection>
+
+    <ColumnsSection
+      {stbData}
+      {stbSettings}
+      {superColumns}
+      {commonColumnOptions}
+      {canScroll}
+      bind:columnsViewport
+    >
+      {#key columnSizing}
+        <slot />
+      {/key}
+    </ColumnsSection>
+
+    {#if showButtonColumnRight && !isEmpty}
       <ControlSection>
-        <SelectionColumn {stbData} {hideSelectionColumn} />
-
-        {#if showButtonColumnLeft}
-          <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-        {/if}
-
-        {#if stickFirstColumn && $superColumns.length > 1}
-          <SuperTableColumn
-            {stbData}
-            sticky={true}
-            scrollPos={$stbHorizontalScrollPos}
-            columnOptions={{
-              ...$superColumns[0],
-              ...$commonColumnOptions,
-              overflow,
-              isFirst: true,
-              isLast:
-                $superColumns?.length == 1 &&
-                !showButtonColumnRight &&
-                canScroll,
-            }}
-          />
-        {/if}
+        <RowButtonsColumn
+          {rowMenuItems}
+          {menuItemsVisible}
+          {rowMenu}
+          {canScroll}
+          right={true}
+        />
       </ControlSection>
+    {/if}
 
-      <ColumnsSection
-        {stbData}
-        {stbSettings}
-        {superColumns}
-        {commonColumnOptions}
-        {canScroll}
-        bind:columnsViewport
-      >
-        {#key columnSizing}
-          <slot />
-        {/key}
-      </ColumnsSection>
+    <ScrollbarsOverlay
+      anchor={columnsViewport}
+      clientHeight={maxBodyHeight}
+      {scrollHeight}
+      {highlighted}
+      {isEmpty}
+      bind:horizontalVisible
+      on:positionChange={stbState.calculateRowBoundaries}
+    />
 
-      {#if showButtonColumnRight && !isEmpty}
-        <ControlSection>
-          <RowButtonsColumn
-            {rowMenuItems}
-            {menuItemsVisible}
-            {rowMenu}
-            {canScroll}
-            right={true}
-          />
-        </ControlSection>
-      {/if}
+    <EmptyResultSetOverlay
+      {isEmpty}
+      message={$stbSettings.data.emptyMessage}
+      top={$superColumns?.length
+        ? $stbSettings.appearance.headerHeight + 16
+        : 16}
+      bottom={horizontalVisible ? 24 : 16}
+    />
 
-      <ScrollbarsOverlay
-        anchor={columnsViewport}
-        clientHeight={maxBodyHeight}
-        {scrollHeight}
+    <RowContextMenu {rowContextMenuItems} row={$stbData?.rows?.[$stbMenuID]} />
+
+    {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
+      <AddNewRowOverlay
+        {stbState}
+        {tableAPI}
         {highlighted}
-        {isEmpty}
-        bind:horizontalVisible
-        on:positionChange={stbState.calculateRowBoundaries}
+        {tableActions}
+        footer={$stbSettings.showFooter}
       />
+    {/if}
 
-      <EmptyResultSetOverlay
-        {isEmpty}
-        message={$stbSettings.data.emptyMessage}
-        top={$superColumns?.length
-          ? $stbSettings.appearance.headerHeight + 16
-          : 16}
-        bottom={horizontalVisible ? 24 : 16}
+    {#if $stbSettings.features.canSelect && selectedActions?.length}
+      <SelectedActionsOverlay
+        {stbSettings}
+        {selectedActions}
+        {stbSelected}
+        {tableAPI}
+        {stbState}
+        {highlighted}
+        {entitySingular}
+        {entityPlural}
       />
+    {/if}
 
-      <RowContextMenu
-        {rowContextMenuItems}
-        row={$stbData?.rows?.[$stbMenuID]}
-      />
-
-      {#if $stbSettings.features.canInsert || $stbState == "Filtered"}
-        <AddNewRowOverlay
-          {stbState}
-          {tableAPI}
-          {highlighted}
-          {tableActions}
-          footer={$stbSettings.showFooter}
-        />
-      {/if}
-
-      {#if $stbSettings.features.canSelect && selectedActions?.length}
-        <SelectedActionsOverlay
-          {stbSettings}
-          {selectedActions}
-          {stbSelected}
-          {tableAPI}
-          {stbState}
-          {highlighted}
-          {entitySingular}
-          {entityPlural}
-        />
-      {/if}
-
-      {#if $stbData.loading && $stbData.loaded}
-        <LoadingOverlay />
-      {/if}
-    {/key}
+    {#if $stbData.loading && $stbData.loaded}
+      <LoadingOverlay />
+    {/if}
   </div>
 
   <PaginationLimitOffset
