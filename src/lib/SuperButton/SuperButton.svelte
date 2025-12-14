@@ -1,12 +1,12 @@
 <script>
-  import { createEventDispatcher, onDestroy, onMount, tick } from "svelte";
-  const dispatch = createEventDispatcher();
+  import { getContext, onDestroy, onMount } from "svelte";
 
   export let size = "M";
   export let menuItem = false;
   export let menuAlign = "right";
   export let icon = undefined;
   export let iconAfterText = undefined;
+  export let iconColor = undefined;
   export let text = "";
   export let quiet = undefined;
   export let selected = undefined;
@@ -133,7 +133,11 @@
   class:disabled
   class:working
 >
-  <i class={icon_class} style:order={iconAfterText ? 1 : 0} />
+  <i
+    class={icon_class}
+    style:order={iconAfterText ? 1 : 0}
+    style:color={disabled ? "var(--spectrum-global-color-gray-400)" : iconColor}
+  />
   <span>{text}</span>
 </button>
 

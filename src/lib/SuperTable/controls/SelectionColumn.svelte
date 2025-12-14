@@ -1,6 +1,8 @@
 <script>
   import { getContext } from "svelte";
 
+  import Checkbox from "../../UI/elements/Checkbox.svelte";
+
   const stbState = getContext("stbState");
   const stbSettings = getContext("stbSettings");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
@@ -28,6 +30,10 @@
   $: visible = numbering || checkBoxes || canDelete;
   $: zebra = $stbSettings.appearance.zebraColors;
   $: quiet = $stbSettings.appearance.quiet;
+  $: headerCheckbox =
+    checkBoxes &&
+    $stbSettings.features.maxSelected != 1 &&
+    $stbVisibleRows.length > 0;
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -40,15 +46,12 @@
           <span class="row-number"></span>
         {/if}
 
-        {#if checkBoxes && $stbSettings.features.maxSelected != 1 && $stbVisibleRows.length > 0}
-          <div
-            class="checkbox"
-            class:selected={fullSelection}
-            class:partialSelection
-            on:click={stbAPI.selectAllRows}
-          >
-            <i class="ri-check-line" style:visibility={"hidden"} />
-          </div>
+        {#if headerCheckbox}
+          <Checkbox
+            checked={fullSelection}
+            partial={partialSelection}
+            on:change={stbAPI.selectAllRows}
+          />
         {/if}
 
         {#if canDelete}
@@ -90,13 +93,11 @@
           {/if}
 
           {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-            <div
-              class="checkbox"
-              class:selected
-              on:click={() => stbAPI.selectRow(visibleRow)}
-            >
-              <i class="ri-check-line" style:visibility={"hidden"} />
-            </div>
+            <Checkbox
+              checked={selected}
+              disabled={$stbRowMetadata[visibleRow]?.disabled}
+              on:change={() => stbAPI.selectRow(visibleRow)}
+            />
           {/if}
 
           {#if canDelete}
@@ -180,6 +181,7 @@
 
     &.selected {
       border: 1px solid var(--spectrum-global-color-gray-600);
+      background-color: var(--spectrum-global-color-gray-100);
       & > i {
         visibility: visible !important;
         color: var(--spectrum-global-color-gray-700);

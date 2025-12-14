@@ -249,7 +249,7 @@
       maxSelected,
       canFilter,
       canEdit,
-      canDelete,
+      canDelete: canDelete && tableId,
       canInsert,
       canResize,
     },
@@ -299,6 +299,16 @@
   });
 
   const createFetch = (datasource) => {
+    if (datasource.parameters) {
+      datasource = {
+        ...datasource,
+        queryParams: {
+          ...datasource.queryParams,
+          limit: limit,
+        },
+      };
+    }
+
     return fetchData({
       API,
       datasource,
@@ -342,6 +352,8 @@
       let specialColumnsList = [];
       let columns = [];
 
+      idColumn = tableAPI.detectPK($stbData);
+
       if (schema) {
         if (list?.length) {
           columns = list.map((column) => {
@@ -374,7 +386,7 @@
                 !specialColumns.includes(v) &&
                 !schema[v].nestedJSON &&
                 schema[v]?.visible != false &&
-                v !== idColumn
+                v != idColumn
             )
             .map((v) => {
               return tableAPI.enrichColumn(schema, schema[v]);
@@ -481,6 +493,11 @@
         columnStates.splice(pos, 1);
         columnStates = columnStates;
       }
+    },
+    shouldDisableButton: (disableTemplate, context) => {
+      if (!disableTemplate) return false;
+      let result = processStringSync(disableTemplate, context);
+      return result;
     },
     shouldShowButton: (conditions, context) => {
       function parseValue(val, typ) {
@@ -773,10 +790,10 @@
       ];
       let cmd = enrichButtonActions(autoDelete, {});
       let cmd_after = enrichButtonActions(afterDelete, $context);
-      $stbSelected = [];
-      console.log("Selected IDs after delete selected:", $stbSelected);
+
       await cmd?.();
       await cmd_after?.();
+
       stbData.refresh();
     },
     patchRow: async (patch) => {
@@ -1067,7 +1084,7 @@
             hasMoreData &&
             $stbScrollPos > 0
           ) {
-            stbState.fetchMoreRows(100); // Debounced fetch
+            stbState.fetchMoreRows(limit); // Debounced fetch
           }
         }
       },
@@ -1220,11 +1237,10 @@
         }, 230);
       },
       synch(fetchState) {
-        if (fetchState.loaded) {
-          idColumn = tableAPI.detectPK(fetchState);
-          tableId = $dataSourceStore.tableId;
-          tableAPI.loadPreSelections(preselectedIds);
+        tableId = $dataSourceStore.tableId;
+        tableAPI.loadPreSelections(preselectedIds);
 
+        if (fetchState.loaded) {
           if (autoRefreshRate && !inBuilder) {
             timer = setInterval(() => {
               if (!$stbData?.loading) stbData?.refresh();

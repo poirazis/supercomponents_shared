@@ -5,7 +5,6 @@
   const columnSettings = getContext("stColumnOptions");
   const columnState = getContext("stColumnState");
   const stbVisibleRows = getContext("stbVisibleRows");
-  const stbState = getContext("stbState");
   const new_row = getContext("new_row");
 
   export let field;
@@ -34,21 +33,19 @@
   class:filtered={$columnState == "Filtered"}
   class:is-editing={editing}
 >
-  {#if rows?.length}
-    {#each $stbVisibleRows as index (index)}
-      <SuperColumnRow
-        {isLast}
-        {index}
-        row={rows[index]}
-        {field}
-        {idField}
-        disabled={inserting}
-        {rowHeight}
-      >
-        <slot />
-      </SuperColumnRow>
-    {/each}
-  {/if}
+  {#each $stbVisibleRows as index (index)}
+    <SuperColumnRow
+      {isLast}
+      {index}
+      row={rows[index]}
+      {field}
+      {idField}
+      disabled={inserting}
+      {rowHeight}
+    >
+      <slot />
+    </SuperColumnRow>
+  {/each}
   {#if inserting}
     <SuperColumnRowNew {isFirst} {isLast} row={$new_row} />
   {/if}

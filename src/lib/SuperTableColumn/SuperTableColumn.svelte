@@ -78,10 +78,9 @@
   let startWidth = 0;
   let width;
 
-  let lockWidth = memo(0);
-
   let sorted;
   let viewport;
+  let lockWidth = memo(0);
 
   $: inBuilder = $builderStore?.inBuilder;
   $: columnOptionsStore.set({

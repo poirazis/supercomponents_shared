@@ -93,7 +93,7 @@
   .pagination-limit-offset {
     display: flex;
     justify-content: flex-end;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0rem;
   }
 
   .pagination-controls {
@@ -125,7 +125,6 @@
 
   .pagination-info {
     color: var(--spectrum-global-color-gray-700);
-    font-size: 12px;
     white-space: nowrap;
     opacity: 0.9;
   }

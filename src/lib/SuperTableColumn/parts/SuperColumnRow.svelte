@@ -1,14 +1,8 @@
 <script>
-  import {
-    getContext,
-    createEventDispatcher,
-    onMount,
-    onDestroy,
-  } from "svelte";
+  import { getContext, onDestroy } from "svelte";
 
   const { Provider, ContextScopes } = getContext("sdk");
 
-  const dispatch = createEventDispatcher();
   const columnSettings = getContext("stColumnOptions");
   const columnState = getContext("stColumnState");
   const rowCellOptions = getContext("stRowCellOptions");
@@ -130,7 +124,7 @@
     <Provider
       data={{
         id,
-        value: row[field],
+        value,
         row,
         index,
       }}

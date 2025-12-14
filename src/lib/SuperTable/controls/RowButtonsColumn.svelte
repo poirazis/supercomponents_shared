@@ -78,17 +78,17 @@
           style:gap={inlineButtons.length > 1 ? "0.5rem" : "0rem"}
         >
           {#if rowMenu && inlineButtons?.length}
-            {#each inlineButtons as { text, icon, disabled, onClick, quiet, type, conditions }}
+            {#each inlineButtons as { conditions, disabledTemplate, onClick, disabled, ...rest }}
               {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($stbData?.rows?.[visibleRow]))}
                 <SuperButton
-                  size="S"
-                  {icon}
-                  {text}
+                  {...rest}
                   disabled={disabled ||
                     $stbEditing == visibleRow ||
-                    $rowMetadata[visibleRow].disabled}
-                  {quiet}
-                  type={type == "primary" ? "ink" : type}
+                    $rowMetadata[visibleRow].disabled ||
+                    stbAPI.shouldDisableButton(
+                      disabledTemplate,
+                      stbAPI.enrichContext($stbData?.rows?.[visibleRow])
+                    )}
                   onClick={() => {
                     stbAPI.executeRowButtonAction(visibleRow, onClick);
                   }}
