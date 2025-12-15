@@ -167,29 +167,4 @@
       cursor: pointer;
     }
   }
-
-  .checkbox {
-    width: 14px;
-    height: 14px;
-    border: 1px solid var(--spectrum-global-color-gray-500);
-    background-color: var(--spectrum-global-color-gray-50);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-
-    &.selected {
-      border: 1px solid var(--spectrum-global-color-gray-600);
-      background-color: var(--spectrum-global-color-gray-100);
-      & > i {
-        visibility: visible !important;
-        color: var(--spectrum-global-color-gray-700);
-      }
-    }
-
-    &.partialSelection {
-      border-color: var(--spectrum-global-color-green-700);
-    }
-  }
 </style>

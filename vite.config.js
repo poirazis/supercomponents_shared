@@ -1,17 +1,18 @@
 import { defineConfig } from "vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { resolve } from "path";
-import sveltePreprocess from "svelte-preprocess";
-import sass from "sass";
-import path from "path";
 
 export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: "modern",
+      },
+    },
+  },
   plugins: [
     svelte({
-      preprocess: sveltePreprocess({
-        sass: { implementation: sass },
-        typescript: true,
-      }),
+      preprocess: vitePreprocess(),
       compilerOptions: { dev: false },
       onwarn: (warning, handler) => {
         if (warning.code !== "unused-export-let") {
@@ -38,7 +39,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      $lib: resolve(__dirname, "./src/lib"),
+      $lib: resolve("./src/lib"),
     },
   },
 });

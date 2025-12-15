@@ -172,7 +172,7 @@
   let overflow;
   let isEmpty;
   let _limit = limit;
-  let initializing = true;
+  let initializing = false;
   let initTimer;
   let start,
     end = 0;
@@ -1218,6 +1218,7 @@
     Init: {
       _enter() {
         if (timer) clearInterval(timer);
+        if (initTimer) clearTimeout(initTimer);
         start = 0;
         end = 0;
 
@@ -1234,7 +1235,7 @@
         // If Initialization takes more than 130ms, show loading state
         initTimer = setTimeout(() => {
           initializing = true;
-        }, 230);
+        }, 130);
       },
       synch(fetchState) {
         tableId = $dataSourceStore.tableId;

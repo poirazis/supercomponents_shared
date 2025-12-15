@@ -97,18 +97,9 @@
         ? val[relatedColumns[0].name]
         : val[primaryDisplay];
 
-    // Include all related column values for multi-column mode
-    const relatedColumnData = relatedColumns && relatedColumns.length > 0 
-      ? relatedColumns.reduce((acc, col) => {
-          acc[col.name] = val[col.name];
-          return acc;
-        }, {})
-      : {};
-
     const selectedItem = {
       [relatedField]: val[relatedField],
       primaryDisplay: displayValue,
-      ...relatedColumnData
     };
 
     if (!multi) {
