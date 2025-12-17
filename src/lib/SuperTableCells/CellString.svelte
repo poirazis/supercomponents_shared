@@ -1,5 +1,4 @@
 <script>
-  // @ts-check
   import {
     createEventDispatcher,
     getContext,
@@ -16,45 +15,31 @@
   const dispatch = createEventDispatcher();
   const { processStringSync } = getContext("sdk");
 
-  // Props
   /** @type {string | null} */
   export let value;
-  
+
   /** @type {string | undefined} */
   export let formattedValue = undefined;
-  
+
   /** @type {CellStringOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
   };
-  
-  /** @type {boolean} */
+
   export let autofocus = false;
 
   // Local state
-  /** @type {ReturnType<typeof setTimeout> | undefined} */
   let timer;
-  
-  /** @type {string | null | undefined} */
   let originalValue;
-  
-  /** @type {HTMLInputElement | HTMLTextAreaElement | undefined} */
   let editor;
-  
-  /** @type {Date | undefined} */
   let lastEdit;
-  
-  /** @type {string | null} */
   let localValue = value;
-  
-  /** @type {"View" | "Editing"} */
-  let state = (cellOptions?.initialState === "Loading"
+  let state =
+    (cellOptions?.initialState === "Loading"
       ? "View"
       : cellOptions?.initialState) ?? "View";
-  
-  /** @type {string[]} */
   let errors = [];
 
   // Reactive declarations
@@ -75,13 +60,11 @@
   // FSM - Finite State Machine
   export const cellState = fsm(state ?? "View", {
     "*": {
-      /** @param {string} state */
       goTo(state) {
         return state;
       },
-      /** @param {string | null} newValue */
       reset(newValue) {
-        if (newValue === localValue) return;
+        if (newValue == localValue) return;
         localValue = value;
         lastEdit = undefined;
         originalValue = undefined;
@@ -125,7 +108,6 @@
         editor?.focus();
         dispatch("clear", null);
       },
-      /** @param {FocusEvent} e */
       focusout(e) {
         dispatch("focusout");
         this.submit();
@@ -141,9 +123,8 @@
         dispatch("cancel");
         return state;
       },
-      /** @param {Event} e */
       debounce(e) {
-        const target = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (e.target);
+        const target = e.target;
         localValue = target.value;
         lastEdit = new Date();
         if (cellOptions?.debounce) {
@@ -153,7 +134,6 @@
           }, cellOptions.debounce ?? 0);
         }
       },
-      /** @param {KeyboardEvent} e */
       handleKeyboard(e) {
         if (e.key === "Enter" && !e.shiftKey) {
           this.submit();
@@ -173,26 +153,18 @@
     isEditing: () => $cellState === "Editing",
     isDirty: () => isDirty,
     getValue: () => localValue,
-    /** @param {string} err */
     setError: (err) => {
       errors = [...errors, err];
     },
     clearError: () => {
       errors = [];
     },
-    /** @param {string | null} val */
     setValue: (val) => {
-      localValue = val;
-      if ($cellState !== "Editing") {
-        value = val;
-      }
+      value = val;
     },
   };
 
   // Helper functions
-  /**
-   * @param {HTMLElement | undefined} node
-   */
   const focus = (node) => {
     node?.focus();
   };

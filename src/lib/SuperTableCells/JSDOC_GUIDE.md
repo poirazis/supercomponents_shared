@@ -1,21 +1,185 @@
 # Using JSDoc for Type Safety in SuperTableCells
 
-This guide demonstrates how to use JSDoc annotations to add type safety and IntelliSense **without TypeScript**. All components should use JavaScript with JSDoc instead of TypeScript.
+This guide demonstrates how to use JSDoc annotations for **type definitions only** (CellOptions, CellApi) - not for annotating every variable and function.
 
 ## Benefits of JSDoc
 
-1. **No TypeScript compilation** - Pure JavaScript with type hints
-2. **IntelliSense in VS Code** - Full autocomplete and type hints
-3. **Type checking** - VS Code will show errors for invalid types (with `@ts-check`)
-4. **Documentation** - Types serve as inline documentation
-5. **Simpler build** - No TypeScript transpilation needed
-6. **Better debugging** - Source code matches what runs
+1. **No TypeScript compilation** - Pure JavaScript
+2. **IntelliSense for important types** - Autocomplete for cellOptions and cellApi
+3. **Simple and clean** - Only annotate what matters
+4. **Better debugging** - Source code matches what runs
+
+## What to Annotate
+
+✅ **DO annotate:**
+
+- `cellOptions` prop - so you get autocomplete for options
+- `cellApi` export - so consumers know what methods are available
+- Component props (`value`, `formattedValue`, etc.)
+
+❌ **DON'T annotate:**
+
+- Local variables (let timer, let editor, etc.)
+- Function parameters in FSM methods
+- Helper functions
+- Event handlers
 
 ## Type Definitions
 
-All types are defined in `types.js` using JSDoc `@typedef` syntax. This file is imported by all cell components.
+All types are defined in `types.js` using JSDoc `@typedef` syntax.
 
 ## JavaScript Example: CellString.svelte (Reference Implementation)
+
+```svelte
+<script>
+  import { createEventDispatcher, getContext, onMount, onDestroy } from "svelte";
+  import fsm from "svelte-fsm";
+
+  /**
+   * @typedef {import('./types.js').CellStringOptions} CellStringOptions
+   * @typedef {import('./types.js').CellApi} CellApi
+   */
+
+  const dispatch = createEventDispatcher();
+  const { processStringSync } = getContext("sdk");
+
+  /** @type {string | null} */
+  export let value;
+
+  /** @type {string | undefined} */
+  export let formattedValue = undefined;
+
+  /** @type {CellStringOptions} */
+  export let cellOptions = {
+    role: "formInput",
+    initialState: "Editing",
+    debounce: 250,
+  };
+
+  export let autofocus = false;
+
+  // Local state - no annotations needed
+  let timer;
+  let originalValue;
+  let editor;
+  let lastEdit;
+  let localValue = value;
+  let state = (cellOptions?.initialState === "Loading" ? "View" : cellOptions?.initialState) ?? "View";
+  let errors = [];
+
+  // Reactive declarations
+  $: error = cellOptions?.error || errors.length > 0;
+  $: inEdit = $cellState === "Editing";
+  $: isDirty = !!lastEdit && originalValue !== localValue;
+
+  // FSM - no annotations needed for methods
+  export const cellState = fsm(state ?? "View", {
+    "*": {
+      goTo(state) {
+        return state;
+      },
+      reset(newValue) {
+        if (newValue === localValue) return;
+        localValue = value;
+        lastEdit = undefined;
+        originalValue = undefined;
+        errors = [];
+        return state;
+      },
+    },
+    View: {
+      _enter() {
+        localValue = value;
+      },
+      focus() {
+        if (!cellOptions.readonly && !cellOptions.disabled) {
+          return "Editing";
+        }
+      },
+    },
+    Editing: {
+      _enter() {
+        originalValue = value;
+        setTimeout(() => editor?.focus(), 50);
+        dispatch("enteredit");
+      },
+      _exit() {
+        originalValue = undefined;
+        lastEdit = undefined;
+        dispatch("exitedit");
+      },
+      focusout(e) {
+        dispatch("focusout");
+        this.submit();
+      },
+      submit() {
+        if (isDirty) {
+          dispatch("change", localValue);
+        }
+        return state;
+      },
+      cancel() {
+        value = originalValue ?? null;
+        dispatch("cancel");
+        return state;
+      },
+      debounce(e) {
+        const target = e.target;
+        localValue = target.value;
+        lastEdit = new Date();
+        if (cellOptions?.debounce) {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            dispatch("change", localValue);
+          }, cellOptions.debounce ?? 0);
+        }
+      },
+      handleKeyboard(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          this.submit();
+        }
+        if (e.key === "Escape") {
+          this.cancel();
+        }
+      },
+    },
+  });
+
+  // Annotate the public API
+  /** @type {CellApi} */
+  export const cellApi = {
+    focus: () => cellState.focus(),
+    reset: () => cellState.reset(value),
+    isEditing: () => $cellState === "Editing",
+    isDirty: () => isDirty,
+    getValue: () => localValue,
+    setError: (err) => {
+      errors = [...errors, err];
+    },
+    clearError: () => {
+      errors = [];
+    },
+    setValue: (val) => {
+      localValue = val;
+    },
+  };
+
+  // No annotations needed for helpers
+  const focus = (node) => {
+    node?.focus();
+  };
+
+  onMount(() => {
+    if (autofocus) {
+      setTimeout(() => cellState.focus(), 50);
+    }
+  });
+
+  onDestroy(() => {
+    if (timer) clearTimeout(timer);
+  });
+</script>
+```
 
 ```svelte
 <script>
@@ -35,39 +199,39 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax. This file is 
   // Typed props with JSDoc
   /** @type {string | null} */
   export let value;
-  
+
   /** @type {string | undefined} */
   export let formattedValue = undefined;
-  
+
   /** @type {CellStringOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
   };
-  
+
   /** @type {boolean} */
   export let autofocus = false;
 
   // Typed local variables
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let timer;
-  
+
   /** @type {string | null | undefined} */
   let originalValue;
-  
+
   /** @type {HTMLInputElement | HTMLTextAreaElement | undefined} */
   let editor;
-  
+
   /** @type {Date | undefined} */
   let lastEdit;
-  
+
   /** @type {string | null} */
   let localValue = value;
-  
+
   /** @type {"View" | "Editing"} */
   let state = (cellOptions?.initialState === "Loading" ? "View" : cellOptions?.initialState) ?? "View";
-  
+
   /** @type {string[]} */
   let errors = [];
 
@@ -207,20 +371,20 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax. This file is 
   // Typed props with JSDoc
   /** @type {boolean | null} */
   export let value;
-  
+
   /** @type {string | undefined} */
   export let formattedValue;
-  
+
   /** @type {CellBooleanOptions} */
   export let cellOptions;
-  
+
   /** @type {boolean} */
   export let autofocus;
 
   // Typed local variables
   /** @type {boolean | null} */
   let originalValue = value;
-  
+
   /** @type {boolean} */
   let localValue = value ?? false;
 
@@ -391,7 +555,7 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax. This file is 
 ```svelte
 <script>
   import { CellString } from "@poirazis/supercomponents-shared";
-  
+
   /**
    * @typedef {import('@poirazis/supercomponents-shared').CellStringOptions} CellStringOptions
    * @typedef {import('@poirazis/supercomponents-shared').CellApi<string>} CellStringApi
@@ -464,52 +628,38 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax. This file is 
 
 ## Common Patterns
 
-### Typed Debouncing
+### Minimal JSDoc - Just the Essentials
 
-```javascript
-/** @type {ReturnType<typeof setTimeout> | undefined} */
-let debounceTimer;
-
+````javascript
 /**
- * Debounce a value change
- * @param {string} newValue
- */
-function debounceChange(newValue) {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  
-  debounceTimer = setTimeout(() => {
-    dispatch("change", newValue);
-  }, cellOptions.debounce ?? 0);
-}
-```
-
-### Typed Event Dispatchers
-
-```javascript
-/**
- * @typedef {import('./types.js').CellEvents<string>} StringCellEvents
+ * @typedef {import('./types.js').CellNumberOptions} CellNumberOptions
+ * @typedef {import('./types.js').CellApi} CellApi
  */
 
-/** @type {import('svelte').EventDispatcher<StringCellEvents>} */
-const dispatch = createEventDispatcher();
-```
+/** @type {number | null} */
+export let value;
 
-### Typed FSM Transitions
+/** @type {CellNumberOptions} */
+export let cellOptions = {};
 
-```javascript
-export let cellState = fsm(cellOptions.initialState ?? "View", {
-  "*": {
-    /** 
-     * @param {import('./types.js').CellState} state 
-     * @returns {import('./types.js').CellState}
-     */
-    goTo(state) {
-      return state;
-    },
-  },
+// Everything else - no annotations
+let localValue = value;
+let editor;
+
+export const cellState = fsm("View", {
+  View: {
+    focus() {
+      return "Editing";
+    }
+  }
 });
-```
 
+/** @type {CellApi} */
+export const cellApi = {
+  focus: () => cellState.focus(),
+  getValue: () => localValue,
+  // ... other methods
+};
 ## Type Enforcement
 
 ### VS Code Settings
@@ -522,7 +672,7 @@ Add to `.vscode/settings.json`:
   "javascript.validate.enable": true,
   "typescript.tsdk": "node_modules/typescript/lib"
 }
-```
+````
 
 ### Component-Level Enforcement
 
@@ -536,30 +686,24 @@ This enables TypeScript checking in JavaScript files.
 
 ## Migration Strategy
 
-1. **Phase 1**: Remove `lang="ts"` from script tags
-2. **Phase 2**: Add JSDoc type imports at top of file
-3. **Phase 3**: Replace TypeScript annotations with JSDoc comments
-4. **Phase 4**: Replace `as` type assertions with JSDoc cast syntax
-5. **Phase 5**: Add `@ts-check` for strict type checking
-6. **Phase 6**: Test and verify IntelliSense works correctly
+1. **Add typedef imports** at top of script
+2. **Annotate cellOptions prop** with component-specific options type
+3. **Annotate cellApi export** with CellApi type
+4. **Annotate main props** (value, formattedValue)
+5. **Done!** - Don't annotate anything else
 
 ## IntelliSense Benefits
 
-With JSDoc in place, VS Code provides:
+With just these 3-4 JSDoc annotations, you get:
 
-- **Autocomplete** for object properties
-- **Type hints** on hover
-- **Error detection** for invalid types
-- **Go to definition** for type sources
-- **Find all references** for type usage
-- **Refactoring support** with type safety
+- **Autocomplete for cellOptions** - VS Code shows all available options
+- **cellApi IntelliSense** - Consumers see all available methods
+- **Prop type checking** - Errors if wrong types are passed
+- **Clean code** - No clutter from over-annotation
 
 ## Best Practices
 
-1. **Always import types** at the top of the file
-2. **Type all exports** (props, api, state)
-3. **Type event handlers** with parameter types
-4. **Type FSM transitions** for state safety
-5. **Use template types** (`CellApi<T>`) for generic components
-6. **Document complex logic** with JSDoc comments
-7. **Keep types.js in sync** with actual component behavior
+1. **Only annotate public interfaces** - cellOptions and cellApi
+2. **Keep it minimal** - Less is more
+3. **No @ts-check needed** - Too strict, unnecessary noise
+4. **Trust JavaScript** - Let Svelte handle the rest
