@@ -18,13 +18,8 @@
 
   /** @type {number | null} */
   export let value;
-
-  /** @type {string | undefined} */
-  export let formattedValue = undefined;
-
   /** @type {CellNumberOptions} */
   export let cellOptions = {};
-
   export let autofocus = false;
 
   // Local state
@@ -44,16 +39,15 @@
     background,
     showDirty,
     template,
-    placeholder: placeholderText,
+    placeholder,
     debounce: debounceDelay,
-    stepper,
-    step,
+    showStepper,
+    stepSize,
     min,
     max,
-    precision,
-    role,
+    decimals,
     thousandsSeparator,
-    fontWeight,
+    role,
   } = cellOptions ?? {});
 
   // Helper function to format number with thousands separator
@@ -61,7 +55,7 @@
     if (num == null) return "";
     const fixed = num.toFixed(decimals ?? 0);
     if (!separator) return fixed;
-    
+
     const parts = fixed.split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, separator);
     return parts.join(".");
@@ -73,15 +67,15 @@
   $: inEdit = $cellState === "Editing";
   $: inline = role === "inlineInput";
   $: isDirty = !!lastEdit && value !== localValue;
-  $: decimalsValue = precision ?? 0;
+  $: displayValue = inEdit ? localValue : (value ?? 0);
   $: formattedValue = template
     ? processStringSync(template, {
         ...$context,
-        value: formatNumber(localValue, thousandsSeparator, decimalsValue),
+        value,
       })
-    : formatNumber(localValue, thousandsSeparator, decimalsValue);
-  $: placeholder = placeholderText ?? "";
-  $: stepSize = step ?? 1;
+    : formatNumber(displayValue, thousandsSeparator, decimals);
+
+  $: stepValue = stepSize ?? 1;
 
   // Reset when value changes externally
   $: cellState.reset(value);
@@ -181,7 +175,7 @@
         if (
           (key.length === 1 && !/[\d.-]/.test(key)) || // Allow digits, decimal, negative sign
           (key === "." && input.value.includes(".")) || // Prevent multiple decimal points
-          (key === "." && decimalsValue === 0) || // Prevent decimal point if no decimals allowed
+          (key === "." && (decimals ?? 0) === 0) || // Prevent decimal point if no decimals allowed
           (key === "-" &&
             (input.value.includes("-") || input.selectionStart !== 0)) // Negative sign only at start
         ) {
@@ -205,7 +199,7 @@
         // Check decimal places
         if (
           newValue.includes(".") &&
-          newValue.split(".")[1].length > decimalsValue
+          newValue.split(".")[1].length > (decimals ?? 0)
         ) {
           input.value = localValue?.toString() ?? "";
           return;
@@ -213,19 +207,32 @@
 
         localValue =
           newValue === "" || newValue === "-" ? 0 : Number(newValue) || 0;
-        localValue = Number(localValue.toFixed(decimalsValue));
+        localValue = Number(localValue.toFixed(decimals ?? 0));
+
+        // Respect min/max constraints if set
+        if (min !== undefined && localValue < min) localValue = min;
+        if (max !== undefined && localValue > max) localValue = max;
+
         lastEdit = new Date();
         this.debouncedDispatch();
       },
       increment(e) {
         const multiplier = e.shiftKey ? 10 : 1;
-        localValue += stepSize * multiplier;
+        localValue += stepValue * multiplier;
+
+        // Respect max constraint if set
+        if (max !== undefined && localValue > max) localValue = max;
+
         lastEdit = new Date();
         this.debouncedDispatch();
       },
       decrement(e) {
         const multiplier = e.shiftKey ? 10 : 1;
-        localValue -= stepSize * multiplier;
+        localValue -= stepValue * multiplier;
+
+        // Respect min constraint if set
+        if (min !== undefined && localValue < min) localValue = min;
+
         lastEdit = new Date();
         this.debouncedDispatch();
       },
@@ -271,7 +278,7 @@
       setTimeout(() => {
         cellState.focus();
         editor?.focus();
-      }, 30);
+      }, 50);
   });
 
   onDestroy(() => {
@@ -293,7 +300,6 @@
   class:formInput={role == "formInput"}
   style:color
   style:background
-  style:font-weight={fontWeight}
   tabIndex={disabled ? -1 : 0}
   on:focusin={cellState.focus}
 >
@@ -324,7 +330,7 @@
       on:mousedown|preventDefault|stopPropagation={cellState.clear}
     >
     </i>
-    {#if stepper}
+    {#if showStepper}
       <div class="controls">
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <i
@@ -347,7 +353,7 @@
       class:placeholder={!value && value !== 0}
       style:justify-content={cellOptions.align ?? "flex-end"}
     >
-      {value != null ? formattedValue : cellOptions?.placeholder || ""}
+      {value != null ? formattedValue : placeholder || "–"}
     </div>
   {/if}
 </div>

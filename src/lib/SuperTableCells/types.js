@@ -34,7 +34,6 @@
  * @property {CellAlign} [align] - Text/content alignment
  * @property {string} [color] - Text color
  * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
  */
 
 /**
@@ -53,7 +52,6 @@
  * @property {CellAlign} [align] - Text/content alignment
  * @property {string} [color] - Text color
  * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
  * @property {"input" | "textarea"} [controlType] - Control type for input
  * @property {boolean} [clearIcon] - Whether to show clear icon
  */
@@ -74,12 +72,14 @@
  * @property {CellAlign} [align] - Text/content alignment
  * @property {string} [color] - Text color
  * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
- * @property {boolean} [stepper] - Whether to show stepper controls
- * @property {number} [step] - Step increment value
+ * @property {number} [defaultValue] - Default value for the cell
+ * @property {boolean} [showStepper] - Whether to show stepper controls
+ * @property {number} [stepSize] - Step increment value
  * @property {number} [min] - Minimum value
  * @property {number} [max] - Maximum value
- * @property {number} [precision] - Decimal precision
+ * @property {number} [decimals] - Decimal places to show
+ * @property {string} [thousandsSeparator] - Thousands separator character
+ * @property {string} [clearValueIcon] - Icon to clear value
  * @property {boolean} [enableWheel] - Whether to enable mouse wheel
  */
 
