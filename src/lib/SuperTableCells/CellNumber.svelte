@@ -354,7 +354,7 @@
       class:placeholder={!value && value !== 0}
       style:justify-content={cellOptions.align ?? "flex-end"}
     >
-      {value != null ? formattedValue : placeholder || "–"}
+      {value != null ? formattedValue : placeholder || ""}
     </div>
   {/if}
 </div>
