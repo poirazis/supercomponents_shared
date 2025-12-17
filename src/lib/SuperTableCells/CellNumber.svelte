@@ -51,10 +51,21 @@
     min,
     max,
     precision,
-    enableWheel,
     role,
+    thousandsSeparator,
     fontWeight,
   } = cellOptions ?? {});
+
+  // Helper function to format number with thousands separator
+  function formatNumber(num, separator, decimals) {
+    if (num == null) return "";
+    const fixed = num.toFixed(decimals ?? 0);
+    if (!separator) return fixed;
+    
+    const parts = fixed.split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+    return parts.join(".");
+  }
 
   // Reactive declarations
   $: error = optionError;
@@ -62,15 +73,15 @@
   $: inEdit = $cellState === "Editing";
   $: inline = role === "inlineInput";
   $: isDirty = !!lastEdit && value !== localValue;
+  $: decimalsValue = precision ?? 0;
   $: formattedValue = template
     ? processStringSync(template, {
         ...$context,
-        value: localValue?.toFixed(decimals),
+        value: formatNumber(localValue, thousandsSeparator, decimalsValue),
       })
-    : localValue?.toFixed(decimals);
+    : formatNumber(localValue, thousandsSeparator, decimalsValue);
   $: placeholder = placeholderText ?? "";
   $: stepSize = step ?? 1;
-  $: decimals = precision ?? 0;
 
   // Reset when value changes externally
   $: cellState.reset(value);
@@ -170,7 +181,7 @@
         if (
           (key.length === 1 && !/[\d.-]/.test(key)) || // Allow digits, decimal, negative sign
           (key === "." && input.value.includes(".")) || // Prevent multiple decimal points
-          (key === "." && decimals === 0) || // Prevent decimal point if no decimals allowed
+          (key === "." && decimalsValue === 0) || // Prevent decimal point if no decimals allowed
           (key === "-" &&
             (input.value.includes("-") || input.selectionStart !== 0)) // Negative sign only at start
         ) {
@@ -194,7 +205,7 @@
         // Check decimal places
         if (
           newValue.includes(".") &&
-          newValue.split(".")[1].length > decimals
+          newValue.split(".")[1].length > decimalsValue
         ) {
           input.value = localValue?.toString() ?? "";
           return;
@@ -202,7 +213,7 @@
 
         localValue =
           newValue === "" || newValue === "-" ? 0 : Number(newValue) || 0;
-        localValue = Number(localValue.toFixed(decimals));
+        localValue = Number(localValue.toFixed(decimalsValue));
         lastEdit = new Date();
         this.debouncedDispatch();
       },
