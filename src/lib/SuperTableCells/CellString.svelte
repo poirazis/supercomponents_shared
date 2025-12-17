@@ -6,53 +6,15 @@
     onDestroy,
   } from "svelte";
   import fsm from "svelte-fsm";
+  import type { CellStringOptions, CellApi, CellEvents } from "./types";
 
-  // Types
-  interface CellOptions {
-    role?: "formInput" | "tableCell" | "inlineInput";
-    initialState?: "View" | "Editing";
-    debounce?: number;
-    readonly?: boolean;
-    disabled?: boolean;
-    placeholder?: string;
-    template?: string;
-    icon?: string;
-    error?: boolean;
-    showDirty?: boolean;
-    clearIcon?: boolean;
-    controlType?: "input" | "textarea";
-    align?: "flex-start" | "center" | "flex-end";
-    color?: string;
-    background?: string;
-    fontWeight?: string | number;
-  }
-
-  interface CellApi {
-    focus: () => void;
-    reset: () => void;
-    isEditing: () => boolean;
-    isDirty: () => boolean;
-    getValue: () => string | null;
-    setError: (err: string) => void;
-    clearError: () => void;
-    setValue: (val: string | null) => void;
-  }
-
-  const dispatch = createEventDispatcher<{
-    enteredit: void;
-    exitedit: void;
-    focusout: void;
-    change: string | null;
-    cancel: void;
-    clear: null;
-  }>();
-  
+  const dispatch = createEventDispatcher<CellEvents<string | null>>();
   const { processStringSync } = getContext("sdk") as any;
 
   // Props
   export let value: string | null;
   export let formattedValue: string | undefined = undefined;
-  export let cellOptions: CellOptions = {
+  export let cellOptions: CellStringOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
@@ -65,7 +27,10 @@
   let editor: HTMLInputElement | HTMLTextAreaElement | undefined;
   let lastEdit: Date | undefined;
   let localValue: string | null = value;
-  let state: "View" | "Editing" = cellOptions?.initialState ?? "View";
+  let state: "View" | "Editing" =
+    (cellOptions?.initialState === "Loading"
+      ? "View"
+      : cellOptions?.initialState) ?? "View";
   let errors: string[] = [];
 
   // Reactive declarations
@@ -75,7 +40,7 @@
   $: isDirty = !!lastEdit && originalValue !== localValue;
   $: formattedValue = cellOptions?.template
     ? processStringSync(cellOptions.template, { value })
-    : value ?? undefined;
+    : (value ?? undefined);
   $: placeholder = cellOptions?.placeholder ?? "";
   $: textarea = cellOptions?.controlType === "textarea";
 
