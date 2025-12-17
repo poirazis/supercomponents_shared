@@ -192,7 +192,6 @@
         padding: unset;
 
         i {
-          font-size: 18px;
           color: var(--option-color);
           display: block;
         }

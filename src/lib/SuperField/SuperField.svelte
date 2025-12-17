@@ -7,7 +7,8 @@
   export let helpText;
   export let error;
   export let labelWidth;
-  export let height = "15rem";
+  export let height;
+  export let maxHeight;
 
   let showHelp;
   $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
@@ -19,6 +20,7 @@
   class:multirow
   class:tall
   style:--height={height}
+  style:--max-height={maxHeight}
 >
   {#if labelPos}
     <div
@@ -63,6 +65,7 @@
     flex-direction: column;
     align-items: stretch;
     overflow: hidden;
+    min-height: var(--height);
 
     &.multirow {
       max-height: var(--height);

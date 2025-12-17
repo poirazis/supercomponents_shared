@@ -433,13 +433,14 @@
             on:mouseenter={() => (focusedOptionIdx = idx)}
           >
             <i
+              style:color={$colors[option]}
               class={radios && localValue.includes(option)
-                ? "ri-checkbox-circle-fill"
+                ? "ph-fill ph-radio-button"
                 : radios
-                  ? "ri-checkbox-blank-circle-fill"
+                  ? "ph ph-circle"
                   : localValue.includes(option)
-                    ? "ri-checkbox-fill"
-                    : "ri-checkbox-blank-fill"}
+                    ? "ph-fill ph-check-square"
+                    : "ph ph-square"}
             />
             {labels[option] || option}
           </div>
@@ -620,6 +621,7 @@
     text-overflow: ellipsis;
     overflow: hidden;
     max-width: 100%;
+    gap: 0.35rem;
   }
 
   .button:hover {

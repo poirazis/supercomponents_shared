@@ -62,6 +62,7 @@
           rows.forEach((row) => {
             $options.push(row[valueColumn]?.toString());
             labels[row[valueColumn]] = row[labelColumn || valueColumn];
+            if (colorColumn) optionColors[row[valueColumn]] = row[colorColumn];
           });
         }
         $options = $options;
@@ -616,7 +617,7 @@
               style:--option-color={$colors[val] ||
                 colorsArray[idx % colorsArray.length]}
             >
-              <i class="ri-checkbox-blank-fill" />
+              <i class={"ph-fill ph-square"} />
               <span> {isObjects ? "JSON" : labels[val] || val} </span>
             </div>
           {/each}
@@ -642,7 +643,7 @@
     {open}
     on:close={editorState.close}
   >
-    <div class="picker">
+    <div class="picker" on:mousedown|stopPropagation|preventDefault>
       {#if searchTerm && !isEmpty}
         <div class="searchControl">
           <i
@@ -676,7 +677,12 @@
               on:mouseenter={() => (focusedOptionIdx = idx)}
             >
               <span>
-                <i class={"ph-fill ph-square"} />
+                <i
+                  class={iconColumn
+                    ? "ph ph-" + $fetch?.rows?.[idx]?.[iconColumn]
+                    : "ph-fill ph-square"}
+                  style:color={$colors[option]}
+                />
                 {labels[option] || option}
               </span>
               <i class="ph ph-check" />

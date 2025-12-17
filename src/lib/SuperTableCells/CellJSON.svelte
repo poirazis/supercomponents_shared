@@ -66,7 +66,6 @@
         isValidJson = true;
       },
     },
-    Loading: {},
     View: {
       _enter() {
         localValue = normalizedValue;
@@ -74,33 +73,6 @@
       },
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
-        else return "Flashing";
-      },
-    },
-    Flashing: {
-      _enter() {
-        this.returnToView.debounce(230);
-      },
-      returnToView() {
-        return "View";
-      },
-    },
-    Disabled: {},
-    Focused: {},
-    Error: {
-      _enter() {
-        this.check.debounce(230);
-      },
-      check() {
-        return "View";
-      },
-    },
-    Readonly: {
-      _enter() {
-        this.check.debounce(230);
-      },
-      check() {
-        return "View";
       },
     },
     Editing: {

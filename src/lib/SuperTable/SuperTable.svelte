@@ -709,6 +709,8 @@
     },
     deleteRow: async (index) => {
       let row = $stbData?.rows[index];
+      $stbRowMetadata[index]["disabled"] = true;
+      await tick();
       let id = row[idColumn];
 
       if (!id || !tableId) return;
@@ -767,6 +769,16 @@
         .map((id) => tableAPI.getRowById(id))
         .filter((row) => row);
       let idsToDelete = rowsToDelete.map((row) => row._id);
+
+      rowsToDelete.forEach((row) => {
+        const rowIndex = $stbData.rows.indexOf(row);
+        if (rowIndex !== -1) {
+          $stbRowMetadata[rowIndex]["disabled"] = true;
+        }
+      });
+
+      await tick();
+
       let autoDelete = [
         {
           parameters: {

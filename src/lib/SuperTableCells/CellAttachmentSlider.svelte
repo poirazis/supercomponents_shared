@@ -83,17 +83,6 @@
         if (!cellOptions.readonly) return "Editing";
       },
     },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
     Editing: {
       _enter() {
         originalValue = value;
