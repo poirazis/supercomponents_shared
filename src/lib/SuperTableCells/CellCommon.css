@@ -405,10 +405,23 @@
 
 .superCell.inline {
   position: relative;
-  border: unset;
+  border: 1px solid transparent;
   border-radius: 2px;
   min-height: 1.8rem;
   min-width: unset;
+  transition: all 130ms;
+}
+
+.superCell.inline:hover:not(.disabled):not(.readonly) {
+  background-color: var(--spectrum-global-color-gray-50);
+  border: 1px solid var(--spectrum-global-color-gray-300);
+  cursor: pointer;
+}
+
+.superCell.inline.inEdit {
+  background-color: var(--spectrum-global-color-gray-50);
+  border: 1px solid var(--spectrum-global-color-blue-400);
+  cursor: text;
 }
 
 .superCell.inline.disabled {

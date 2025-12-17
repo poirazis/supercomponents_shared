@@ -41,16 +41,32 @@
       : cellOptions?.initialState) ?? "View";
   let errors = [];
 
+  // Destructure cellOptions for cleaner template
+  $: ({
+    controlType,
+    role,
+    disabled,
+    readonly,
+    error: optionError,
+    icon: optionIcon,
+    color,
+    background,
+    showDirty,
+    template,
+    placeholder: placeholderText,
+    debounce: debounceDelay,
+  } = cellOptions ?? {});
+
   // Reactive declarations
-  $: error = cellOptions?.error || errors.length > 0;
-  $: icon = error ? "ph ph-warning" : cellOptions?.icon;
+  $: error = optionError || errors.length > 0;
+  $: icon = error ? "ph ph-warning" : optionIcon;
   $: inEdit = $cellState === "Editing";
   $: isDirty = !!lastEdit && value !== localValue;
-  $: formattedValue = cellOptions?.template
-    ? processStringSync(cellOptions.template, { value })
+  $: formattedValue = template
+    ? processStringSync(template, { value })
     : (value ?? undefined);
-  $: placeholder = cellOptions?.placeholder ?? "";
-  $: textarea = cellOptions?.controlType === "textarea";
+  $: placeholder = placeholderText ?? "";
+  $: textarea = controlType === "textarea";
 
   // Reset when value changes externally
   $: cellState.reset(value);
@@ -74,7 +90,7 @@
         localValue = value;
       },
       focus() {
-        if (!cellOptions.readonly && !cellOptions.disabled) {
+        if (!readonly && !disabled) {
           return "Editing";
         }
       },
@@ -94,7 +110,7 @@
         editor?.focus();
       },
       clear() {
-        if (cellOptions.debounce) {
+        if (debounceDelay) {
           dispatch("change", null);
         }
         lastEdit = new Date();
@@ -121,11 +137,11 @@
         const target = e.target;
         localValue = target.value;
         lastEdit = new Date();
-        if (cellOptions?.debounce) {
+        if (debounceDelay) {
           clearTimeout(timer);
           timer = setTimeout(() => {
             dispatch("change", localValue);
-          }, cellOptions.debounce ?? 0);
+          }, debounceDelay);
         }
       },
       handleKeyboard(e) {
@@ -184,19 +200,18 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   class="superCell"
-  class:multirow={cellOptions.controlType == "textarea"}
-  class:textarea={cellOptions.controlType == "textarea"}
+  class:multirow={controlType == "textarea"}
+  class:textarea={controlType == "textarea"}
   class:inEdit
-  class:isDirty={isDirty && cellOptions.showDirty}
-  class:inline={cellOptions.role == "inlineInput"}
-  class:tableCell={cellOptions.role == "tableCell"}
-  class:formInput={cellOptions.role == "formInput"}
-  class:disabled={cellOptions.disabled}
-  class:readonly={cellOptions.readonly}
-  class:error={cellOptions.error}
-  style:color={cellOptions.color}
-  style:background={cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
+  class:isDirty={isDirty && showDirty}
+  class:inline={role == "inlineInput"}
+  class:tableCell={role == "tableCell"}
+  class:formInput={role == "formInput"}
+  class:disabled
+  class:readonly
+  class:error
+  style:color
+  style:background
 >
   {#if icon}
     <i class={icon + " field-icon"} class:with-error={error}></i>
