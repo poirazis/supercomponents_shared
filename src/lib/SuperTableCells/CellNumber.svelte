@@ -52,7 +52,7 @@
 
   // Helper function to format number with thousands separator
   function formatNumber(num, separator, decimals) {
-    if (num == null) return "";
+    if (!num && num !== 0) return "";
     const fixed = num.toFixed(decimals ?? 0);
     if (!separator) return fixed;
 
@@ -123,7 +123,7 @@
       },
       submit() {
         if (isDirty) {
-          dispatch("change", localValue);
+          dispatch("change", Number(localValue));
         }
         return state;
       },
@@ -238,6 +238,7 @@
       },
       handleWheel(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (e.shiftKey) {
           if (e.deltaX < 0) {
             this.increment(e);

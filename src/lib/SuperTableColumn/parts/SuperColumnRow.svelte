@@ -52,7 +52,7 @@
 
       setTimeout(() => {
         info = undefined;
-      }, 2250);
+      }, 3250);
     } finally {
       value = deepGet(row, field);
     }

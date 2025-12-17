@@ -812,8 +812,9 @@
       // We can only patch tables
       if (!tableId) return;
       patch = tableAPI.unflattenObject(patch);
+      let row;
 
-      let row = await API.patchRow(
+      row = await API.patchRow(
         {
           tableId,
           ...patch,
