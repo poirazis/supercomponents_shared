@@ -83,17 +83,6 @@
         if (!cellOptions.readonly) return "Editing";
       },
     },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
     Editing: {
       _enter() {
         originalValue = value;
@@ -421,27 +410,8 @@
     font-weight: bold;
   }
 
-  .slider-image:hover .slider-image-overlay {
-    opacity: 1;
-  }
-
   .slider-image:hover .slot-container {
     opacity: 1;
-  }
-  .slider-image-overlay {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    padding: 0.25rem;
-    font-size: 12px;
-    text-align: center;
-    box-sizing: border-box;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 0;
   }
 
   .slider-fallback {

@@ -7,6 +7,7 @@ export { default as CellDateRange } from "./CellDateRange.svelte";
 export { default as CellIcon } from "./CellIcon.svelte";
 export { default as CellJSON } from "./CellJSON.svelte";
 export { default as CellLink } from "./CellLink.svelte";
+export { default as CellSQLLink } from "./CellSQLLink.svelte";
 export { default as CellLinkAdvanced } from "./CellLinkAdvanced.svelte";
 export { default as CellLinkPickerSelect } from "./CellLinkPickerSelect.svelte";
 export { default as CellLinkPickerTree } from "./CellLinkPickerTree.svelte";
@@ -21,5 +22,5 @@ export { default as CellTags } from "./CellTags.svelte";
 export { default as CellAttachmentExpanded } from "./CellAttachmentExpanded.svelte";
 export { default as CellAttachmentSlider } from "./CellAttachmentSlider.svelte";
 
-// Export utilities from this directory
-export * as remixIcons from "./remixIcons.js";
+// Export types for TypeScript consumers
+export * from "./types";

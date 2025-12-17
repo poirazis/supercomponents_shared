@@ -1,6 +1,8 @@
 <script>
   import { getContext } from "svelte";
 
+  import Checkbox from "../../UI/elements/Checkbox.svelte";
+
   const stbState = getContext("stbState");
   const stbSettings = getContext("stbSettings");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
@@ -15,7 +17,6 @@
   export let hideSelectionColumn;
   export let stbData;
 
-  $: idColumn = $stbSettings.data.idColumn;
   $: partialSelection =
     $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
 
@@ -25,12 +26,14 @@
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
   $: canDelete = $stbSettings.features.canDelete;
-
   $: sticky = $stbHorizontalScrollPos > 0;
-
   $: visible = numbering || checkBoxes || canDelete;
   $: zebra = $stbSettings.appearance.zebraColors;
   $: quiet = $stbSettings.appearance.quiet;
+  $: headerCheckbox =
+    checkBoxes &&
+    $stbSettings.features.maxSelected != 1 &&
+    $stbVisibleRows.length > 0;
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -43,15 +46,12 @@
           <span class="row-number"></span>
         {/if}
 
-        {#if checkBoxes && $stbSettings.features.maxSelected != 1 && $stbVisibleRows.length > 0}
-          <div
-            class="checkbox"
-            class:selected={fullSelection}
-            class:partialSelection
-            on:click={stbAPI.selectAllRows}
-          >
-            <i class="ri-check-line" style:visibility={"hidden"} />
-          </div>
+        {#if headerCheckbox}
+          <Checkbox
+            checked={fullSelection}
+            partial={partialSelection}
+            on:change={stbAPI.selectAllRows}
+          />
         {/if}
 
         {#if canDelete}
@@ -74,45 +74,40 @@
       class:sticky
       style:margin-top={"var(--super-column-top-offset)"}
     >
-      {#each $stbVisibleRows as visibleRow}
-        {@const row = $stbData?.rows?.[visibleRow]}
-        {@const selected = $stbSelected?.includes(row[idColumn] ?? visibleRow)}
-        {#if row}
-          <div
-            class="super-row selection"
-            class:is-selected={selected}
-            class:is-hovered={$stbHovered == visibleRow ||
-              $stbMenuID == visibleRow}
-            class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
-            style:min-height={$stbRowMetadata[visibleRow]?.height}
-            on:mouseenter={() => ($stbHovered = visibleRow)}
-            on:mouseleave={() => ($stbHovered = null)}
-          >
-            {#if numbering}
-              <div class="row-number">
-                {visibleRow + 1}
-              </div>
-            {/if}
+      {#each $stbVisibleRows as visibleRow (visibleRow)}
+        {@const selected = $stbRowMetadata[visibleRow]?.selected}
+        <div
+          class="super-row selection"
+          class:is-selected={selected}
+          class:is-hovered={$stbHovered == visibleRow ||
+            $stbMenuID == visibleRow}
+          class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
+          style:min-height={$stbRowMetadata[visibleRow]?.height}
+          on:mouseenter={() => ($stbHovered = visibleRow)}
+          on:mouseleave={() => ($stbHovered = null)}
+        >
+          {#if numbering}
+            <div class="row-number">
+              {visibleRow + 1}
+            </div>
+          {/if}
 
-            {#if $stbSettings.features.canSelect && !hideSelectionColumn}
-              <div
-                class="checkbox"
-                class:selected
-                on:click={() => stbAPI.selectRow(visibleRow)}
-              >
-                <i class="ri-check-line" style:visibility={"hidden"} />
-              </div>
-            {/if}
+          {#if $stbSettings.features.canSelect && !hideSelectionColumn}
+            <Checkbox
+              checked={selected}
+              disabled={$stbRowMetadata[visibleRow]?.disabled}
+              on:change={() => stbAPI.selectRow(visibleRow)}
+            />
+          {/if}
 
-            {#if canDelete}
-              <i
-                class="ri-delete-bin-line delete"
-                class:selected
-                on:click={(e) => stbAPI.deleteRow(visibleRow)}
-              />
-            {/if}
-          </div>
-        {/if}
+          {#if canDelete}
+            <i
+              class="ri-delete-bin-line delete"
+              class:selected
+              on:click={(e) => stbAPI.deleteRow(visibleRow)}
+            />
+          {/if}
+        </div>
       {/each}
 
       {#if $stbState == "Inserting"}
@@ -170,30 +165,6 @@
 
     &:hover:not(.disabled) {
       cursor: pointer;
-    }
-  }
-
-  .checkbox {
-    width: 14px;
-    height: 14px;
-    border: 1px solid var(--spectrum-global-color-gray-500);
-    background-color: var(--spectrum-global-color-gray-50);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-
-    &.selected {
-      border: 1px solid var(--spectrum-global-color-gray-600);
-      & > i {
-        visibility: visible !important;
-        color: var(--spectrum-global-color-gray-700);
-      }
-    }
-
-    &.partialSelection {
-      border-color: var(--spectrum-global-color-green-700);
     }
   }
 </style>

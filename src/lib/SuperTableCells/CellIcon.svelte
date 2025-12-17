@@ -6,7 +6,7 @@
     ICON_CATEGORIES,
     ICONS_BY_CATEGORY,
   } from "./phosphorIcons";
-  import VirtualList from "svelte-virtual-list";
+  import VirtualList from "@sveltejs/svelte-virtual-list";
 
   // Initialize categories with the correct structure
   $: categories = Object.entries(ICON_CATEGORIES).map(([id, label]) => ({

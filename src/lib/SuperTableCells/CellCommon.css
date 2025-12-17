@@ -192,7 +192,6 @@
         padding: unset;
 
         i {
-          font-size: 18px;
           color: var(--option-color);
           display: block;
         }
@@ -294,11 +293,11 @@
   min-height: 2rem;
 
   &:focus-within:not(.naked-field) {
-    border: 1px solid var(--spectrum-global-color-blue-400) !important;
+    border: 1px solid var(--spectrum-global-color-blue-400);
   }
 
   &.inEdit:not(.naked-field) {
-    border: 1px solid var(--spectrum-global-color-blue-400) !important;
+    border: 1px solid var(--spectrum-global-color-blue-400);
   }
 
   &:hover:not(.disabled):not(.readonly):not(.inEdit) {
@@ -328,6 +327,10 @@
 
   &.error {
     border-color: var(--spectrum-global-color-red-400) !important;
+  }
+
+  &.isDirty {
+    border-left: 2px solid var(--spectrum-global-color-orange-400) !important;
   }
 
   &.naked-field:focus-within {
@@ -402,10 +405,23 @@
 
 .superCell.inline {
   position: relative;
-  border: unset;
+  border: 1px solid transparent;
   border-radius: 2px;
   min-height: 1.8rem;
   min-width: unset;
+  transition: all 130ms;
+}
+
+.superCell.inline:hover:not(.disabled):not(.readonly) {
+  background-color: var(--spectrum-global-color-gray-50);
+  border: 1px solid var(--spectrum-global-color-gray-300);
+  cursor: pointer;
+}
+
+.superCell.inline.inEdit {
+  background-color: var(--spectrum-global-color-gray-50);
+  border: 1px solid var(--spectrum-global-color-blue-400);
+  cursor: text;
 }
 
 .superCell.inline.disabled {

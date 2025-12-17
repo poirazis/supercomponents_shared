@@ -19,7 +19,6 @@
   import CellAttachment from "../SuperTableCells/CellAttachment.svelte";
 
   import CellStringSimple from "../SuperTableCells/CellStringSimple.svelte";
-  import CellLinkAdvanced from "../SuperTableCells/CellLinkAdvanced.svelte";
 
   const stbSettings = getContext("stbSettings");
   const stbSortColumn = getContext("stbSortColumn");
@@ -79,10 +78,9 @@
   let startWidth = 0;
   let width;
 
-  let lockWidth = memo(0);
-
   let sorted;
   let viewport;
+  let lockWidth = memo(0);
 
   $: inBuilder = $builderStore?.inBuilder;
   $: columnOptionsStore.set({

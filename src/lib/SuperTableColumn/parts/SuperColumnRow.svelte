@@ -1,20 +1,13 @@
 <script>
-  import {
-    getContext,
-    createEventDispatcher,
-    onMount,
-    onDestroy,
-  } from "svelte";
+  import { getContext, onDestroy } from "svelte";
 
   const { Provider, ContextScopes } = getContext("sdk");
 
-  const dispatch = createEventDispatcher();
   const columnSettings = getContext("stColumnOptions");
   const columnState = getContext("stColumnState");
   const rowCellOptions = getContext("stRowCellOptions");
   const rowMetadata = getContext("stbRowMetadata");
   const stbHovered = getContext("stbHovered");
-  const stbSelected = getContext("stbSelected");
   const stbEditing = getContext("stbEditing");
   const stbAPI = getContext("stbAPI");
   const stbState = getContext("stbState");
@@ -30,7 +23,6 @@
 
   // the default height
   export let rowHeight;
-  let mounted;
   let viewport;
   let info;
 
@@ -38,7 +30,7 @@
   $: id = row?.[idField] ?? index;
   $: value = deepGet(row, field);
   $: isHovered = $stbHovered == index || $stbMenuID == index;
-  $: isSelected = $stbSelected.includes(id);
+  $: isSelected = $rowMetadata?.[index]?.selected ?? false;
   $: hasChildren = $columnSettings.hasChildren > 0;
 
   const patchRow = async (change) => {
@@ -60,7 +52,7 @@
 
       setTimeout(() => {
         info = undefined;
-      }, 2250);
+      }, 3250);
     } finally {
       value = deepGet(row, field);
     }
@@ -80,7 +72,6 @@
       return obj;
     } else return obj[path] ?? undefined;
   };
-  onMount(() => (mounted = $columnSettings.superColumn));
 
   onDestroy(() => {
     if ($stbEditing == index) {
@@ -133,7 +124,7 @@
     <Provider
       data={{
         id,
-        value: row[field],
+        value,
         row,
         index,
       }}

@@ -8,7 +8,6 @@
     SearchFilters,
   } from "@budibase/types";
 
-  import "./SuperTable.css";
   import {
     sizingMap,
     defaultOperatorMap,
@@ -33,6 +32,7 @@
   // Sections
   import ControlSection from "./controls/ControlSection.svelte";
   import ColumnsSection from "./controls/ColumnsSection.svelte";
+  import PaginationLimitOffset from "./controls/PaginationLimitOffset.svelte";
 
   const {
     API,
@@ -59,11 +59,11 @@
 
   // Properties
   export let dataSource;
-  export let idColumn = "_id";
+
   export let sortColumn;
   export let sortOrder;
   export let limit = 50;
-  export let fetchOnScroll = true;
+
   export let autoRefreshRate;
   export let paginate;
   export let filter;
@@ -136,7 +136,7 @@
   const filterStore = memo(filter);
 
   $: dataSourceStore.set(dataSource);
-
+  $: tableAPI.decidePagination($dataSourceStore);
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
 
@@ -152,6 +152,10 @@
     : sizingMap[size].rowHeight;
 
   // Internal Variables
+  let tableId;
+  let idColumn;
+  let pagination;
+  let fetchOnScroll = false;
   let timer;
 
   let highlighted;
@@ -168,10 +172,10 @@
   let overflow;
   let isEmpty;
   let _limit = limit;
-  let start = 0;
-  let end = 0;
-  let initializing = true;
+  let initializing = false;
   let initTimer;
+  let start,
+    end = 0;
 
   let stbData = writable({ rows: [], count: 0, definition: {} });
 
@@ -179,8 +183,6 @@
   let scrollLockTimeout;
   let isScrolling = false;
   let tableWidth = 0;
-
-  let loadedId = null;
 
   // Keep track of the applied query extentions when filtering
   let stbColumnFilters = new Set();
@@ -247,7 +249,7 @@
       maxSelected,
       canFilter,
       canEdit,
-      canDelete,
+      canDelete: canDelete && tableId,
       canInsert,
       canResize,
     },
@@ -297,6 +299,16 @@
   });
 
   const createFetch = (datasource) => {
+    if (datasource.parameters) {
+      datasource = {
+        ...datasource,
+        queryParams: {
+          ...datasource.queryParams,
+          limit: limit,
+        },
+      };
+    }
+
     return fetchData({
       API,
       datasource,
@@ -305,7 +317,7 @@
         sortColumn,
         sortOrder,
         limit,
-        paginate: false,
+        paginate: true,
       },
     });
   };
@@ -339,6 +351,8 @@
       let autocolumnsList = [];
       let specialColumnsList = [];
       let columns = [];
+
+      idColumn = tableAPI.detectPK($stbData);
 
       if (schema) {
         if (list?.length) {
@@ -392,6 +406,7 @@
       let type;
       let columnSchema;
       let isSelf;
+      let tableId = dataSource?.tableId;
 
       if (bbcolumn.name.includes(".")) {
         let words = bbcolumn.name.split(".");
@@ -417,9 +432,17 @@
         if (bbcolumn.name.startsWith("fk_self_")) {
           isSelf = true;
           type = "link";
+
+          bbcolumn.displayName =
+            bbcolumn.displayName ||
+            bbcolumn.name
+              .replace("fk_self_", "")
+              .replace("_id", "")
+              .replace(/_/g, " ");
+
           columnSchema = {
             ...columnSchema,
-            tableId: $dataSourceStore.tableId,
+            tableId: tableId,
             relationshipType: "self",
             recursiveTable: true,
             primaryDisplay: $stbData?.definition?.primaryDisplay,
@@ -433,6 +456,8 @@
         widthOverride: bbcolumn.width,
         readonly: columnSchema?.readonly,
         canEdit:
+          !inBuilder &&
+          tableId &&
           supportEditingMap[type] &&
           canEdit &&
           !columnSchema?.readonly &&
@@ -444,7 +469,9 @@
         defaultFilteringOperator: defaultOperatorMap[type],
         headerAlign: bbcolumn.align ? bbcolumn.align : "flex-start",
         type,
-        displayName: beautifyLabel(bbcolumn.displayName ?? bbcolumn.name),
+        displayName: tableAPI.beautifyLabel(
+          bbcolumn.displayName ?? bbcolumn.name
+        ),
         schema: columnSchema,
       };
     },
@@ -466,6 +493,11 @@
         columnStates.splice(pos, 1);
         columnStates = columnStates;
       }
+    },
+    shouldDisableButton: (disableTemplate, context) => {
+      if (!disableTemplate) return false;
+      let result = processStringSync(disableTemplate, context);
+      return result;
     },
     shouldShowButton: (conditions, context) => {
       function parseValue(val, typ) {
@@ -585,7 +617,7 @@
       tableAPI.executeRowButtonAction(null, action);
     },
     selectRow: (index) => {
-      let id = $stbData?.rows[index][idColumn] ?? index;
+      let id = tableAPI.getRowId($stbData?.rows[index], index);
       let disabled = $stbRowMetadata[index]["disabled"];
 
       if (maxSelected != 1) {
@@ -616,10 +648,8 @@
     },
     selectAllRows: () => {
       if ($stbSelected.length != $stbData?.rows.length)
-        $stbSelected = $stbData?.rows.map((x) => x[idColumn]);
+        $stbSelected = $stbData?.rows.map((x, i) => tableAPI.getRowId(x, i));
       else $stbSelected = [];
-
-      tableAPI.executeRowOnSelectAction();
     },
     clearSelection: () => {
       $stbSelected = [];
@@ -678,18 +708,24 @@
       }
     },
     deleteRow: async (index) => {
-      let id = $stbData?.rows[index][idColumn];
       let row = $stbData?.rows[index];
+      $stbRowMetadata[index]["disabled"] = true;
+      await tick();
+      let id = row[idColumn];
+
+      if (!id || !tableId) return;
 
       let autoDelete = [
         {
           parameters: {
             confirm: true,
-            notificationOverride: true,
+            notificationOverride: false,
             customTitleText: "Delete " + (entitySingular || "Row") + " ?",
             confirmText:
               "Are you sure you want to delete this " +
               (entitySingular || "Row") +
+              "ID" +
+              id +
               " ?",
             tableId: tableId,
             rowId: id,
@@ -717,8 +753,11 @@
       await cmd_after?.({ row });
 
       // Remove row from the selected list if selected
-      if ($stbSelected.includes(id)) {
-        $stbSelected.splice($stbSelected.indexOf(id), 1);
+      if ($stbSelected.includes(tableAPI.getRowId(row, index))) {
+        $stbSelected.splice(
+          $stbSelected.indexOf(tableAPI.getRowId(row, index)),
+          1
+        );
         $stbSelected = $stbSelected;
       }
 
@@ -726,6 +765,20 @@
       stbData.refresh();
     },
     deleteSelectedRows: async () => {
+      let rowsToDelete = $stbSelected
+        .map((id) => tableAPI.getRowById(id))
+        .filter((row) => row);
+      let idsToDelete = rowsToDelete.map((row) => row._id);
+
+      rowsToDelete.forEach((row) => {
+        const rowIndex = $stbData.rows.indexOf(row);
+        if (rowIndex !== -1) {
+          $stbRowMetadata[rowIndex]["disabled"] = true;
+        }
+      });
+
+      await tick();
+
       let autoDelete = [
         {
           parameters: {
@@ -742,38 +795,136 @@
               (entityPlural || "Rows") +
               " ?",
             tableId: tableId,
-            rowId: $stbSelected.map((x) => ({ _id: x.toString() })),
+            rowId: idsToDelete.map((x) => ({ _id: x.toString() })),
           },
           "##eventHandlerType": "Delete Row",
         },
       ];
       let cmd = enrichButtonActions(autoDelete, {});
       let cmd_after = enrichButtonActions(afterDelete, $context);
-      $stbSelected = [];
+
       await cmd?.();
       await cmd_after?.();
+
       stbData.refresh();
     },
     patchRow: async (patch) => {
+      // We can only patch tables
+      if (!tableId) return;
       patch = tableAPI.unflattenObject(patch);
-      if (tableId) {
-        let row = await API.patchRow(
-          {
-            tableId,
-            ...patch,
-          },
-          true
-        );
+      let row;
 
-        stbState.refresh();
-        let richContext = {
-          ...$context,
-          [comp_id]: { row },
-        };
-        let cmd_after = enrichButtonActions(afterEdit, richContext);
-        await cmd_after?.({ row });
-        return row;
+      row = await API.patchRow(
+        {
+          tableId,
+          ...patch,
+        },
+        true
+      );
+
+      stbState.refresh();
+      let richContext = {
+        ...$context,
+        [comp_id]: { row },
+      };
+      let cmd_after = enrichButtonActions(afterEdit, richContext);
+      await cmd_after?.({ row });
+      return row;
+    },
+    getRowId: (row, index) => {
+      if (idColumn) {
+        return row[idColumn]?.toString() ?? index.toString();
+      } else {
+        return index.toString();
       }
+    },
+    getRowById: (id) => {
+      if (idColumn) {
+        return $stbData.rows.find((row) => row[idColumn]?.toString() === id);
+      } else {
+        return $stbData.rows[parseInt(id)];
+      }
+    },
+    extendQuery: (
+      defaultQuery: SearchFilters,
+      extensions: Record<string, any>
+    ): SearchFilters => {
+      if (!Object.keys(extensions).length) {
+        return defaultQuery;
+      }
+      const extended: SearchFilters = {
+        [LogicalOperator.AND]: {
+          conditions: [
+            ...(defaultQuery ? [defaultQuery] : []),
+            ...Object.values(extensions || {}),
+          ],
+        },
+        onEmptyFilter: EmptyFilterOption.RETURN_NONE,
+      };
+
+      // If there are no conditions applied at all, clear the request.
+      return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
+        ? extended
+        : {};
+    },
+    addQueryExtension: (key, extension) => {
+      if (!key || !extension) {
+        return;
+      }
+      queryExtensions = { ...queryExtensions, [key]: extension };
+    },
+    removeQueryExtension: (key) => {
+      if (!key) {
+        return;
+      }
+      const newQueryExtensions = { ...queryExtensions };
+      delete newQueryExtensions[key];
+      queryExtensions = newQueryExtensions;
+    },
+    beautifyLabel: (label) => {
+      if (!beautifyLabels || !label) return label;
+
+      let fields = label.split(".");
+      fields.forEach((field, index) => {
+        let words = field.split("_");
+        words.forEach((word, index) => {
+          if (word) words[index] = word[0]?.toUpperCase() + word?.slice(1);
+        });
+        fields[index] = words.join(" ");
+      });
+      return fields.join(" - ");
+    },
+    detectPK: (fetchState) => {
+      if (fetchState?.definition?.primary?.length === 1)
+        return fetchState.definition.primary[0];
+      const schema = fetchState?.definition?.schema || fetchState?.schema || {};
+      if ("id" in schema) return "id";
+      if ("_id" in schema) return "_id";
+      return null;
+    },
+    loadPreSelections: (ids) => {
+      $stbSelected = Array.isArray(ids)
+        ? ids.map((s) => s.toString())
+        : typeof ids === "string"
+          ? ids.split(",").map((s) => s.trim())
+          : ids
+            ? [ids]
+            : [];
+    },
+    decidePagination: (ds) => {
+      if (!ds) {
+        pagination = "none";
+        return;
+      }
+
+      if (ds.parameters && ds.parameters.length) {
+        const paramNames = ds.parameters.map((p) => p.name.toLowerCase());
+        if (paramNames.includes("offset") && paramNames.includes("limit"))
+          pagination = "limitOffset";
+      } else if (dataSource.tableId) pagination = "cursor";
+      else pagination = "none";
+
+      fetchOnScroll = pagination == "cursor";
     },
   };
 
@@ -786,37 +937,47 @@
       refresh() {
         stbData?.refresh();
       },
-      enrichRows() {
-        if ($stbData?.loading) return;
+      enrichRows(
+        stbData,
+        rowBGColorTemplate,
+        rowColorTemplate,
+        rowHeight,
+        rowDisabledTemplate,
+        stbSelected
+      ) {
+        if (stbData?.loading) return;
 
-        $stbRowMetadata = $stbData?.rows?.map((row) => ({
-          height: rowHeight
-            ? toNumber(
-                processStringSync(rowHeight, {
+        $stbRowMetadata = stbData?.rows?.map((row, index) => {
+          return {
+            height: rowHeight
+              ? toNumber(
+                  processStringSync(rowHeight, {
+                    ...$context,
+                    [comp_id]: { row },
+                  })
+                ) || $stbSettings.appearance.rowHeight
+              : $stbSettings.appearance.rowHeight,
+            bgcolor: rowBGColorTemplate
+              ? processStringSync(rowBGColorTemplate, {
                   ...$context,
                   [comp_id]: { row },
                 })
-              ) || $stbSettings.appearance.rowHeight
-            : $stbSettings.appearance.rowHeight,
-          bgcolor: rowBGColorTemplate
-            ? processStringSync(rowBGColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          color: rowColorTemplate
-            ? processStringSync(rowColorTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-          disabled: rowDisabledTemplate
-            ? processStringSync(rowDisabledTemplate, {
-                ...$context,
-                [comp_id]: { row },
-              })
-            : undefined,
-        })) || [{}];
+              : undefined,
+            color: rowColorTemplate
+              ? processStringSync(rowColorTemplate, {
+                  ...$context,
+                  [comp_id]: { row },
+                })
+              : undefined,
+            disabled: rowDisabledTemplate
+              ? processStringSync(rowDisabledTemplate, {
+                  ...$context,
+                  [comp_id]: { row },
+                })
+              : undefined,
+            selected: stbSelected.includes(tableAPI.getRowId(row, index)),
+          };
+        }) || [{}];
       },
       lockColumnWidths() {
         if (isScrolling) return; // Already locked
@@ -936,7 +1097,7 @@
             hasMoreData &&
             $stbScrollPos > 0
           ) {
-            stbState.fetchMoreRows(100); // Debounced fetch
+            stbState.fetchMoreRows(limit); // Debounced fetch
           }
         }
       },
@@ -1070,6 +1231,7 @@
     Init: {
       _enter() {
         if (timer) clearInterval(timer);
+        if (initTimer) clearTimeout(initTimer);
         start = 0;
         end = 0;
 
@@ -1089,6 +1251,9 @@
         }, 130);
       },
       synch(fetchState) {
+        tableId = $dataSourceStore.tableId;
+        tableAPI.loadPreSelections(preselectedIds);
+
         if (fetchState.loaded) {
           if (autoRefreshRate && !inBuilder) {
             timer = setInterval(() => {
@@ -1096,6 +1261,7 @@
               onRefresh?.();
             }, autoRefreshRate * 1000);
           }
+
           return "Idle";
         }
       },
@@ -1105,16 +1271,20 @@
         clearTimeout(initTimer);
         initializing = false;
         isEmpty = $stbData?.rows.length < 1;
+        this.calculateRowBoundaries();
       },
       _exit() {},
       synch(fetchState) {
         if (fetchState.loading && !fetchState.loaded) return;
         isEmpty = !$stbData?.rows.length;
+        if (fetchState.loaded) {
+          this.calculateRowBoundaries();
+        }
       },
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
         stbColumnFilters.add(filterObj.id);
-        addQueryExtension(filterObj.id, extention);
+        tableAPI.addQueryExtension(filterObj.id, extention);
         return "Filtered";
       },
       fetchMoreRows(size) {
@@ -1127,22 +1297,22 @@
       _exit() {},
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
-        removeQueryExtension(filterObj.id);
+        tableAPI.removeQueryExtension(filterObj.id);
         stbColumnFilters.add(filterObj.id);
-        addQueryExtension(filterObj.id, extention);
+        tableAPI.addQueryExtension(filterObj.id, extention);
       },
       removeFilter(id) {
         stbColumnFilters.delete(id);
-        removeQueryExtension(id);
+        tableAPI.removeQueryExtension(id);
       },
       clearFilter(id) {
         stbColumnFilters.delete(id);
-        removeQueryExtension(id);
+        tableAPI.removeQueryExtension(id);
         return "Idle";
       },
       clear() {
         stbColumnFilters.forEach((id) => {
-          removeQueryExtension(id);
+          tableAPI.removeQueryExtension(id);
         });
         stbColumnFilters.clear();
         columnStates.forEach(({ state }) => state.reset());
@@ -1151,6 +1321,7 @@
       synch(fetchState) {
         if (fetchState.loaded) {
           isEmpty = fetchState.rows.length < 1;
+          this.calculateRowBoundaries();
         }
       },
     },
@@ -1213,20 +1384,21 @@
     $stbData,
     rowBGColorTemplate,
     rowColorTemplate,
-    rowHeight
+    rowHeight,
+    rowDisabledTemplate,
+    $stbSelected
   );
-
-  $: if ($stbData?.rows) {
-    $stbSelected = $stbSelected.filter((id) =>
-      $stbData.rows.some((row) => row[idColumn] === id)
-    );
-  }
 
   $: stbSelectedRows = derivedMemo(
     [stbData, stbSelected, maxSelectedStore],
     ([$stbData, $stbSelected, $maxSelectedStore]) => {
-      const selectedRows = $stbData?.rows?.filter((row) =>
-        $stbSelected?.includes(row[idColumn])
+      if ($stbData?.rows) {
+        $stbSelected = $stbSelected.filter((id) =>
+          $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id)
+        );
+      }
+      const selectedRows = $stbData?.rows?.filter((row, i) =>
+        $stbSelected?.includes(tableAPI.getRowId(row, i))
       );
       if ($maxSelectedStore === 1) {
         return selectedRows.length > 0 ? selectedRows[0] : [];
@@ -1238,25 +1410,14 @@
   // Scroll to Top when filter changes
   $: stbState.scrollToTop(query);
 
-  $: if (canSelect) stbSelected.set(preselectedIds ?? []);
-  else stbSelected.set([]);
-
-  $: idColumn = $stbData?.definition?.primary?.[0]
-    ? $stbData?.definition?.primary?.[0]
-    : $stbSchema?.id
-      ? "id"
-      : "_id";
-
   // Data Related
   $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: query = extendQuery(defaultQuery, queryExtensions);
+  $: query = tableAPI.extendQuery(defaultQuery, queryExtensions);
   $: stbData?.update({
     query,
     sortColumn,
     sortOrder,
   });
-
-  $: tableId = $stbData?.definition?.tableId || $stbData?.definition?._id;
 
   // Derived Store with the columns to be rendered
   $: superColumns = derivedMemo(
@@ -1314,7 +1475,7 @@
     };
   });
 
-  $: dividersStyles = {
+  const tableStyles = derivedMemo(stbSettings, ($stbSettings: any) => ({
     color:
       $stbSettings.dividersColor ?? "var(--spectrum-global-color-gray-200)",
     horizontal:
@@ -1325,7 +1486,9 @@
       $stbSettings.dividers == "both" || $stbSettings.dividers == "vertical"
         ? "1px solid var(--super-table-devider-color)"
         : "none",
-  };
+    headerHeight: $stbSettings.appearance?.headerHeight || "0px",
+    footerHeight: $stbSettings.appearance?.footerHeight || "0px",
+  }));
 
   // Build our data and actions ontext
   $: actions = [
@@ -1339,20 +1502,25 @@
     },
     {
       type: ActionTypes.AddDataProviderQueryExtension,
-      callback: addQueryExtension,
+      callback: tableAPI.addQueryExtension,
     },
     {
       type: ActionTypes.RemoveDataProviderQueryExtension,
-      callback: removeQueryExtension,
+      callback: tableAPI.removeQueryExtension,
     },
   ];
 
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
     row: inBuilder ? $stbData?.rows[0] : {},
+    newRow: $new_row,
     rows: $stbData?.rows,
     selectedRows: $stbSelectedRows,
-    selectedIds: $stbSelected,
+    selectedIds: Array.isArray($stbSelectedRows)
+      ? $stbSelectedRows.map((row) => row[idColumn])
+      : $stbSelectedRows && typeof $stbSelectedRows === "object"
+        ? [$stbSelectedRows[idColumn]]
+        : [],
     id: $component.id,
     info: $stbData?.info,
     datasource: $dataSourceStore || {},
@@ -1363,68 +1531,11 @@
     loaded: $stbData?.loaded,
     rowsLength: $stbData?.rows.length,
     pageNumber: $stbData?.pageNumber + 1,
-    entitySingular,
-    entityPlural,
-    offset: 0,
-    limit: 100,
   };
 
   // Show Action Buttons Column
   $: showButtonColumnRight = rowMenu == "columnRight" && rowMenuItems?.length;
   $: showButtonColumnLeft = rowMenu == "columnLeft" && rowMenuItems?.length;
-
-  const extendQuery = (
-    defaultQuery: SearchFilters,
-    extensions: Record<string, any>
-  ): SearchFilters => {
-    if (!Object.keys(extensions).length) {
-      return defaultQuery;
-    }
-    const extended: SearchFilters = {
-      [LogicalOperator.AND]: {
-        conditions: [
-          ...(defaultQuery ? [defaultQuery] : []),
-          ...Object.values(extensions || {}),
-        ],
-      },
-      onEmptyFilter: EmptyFilterOption.RETURN_NONE,
-    };
-
-    // If there are no conditions applied at all, clear the request.
-    return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
-      ? extended
-      : {};
-  };
-
-  const addQueryExtension = (key, extension) => {
-    if (!key || !extension) {
-      return;
-    }
-    queryExtensions = { ...queryExtensions, [key]: extension };
-  };
-
-  const removeQueryExtension = (key) => {
-    if (!key) {
-      return;
-    }
-    const newQueryExtensions = { ...queryExtensions };
-    delete newQueryExtensions[key];
-    queryExtensions = newQueryExtensions;
-  };
-
-  const beautifyLabel = (label) => {
-    if (!beautifyLabels || !label) return label;
-
-    let fields = label.split(".");
-    fields.forEach((field, index) => {
-      let words = field.split("_");
-      words.forEach((word, index) => {
-        if (word) words[index] = word[0]?.toUpperCase() + word?.slice(1);
-      });
-      fields[index] = words.join(" ");
-    });
-    return fields.join(" - ");
-  };
 
   // Expose Context
   setContext("stbScrollPos", stbScrollPos);
@@ -1474,34 +1585,34 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-  class="super-table"
-  class:quiet
-  class:initializing
-  bind:this={viewport}
-  bind:clientWidth={tableWidth}
-  bind:clientHeight
-  style:font-size={sizingMap[size].rowFontSize}
-  style:--super-table-devider-color={dividersStyles.color}
-  style:--super-table-body-height={maxBodyHeight}
-  style:--super-table-header-height={$stbSettings.appearance.headerHeight}
-  style:--super-table-footer-height={$stbSettings.appearance.footerHeight}
-  style:--super-table-horizontal-dividers={dividersStyles.horizontal}
-  style:--super-table-vertical-dividers={dividersStyles.vertical}
-  style:--super-table-cell-padding={sizingMap[size].cellPadding}
-  style:--super-column-top-offset={$stbScrollOffset * -1}
-  on:mouseenter={() => (highlighted = true)}
-  on:mouseleave={() => {
-    highlighted = false;
-    $stbHovered = null;
-  }}
-  on:keydown={stbState.handleKeyboard}
-  on:wheel={stbState.handleWheel}
-  on:touchstart={(e) => stbState.handleTouch(e, "start")}
-  on:touchmove={(e) => stbState.handleTouch(e, "move")}
-  on:touchend={(e) => stbState.handleTouch(e, "end")}
->
-  {#key stbData}
+<div class="wrapper">
+  <div
+    class="super-table"
+    class:quiet
+    class:initializing
+    bind:this={viewport}
+    bind:clientWidth={tableWidth}
+    bind:clientHeight
+    style:font-size={sizingMap[size].rowFontSize}
+    style:--super-table-devider-color={$tableStyles.color}
+    style:--super-table-body-height={maxBodyHeight}
+    style:--super-table-header-height={$tableStyles.headerHeight}
+    style:--super-table-footer-height={$tableStyles.footerHeight}
+    style:--super-table-horizontal-dividers={$tableStyles.horizontal}
+    style:--super-table-vertical-dividers={$tableStyles.vertical}
+    style:--super-table-cell-padding={sizingMap[size].cellPadding}
+    style:--super-column-top-offset={$stbScrollOffset * -1}
+    on:mouseenter={() => (highlighted = true)}
+    on:mouseleave={() => {
+      highlighted = false;
+      $stbHovered = null;
+    }}
+    on:keydown={stbState.handleKeyboard}
+    on:wheel={stbState.handleWheel}
+    on:touchstart={(e) => stbState.handleTouch(e, "start")}
+    on:touchmove={(e) => stbState.handleTouch(e, "move")}
+    on:touchend={(e) => stbState.handleTouch(e, "end")}
+  >
     <Provider {actions} data={dataContext} />
 
     <ControlSection>
@@ -1600,5 +1711,23 @@
     {#if $stbData.loading && $stbData.loaded}
       <LoadingOverlay />
     {/if}
-  {/key}
+  </div>
+
+  <PaginationLimitOffset
+    {pagination}
+    {limit}
+    dataSource={dataSourceStore}
+    fetch={stbData}
+  />
 </div>
+
+<style>
+  .wrapper {
+    flex: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+    gap: 0.25rem;
+  }
+</style>

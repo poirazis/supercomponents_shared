@@ -8,15 +8,12 @@
   const stbData = getContext("stbData");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
   const stbHovered = getContext("stbHovered");
-  const stbSelected = getContext("stbSelected");
   const stbEditing = getContext("stbEditing");
   const stbMenuID = getContext("stbMenuID");
   const rowMetadata = getContext("stbRowMetadata");
   const stbVisibleRows = getContext("stbVisibleRows");
 
   const stbAPI = getContext("stbAPI");
-
-  const { processStringSync } = getContext("sdk");
 
   export let right;
   export let rowMenu;
@@ -29,7 +26,6 @@
 
   $: quiet = $stbSettings.appearance.quiet;
   $: menuIcon = $stbSettings.rowMenuIcon;
-  $: idColumn = $stbSettings.data.idColumn;
   $: sticky = $stbHorizontalScrollPos > 0 && !right;
   $: inInsert = $stbState == "Inserting";
 
@@ -65,12 +61,11 @@
     class:zebra={$stbSettings.appearance.zebraColors}
   >
     {#each $stbVisibleRows as visibleRow}
-      {@const row = $stbData?.rows?.[visibleRow]}
       <div
         class="super-row"
         on:mouseenter={() => ($stbHovered = visibleRow)}
         on:mouseleave={() => ($stbHovered = null)}
-        class:is-selected={$stbSelected?.includes(row[idColumn] ?? visibleRow)}
+        class:is-selected={$rowMetadata[visibleRow].selected}
         class:is-hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
         class:is-editing={$stbEditing == visibleRow}
         class:is-disabled={$rowMetadata[visibleRow].disabled}
@@ -83,17 +78,17 @@
           style:gap={inlineButtons.length > 1 ? "0.5rem" : "0rem"}
         >
           {#if rowMenu && inlineButtons?.length}
-            {#each inlineButtons as { text, icon, disabled, onClick, quiet, type, conditions }}
-              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext(row))}
+            {#each inlineButtons as { conditions, disabledTemplate, onClick, disabled, ...rest }}
+              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($stbData?.rows?.[visibleRow]))}
                 <SuperButton
-                  size="S"
-                  {icon}
-                  {text}
+                  {...rest}
                   disabled={disabled ||
                     $stbEditing == visibleRow ||
-                    $rowMetadata[visibleRow].disabled}
-                  {quiet}
-                  type={type == "primary" ? "ink" : type}
+                    $rowMetadata[visibleRow].disabled ||
+                    stbAPI.shouldDisableButton(
+                      disabledTemplate,
+                      stbAPI.enrichContext($stbData?.rows?.[visibleRow])
+                    )}
                   onClick={() => {
                     stbAPI.executeRowButtonAction(visibleRow, onClick);
                   }}
@@ -105,7 +100,6 @@
             <SuperButton
               size="S"
               icon={menuIcon}
-              fillOnHover="true"
               text=""
               quiet="true"
               type="secondary"

@@ -6,42 +6,72 @@
     onDestroy,
   } from "svelte";
   import fsm from "svelte-fsm";
+
+  /**
+   * @typedef {import('./types.js').CellStringOptions} CellStringOptions
+   * @typedef {import('./types.js').CellApi} CellApi
+   */
+
   const dispatch = createEventDispatcher();
   const { processStringSync } = getContext("sdk");
 
+  /** @type {string | null} */
   export let value;
-  export let formattedValue;
+
+  /** @type {string | undefined} */
+  export let formattedValue = undefined;
+
+  /** @type {CellStringOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
   };
-  export let autofocus;
 
+  export let autofocus = false;
+
+  // Local state
   let timer;
-  let originalValue;
-
   let editor;
   let lastEdit;
   let localValue = value;
-  let state = cellOptions?.initialState ?? "View";
+  let state =
+    (cellOptions?.initialState === "Loading"
+      ? "View"
+      : cellOptions?.initialState) ?? "View";
+  let errors = [];
 
-  $: errors = [];
-  $: error = cellOptions?.error || errors.length > 0;
-  $: icon = error ? "ph ph-warning" : cellOptions?.icon;
-  $: inEdit = $cellState == "Editing";
-  $: isDirty = lastEdit && originalValue != localValue;
-  $: formattedValue = cellOptions?.template
-    ? processStringSync(cellOptions.template, {
-        value,
-      })
-    : value;
+  // Destructure cellOptions for cleaner template
+  $: ({
+    controlType,
+    role,
+    disabled,
+    readonly,
+    error: optionError,
+    icon: optionIcon,
+    color,
+    background,
+    showDirty,
+    template,
+    placeholder: placeholderText,
+    debounce: debounceDelay,
+  } = cellOptions ?? {});
 
-  $: placeholder = cellOptions?.placeholder ?? "";
-  $: textarea = cellOptions?.controlType == "textarea";
+  // Reactive declarations
+  $: error = optionError || errors.length > 0;
+  $: icon = error ? "ph ph-warning" : optionIcon;
+  $: inEdit = $cellState === "Editing";
+  $: isDirty = !!lastEdit && value !== localValue;
+  $: formattedValue = template
+    ? processStringSync(template, { value })
+    : (value ?? undefined);
+  $: placeholder = placeholderText ?? "";
+  $: textarea = controlType === "textarea";
 
+  // Reset when value changes externally
   $: cellState.reset(value);
 
+  // FSM - Finite State Machine
   export const cellState = fsm(state ?? "View", {
     "*": {
       goTo(state) {
@@ -49,11 +79,8 @@
       },
       reset(newValue) {
         if (newValue == localValue) return;
-
         localValue = value;
         lastEdit = undefined;
-        originalValue = undefined;
-        isDirty = false;
         errors = [];
         return state;
       },
@@ -63,19 +90,19 @@
         localValue = value;
       },
       focus() {
-        if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
+        if (!readonly && !disabled) {
+          return "Editing";
+        }
       },
     },
     Editing: {
       _enter() {
-        originalValue = value;
         setTimeout(() => {
           editor?.focus();
         }, 50);
         dispatch("enteredit");
       },
       _exit() {
-        originalValue = undefined;
         lastEdit = undefined;
         dispatch("exitedit");
       },
@@ -83,7 +110,9 @@
         editor?.focus();
       },
       clear() {
-        if (cellOptions.debounce) dispatch("change", null);
+        if (debounceDelay) {
+          dispatch("change", null);
+        }
         lastEdit = new Date();
         localValue = null;
         editor?.focus();
@@ -100,31 +129,38 @@
         return state;
       },
       cancel() {
-        value = originalValue;
+        localValue = value;
         dispatch("cancel");
         return state;
       },
       debounce(e) {
-        localValue = e.target.value;
+        const target = e.target;
+        localValue = target.value;
         lastEdit = new Date();
-        if (cellOptions?.debounce) {
+        if (debounceDelay) {
           clearTimeout(timer);
           timer = setTimeout(() => {
             dispatch("change", localValue);
-          }, cellOptions.debounce ?? 0);
+          }, debounceDelay);
         }
       },
       handleKeyboard(e) {
-        if (e.key == "Enter" && !e.shiftKey) this.submit();
-        if (e.key == "Escape") this.cancel();
+        if (e.key === "Enter" && !e.shiftKey) {
+          this.submit();
+        }
+        if (e.key === "Escape") {
+          this.cancel();
+        }
       },
     },
   });
 
+  // Public API
+  /** @type {CellApi} */
   export const cellApi = {
     focus: () => cellState.focus(),
-    reset: () => cellState.reset(),
-    isEditing: () => $cellState == "Editing",
+    reset: () => cellState.reset(value),
+    isEditing: () => $cellState === "Editing",
     isDirty: () => isDirty,
     getValue: () => localValue,
     setError: (err) => {
@@ -134,25 +170,28 @@
       errors = [];
     },
     setValue: (val) => {
-      localValue = val;
-      if ($cellState != "Editing") value = val;
+      value = val;
     },
   };
 
+  // Helper functions
   const focus = (node) => {
     node?.focus();
   };
 
+  // Lifecycle
   onMount(() => {
-    if (autofocus)
+    if (autofocus) {
       setTimeout(() => {
         cellState.focus();
       }, 50);
+    }
   });
 
   onDestroy(() => {
-    clearTimeout(timer);
-    cellState.reset();
+    if (timer) {
+      clearTimeout(timer);
+    }
   });
 </script>
 
@@ -161,21 +200,18 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   class="superCell"
-  class:multirow={cellOptions.controlType == "textarea"}
-  class:textarea={cellOptions.controlType == "textarea"}
+  class:multirow={controlType == "textarea"}
+  class:textarea={controlType == "textarea"}
   class:inEdit
-  class:isDirty={isDirty && cellOptions.showDirty}
-  class:inline={cellOptions.role == "inlineInput"}
-  class:tableCell={cellOptions.role == "tableCell"}
-  class:formInput={cellOptions.role == "formInput"}
-  class:disabled={cellOptions.disabled}
-  class:readonly={cellOptions.readonly}
-  class:error={cellOptions.error}
-  style:color={cellOptions.color}
-  style:background={$cellState == "Editing" && cellOptions.role != "inlineInput"
-    ? "var(--spectrum-global-color-gray-50)"
-    : cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
+  class:isDirty={isDirty && showDirty}
+  class:inline={role == "inlineInput"}
+  class:tableCell={role == "tableCell"}
+  class:formInput={role == "formInput"}
+  class:disabled
+  class:readonly
+  class:error
+  style:color
+  style:background
 >
   {#if icon}
     <i class={icon + " field-icon"} class:with-error={error}></i>
@@ -230,7 +266,7 @@
   {:else if textarea}
     <div
       class="value textarea"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
       class:with-icon={cellOptions.icon || error}
       class:placeholder={!value && !formattedValue}
       style:justify-content={cellOptions.align}
@@ -241,7 +277,7 @@
   {:else}
     <div
       class="value"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}
