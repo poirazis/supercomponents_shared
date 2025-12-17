@@ -18,13 +18,13 @@
 
   /** @type {number | null} */
   export let value;
-  
+
   /** @type {string | undefined} */
   export let formattedValue = undefined;
-  
+
   /** @type {CellNumberOptions} */
   export let cellOptions = {};
-  
+
   export let autofocus = false;
 
   // Local state
@@ -35,8 +35,8 @@
   let state = cellOptions?.initialState ?? "View";
 
   // Destructure cellOptions for cleaner template
-  $: ({ 
-    readonly, 
+  $: ({
+    readonly,
     disabled,
     error: optionError,
     icon: optionIcon,
@@ -52,7 +52,8 @@
     max,
     precision,
     enableWheel,
-    role
+    role,
+    fontWeight,
   } = cellOptions ?? {});
 
   // Reactive declarations
@@ -62,7 +63,10 @@
   $: inline = role === "inlineInput";
   $: isDirty = !!lastEdit && value !== localValue;
   $: formattedValue = template
-    ? processStringSync(template, { ...$context, value: localValue?.toFixed(decimals) })
+    ? processStringSync(template, {
+        ...$context,
+        value: localValue?.toFixed(decimals),
+      })
     : localValue?.toFixed(decimals);
   $: placeholder = placeholderText ?? "";
   $: stepSize = step ?? 1;
@@ -278,7 +282,7 @@
   class:formInput={role == "formInput"}
   style:color
   style:background
-  style:font-weight={cellOptions?.fontWeight}
+  style:font-weight={fontWeight}
   tabIndex={disabled ? -1 : 0}
   on:focusin={cellState.focus}
 >
