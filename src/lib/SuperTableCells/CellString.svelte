@@ -32,7 +32,6 @@
 
   // Local state
   let timer;
-  let originalValue;
   let editor;
   let lastEdit;
   let localValue = value;
@@ -46,14 +45,13 @@
   $: error = cellOptions?.error || errors.length > 0;
   $: icon = error ? "ph ph-warning" : cellOptions?.icon;
   $: inEdit = $cellState === "Editing";
-  $: isDirty = !!lastEdit && originalValue !== localValue;
+  $: isDirty = !!lastEdit && value !== localValue;
   $: formattedValue = cellOptions?.template
     ? processStringSync(cellOptions.template, { value })
     : (value ?? undefined);
   $: placeholder = cellOptions?.placeholder ?? "";
   $: textarea = cellOptions?.controlType === "textarea";
 
-  // Reset when value changes externally
   // Reset when value changes externally
   $: cellState.reset(value);
 
@@ -67,8 +65,6 @@
         if (newValue == localValue) return;
         localValue = value;
         lastEdit = undefined;
-        originalValue = undefined;
-        isDirty = false;
         errors = [];
         return state;
       },
@@ -85,14 +81,12 @@
     },
     Editing: {
       _enter() {
-        originalValue = value;
         setTimeout(() => {
           editor?.focus();
         }, 50);
         dispatch("enteredit");
       },
       _exit() {
-        originalValue = undefined;
         lastEdit = undefined;
         dispatch("exitedit");
       },
@@ -119,7 +113,7 @@
         return state;
       },
       cancel() {
-        value = originalValue ?? null;
+        localValue = value;
         dispatch("cancel");
         return state;
       },
@@ -182,7 +176,6 @@
     if (timer) {
       clearTimeout(timer);
     }
-    cellState.reset(value);
   });
 </script>
 
@@ -202,9 +195,7 @@
   class:readonly={cellOptions.readonly}
   class:error={cellOptions.error}
   style:color={cellOptions.color}
-  style:background={$cellState == "Editing" && cellOptions.role != "inlineInput"
-    ? "var(--spectrum-global-color-gray-50)"
-    : cellOptions.background}
+  style:background={cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
   {#if icon}
