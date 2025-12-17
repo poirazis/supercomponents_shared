@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import {
     createEventDispatcher,
     getContext,
@@ -6,50 +6,91 @@
     onDestroy,
   } from "svelte";
   import fsm from "svelte-fsm";
-  const dispatch = createEventDispatcher();
-  const { processStringSync } = getContext("sdk");
 
-  export let value;
-  export let formattedValue;
-  export let cellOptions = {
+  // Types
+  interface CellOptions {
+    role?: "formInput" | "tableCell" | "inlineInput";
+    initialState?: "View" | "Editing";
+    debounce?: number;
+    readonly?: boolean;
+    disabled?: boolean;
+    placeholder?: string;
+    template?: string;
+    icon?: string;
+    error?: boolean;
+    showDirty?: boolean;
+    clearIcon?: boolean;
+    controlType?: "input" | "textarea";
+    align?: "flex-start" | "center" | "flex-end";
+    color?: string;
+    background?: string;
+    fontWeight?: string | number;
+  }
+
+  interface CellApi {
+    focus: () => void;
+    reset: () => void;
+    isEditing: () => boolean;
+    isDirty: () => boolean;
+    getValue: () => string | null;
+    setError: (err: string) => void;
+    clearError: () => void;
+    setValue: (val: string | null) => void;
+  }
+
+  const dispatch = createEventDispatcher<{
+    enteredit: void;
+    exitedit: void;
+    focusout: void;
+    change: string | null;
+    cancel: void;
+    clear: null;
+  }>();
+  
+  const { processStringSync } = getContext("sdk") as any;
+
+  // Props
+  export let value: string | null;
+  export let formattedValue: string | undefined = undefined;
+  export let cellOptions: CellOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
   };
-  export let autofocus;
+  export let autofocus: boolean = false;
 
-  let timer;
-  let originalValue;
+  // Local state
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let originalValue: string | null | undefined;
+  let editor: HTMLInputElement | HTMLTextAreaElement | undefined;
+  let lastEdit: Date | undefined;
+  let localValue: string | null = value;
+  let state: "View" | "Editing" = cellOptions?.initialState ?? "View";
+  let errors: string[] = [];
 
-  let editor;
-  let lastEdit;
-  let localValue = value;
-  let state = cellOptions?.initialState ?? "View";
-
-  $: errors = [];
+  // Reactive declarations
   $: error = cellOptions?.error || errors.length > 0;
   $: icon = error ? "ph ph-warning" : cellOptions?.icon;
-  $: inEdit = $cellState == "Editing";
-  $: isDirty = lastEdit && originalValue != localValue;
+  $: inEdit = $cellState === "Editing";
+  $: isDirty = !!lastEdit && originalValue !== localValue;
   $: formattedValue = cellOptions?.template
-    ? processStringSync(cellOptions.template, {
-        value,
-      })
-    : value;
-
+    ? processStringSync(cellOptions.template, { value })
+    : value ?? undefined;
   $: placeholder = cellOptions?.placeholder ?? "";
-  $: textarea = cellOptions?.controlType == "textarea";
+  $: textarea = cellOptions?.controlType === "textarea";
 
+  // Reset when value changes externally
+  // Reset when value changes externally
   $: cellState.reset(value);
 
+  // FSM - Finite State Machine
   export const cellState = fsm(state ?? "View", {
     "*": {
-      goTo(state) {
+      goTo(state: string) {
         return state;
       },
-      reset(newValue) {
-        if (newValue == localValue) return;
-
+      reset(newValue: string | null) {
+        if (newValue === localValue) return;
         localValue = value;
         lastEdit = undefined;
         originalValue = undefined;
@@ -63,7 +104,9 @@
         localValue = value;
       },
       focus() {
-        if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
+        if (!cellOptions.readonly && !cellOptions.disabled) {
+          return "Editing";
+        }
       },
     },
     Editing: {
@@ -83,13 +126,15 @@
         editor?.focus();
       },
       clear() {
-        if (cellOptions.debounce) dispatch("change", null);
+        if (cellOptions.debounce) {
+          dispatch("change", null);
+        }
         lastEdit = new Date();
         localValue = null;
         editor?.focus();
         dispatch("clear", null);
       },
-      focusout(e) {
+      focusout(e: FocusEvent) {
         dispatch("focusout");
         this.submit();
       },
@@ -100,12 +145,13 @@
         return state;
       },
       cancel() {
-        value = originalValue;
+        value = originalValue ?? null;
         dispatch("cancel");
         return state;
       },
-      debounce(e) {
-        localValue = e.target.value;
+      debounce(e: Event) {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        localValue = target.value;
         lastEdit = new Date();
         if (cellOptions?.debounce) {
           clearTimeout(timer);
@@ -114,45 +160,57 @@
           }, cellOptions.debounce ?? 0);
         }
       },
-      handleKeyboard(e) {
-        if (e.key == "Enter" && !e.shiftKey) this.submit();
-        if (e.key == "Escape") this.cancel();
+      handleKeyboard(e: KeyboardEvent) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          this.submit();
+        }
+        if (e.key === "Escape") {
+          this.cancel();
+        }
       },
     },
   });
 
-  export const cellApi = {
+  // Public API
+  export const cellApi: CellApi = {
     focus: () => cellState.focus(),
-    reset: () => cellState.reset(),
-    isEditing: () => $cellState == "Editing",
+    reset: () => cellState.reset(value),
+    isEditing: () => $cellState === "Editing",
     isDirty: () => isDirty,
     getValue: () => localValue,
-    setError: (err) => {
+    setError: (err: string) => {
       errors = [...errors, err];
     },
     clearError: () => {
       errors = [];
     },
-    setValue: (val) => {
+    setValue: (val: string | null) => {
       localValue = val;
-      if ($cellState != "Editing") value = val;
+      if ($cellState !== "Editing") {
+        value = val;
+      }
     },
   };
 
-  const focus = (node) => {
+  // Helper functions
+  const focus = (node: HTMLElement | undefined) => {
     node?.focus();
   };
 
+  // Lifecycle
   onMount(() => {
-    if (autofocus)
+    if (autofocus) {
       setTimeout(() => {
         cellState.focus();
       }, 50);
+    }
   });
 
   onDestroy(() => {
-    clearTimeout(timer);
-    cellState.reset();
+    if (timer) {
+      clearTimeout(timer);
+    }
+    cellState.reset(value);
   });
 </script>
 
@@ -230,7 +288,7 @@
   {:else if textarea}
     <div
       class="value textarea"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
       class:with-icon={cellOptions.icon || error}
       class:placeholder={!value && !formattedValue}
       style:justify-content={cellOptions.align}
@@ -241,7 +299,7 @@
   {:else}
     <div
       class="value"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}
