@@ -1,4 +1,5 @@
-<script lang="ts">
+<script>
+  // @ts-check
   import {
     createEventDispatcher,
     getContext,
@@ -6,32 +7,55 @@
     onDestroy,
   } from "svelte";
   import fsm from "svelte-fsm";
-  import type { CellStringOptions, CellApi, CellEvents } from "./types";
 
-  const dispatch = createEventDispatcher<CellEvents<string | null>>();
-  const { processStringSync } = getContext("sdk") as any;
+  /**
+   * @typedef {import('./types.js').CellStringOptions} CellStringOptions
+   * @typedef {import('./types.js').CellApi} CellApi
+   */
+
+  const dispatch = createEventDispatcher();
+  const { processStringSync } = getContext("sdk");
 
   // Props
-  export let value: string | null;
-  export let formattedValue: string | undefined = undefined;
-  export let cellOptions: CellStringOptions = {
+  /** @type {string | null} */
+  export let value;
+  
+  /** @type {string | undefined} */
+  export let formattedValue = undefined;
+  
+  /** @type {CellStringOptions} */
+  export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
     debounce: 250,
   };
-  export let autofocus: boolean = false;
+  
+  /** @type {boolean} */
+  export let autofocus = false;
 
   // Local state
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let originalValue: string | null | undefined;
-  let editor: HTMLInputElement | HTMLTextAreaElement | undefined;
-  let lastEdit: Date | undefined;
-  let localValue: string | null = value;
-  let state: "View" | "Editing" =
-    (cellOptions?.initialState === "Loading"
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let timer;
+  
+  /** @type {string | null | undefined} */
+  let originalValue;
+  
+  /** @type {HTMLInputElement | HTMLTextAreaElement | undefined} */
+  let editor;
+  
+  /** @type {Date | undefined} */
+  let lastEdit;
+  
+  /** @type {string | null} */
+  let localValue = value;
+  
+  /** @type {"View" | "Editing"} */
+  let state = (cellOptions?.initialState === "Loading"
       ? "View"
       : cellOptions?.initialState) ?? "View";
-  let errors: string[] = [];
+  
+  /** @type {string[]} */
+  let errors = [];
 
   // Reactive declarations
   $: error = cellOptions?.error || errors.length > 0;
@@ -51,10 +75,12 @@
   // FSM - Finite State Machine
   export const cellState = fsm(state ?? "View", {
     "*": {
-      goTo(state: string) {
+      /** @param {string} state */
+      goTo(state) {
         return state;
       },
-      reset(newValue: string | null) {
+      /** @param {string | null} newValue */
+      reset(newValue) {
         if (newValue === localValue) return;
         localValue = value;
         lastEdit = undefined;
@@ -99,7 +125,8 @@
         editor?.focus();
         dispatch("clear", null);
       },
-      focusout(e: FocusEvent) {
+      /** @param {FocusEvent} e */
+      focusout(e) {
         dispatch("focusout");
         this.submit();
       },
@@ -114,8 +141,9 @@
         dispatch("cancel");
         return state;
       },
-      debounce(e: Event) {
-        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+      /** @param {Event} e */
+      debounce(e) {
+        const target = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (e.target);
         localValue = target.value;
         lastEdit = new Date();
         if (cellOptions?.debounce) {
@@ -125,7 +153,8 @@
           }, cellOptions.debounce ?? 0);
         }
       },
-      handleKeyboard(e: KeyboardEvent) {
+      /** @param {KeyboardEvent} e */
+      handleKeyboard(e) {
         if (e.key === "Enter" && !e.shiftKey) {
           this.submit();
         }
@@ -137,19 +166,22 @@
   });
 
   // Public API
-  export const cellApi: CellApi = {
+  /** @type {CellApi} */
+  export const cellApi = {
     focus: () => cellState.focus(),
     reset: () => cellState.reset(value),
     isEditing: () => $cellState === "Editing",
     isDirty: () => isDirty,
     getValue: () => localValue,
-    setError: (err: string) => {
+    /** @param {string} err */
+    setError: (err) => {
       errors = [...errors, err];
     },
     clearError: () => {
       errors = [];
     },
-    setValue: (val: string | null) => {
+    /** @param {string | null} val */
+    setValue: (val) => {
       localValue = val;
       if ($cellState !== "Editing") {
         value = val;
@@ -158,7 +190,10 @@
   };
 
   // Helper functions
-  const focus = (node: HTMLElement | undefined) => {
+  /**
+   * @param {HTMLElement | undefined} node
+   */
+  const focus = (node) => {
     node?.focus();
   };
 
