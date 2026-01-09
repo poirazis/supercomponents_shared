@@ -290,7 +290,7 @@
       <i
         class="ri-close-line clearIcon"
         on:mousedown|self|preventDefault={cellState.clear}
-      />
+      ></i>
     {/if}
   {:else}
     <div

@@ -441,7 +441,7 @@
                   : localValue.includes(option)
                     ? "ph-fill ph-check-square"
                     : "ph ph-square"}
-            />
+            ></i>
             {labels[option] || option}
           </div>
         {/each}
@@ -469,7 +469,7 @@
                 type="checkbox"
                 class="spectrum-Switch-input"
               />
-              <span class="spectrum-Switch-switch" />
+              <span class="spectrum-Switch-switch"></span>
             </div>
           {/if}
         </div>
@@ -483,7 +483,7 @@
           on:click={(e) => editorState.toggleOption(idx)}
           on:mouseenter={() => (focusedOptionIdx = idx)}
         >
-          <i class={optionIcons[option] || "no-icon"} />
+          <i class={optionIcons[option] || "no-icon"}></i>
           <div class="text">{labels[option] || option}</div>
           <div class="spectrum-Switch spectrum-Switch--emphasized">
             <input
@@ -518,7 +518,7 @@
       {#if filteredOptions?.length < 1 || filteredOptions.length == localValue.length}
         <div class="option">
           <span>
-            <i class="ri-close-line" />
+            <i class="ri-close-line"></i>
             No Options Found
           </span>
         </div>
@@ -535,7 +535,7 @@
             on:mouseenter={() => (focusedOptionIdx = idx)}
           >
             <span>
-              <i class="ri-checkbox-blank-fill" />
+              <i class="ri-checkbox-blank-fill"></i>
               {labels[option] || option}
             </span>
           </div>

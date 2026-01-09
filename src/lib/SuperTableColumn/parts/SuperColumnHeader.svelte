@@ -112,7 +112,7 @@
         style="align-self: center; font-size: 14px;"
         on:click|preventDefault={() =>
           (showFilteringOptions = !showFilteringOptions)}
-      />
+      ></i>
     {/if}
     <svelte:component
       this={$columnOptions.headerComponent}
@@ -146,7 +146,7 @@
         <i
           class={sorted == "ascending" ? "ri-sort-asc" : "ri-sort-desc"}
           class:sorted
-        />
+        ></i>
       {/if}
     </span>
   {/if}

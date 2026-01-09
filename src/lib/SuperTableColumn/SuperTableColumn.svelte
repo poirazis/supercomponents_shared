@@ -387,7 +387,7 @@
       on:dblclick={columnState.resetSize}
       on:mouseenter={() => (considerResizing = true)}
       on:mouseleave={() => (considerResizing = false)}
-    />
+    ></div>
   {/if}
 
   {#if $columnOptionsStore.showHeader}

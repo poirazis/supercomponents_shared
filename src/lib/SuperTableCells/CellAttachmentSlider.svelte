@@ -12,7 +12,6 @@
   export let tableid: string;
   export let API;
   export let inBuilder;
-  export let height;
 
   const dispatch = createEventDispatcher();
 
@@ -244,7 +243,7 @@
             on:click={showPrevPage}
             class="slider-navbutton"
           >
-            <i class="ph ph-caret-left" />
+            <i class="ph ph-caret-left"></i>
           </div>
           {#each localvalue as attachment, idx (idx)}
             <div
@@ -284,7 +283,7 @@
             on:click={showNextPage}
             class="slider-navbutton"
           >
-            <i class="ph ph-caret-right" />
+            <i class="ph ph-caret-right"></i>
           </div>
         </Carousel>
       {/key}

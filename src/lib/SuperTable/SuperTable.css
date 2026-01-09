@@ -135,10 +135,10 @@
   }
 }
 
-.super-column-header,
-.control-column-header {
+.super-column-header {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   background: var(--spectrum-global-color-gray-100);
   border-bottom: 1px solid var(--spectrum-global-color-gray-200);
   height: var(--super-table-header-height);
@@ -170,7 +170,12 @@
 }
 
 .control-column-header {
-  justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--spectrum-global-color-gray-100);
+  border-bottom: 1px solid var(--spectrum-global-color-gray-200);
+  min-height: var(--super-table-header-height);
   padding: 0 0.75rem;
   gap: 1rem;
 

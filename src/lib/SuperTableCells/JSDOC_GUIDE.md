@@ -26,7 +26,167 @@ This guide demonstrates how to use JSDoc annotations for **type definitions only
 
 ## Type Definitions
 
-All types are defined in `types.js` using JSDoc `@typedef` syntax.
+All types are defined in `types.js` using a **unified CellOptions type**:
+
+- `CellOptions` - Single type with common base properties + optional type-specific extensions
+- `CellApi` - Standard API interface exported by all cells
+- `CellRole`, `CellState`, `CellAlign` - Enum types
+- `FieldSchema` - Budibase field schema type
+
+### CellOptions Structure
+
+The unified `CellOptions` type contains:
+
+- **Common properties** (role, readonly, disabled, placeholder, etc.) - used by all cells
+- **Type-specific properties** organized by category (Number, Boolean, Options, Datetime, etc.)
+
+All properties are optional except where noted. Components only use the properties relevant to them.
+
+## Cell FSM State Machine
+
+All cell components use a finite state machine (FSM) managed by `svelte-fsm` to handle user interactions and data loading states. The FSM provides a clean, declarative way to manage component state transitions.
+
+### Core States
+
+The cell FSM supports three core reachable states:
+
+| State       | Usage                                   | Transitions                             |
+| ----------- | --------------------------------------- | --------------------------------------- |
+| **View**    | Default display state, read-only        | → Editing (on focus)                    |
+| **Editing** | User is actively editing the cell value | → View (on focusout, submit, or cancel) |
+| **Loading** | Data is being fetched or processed      | → View (when data loads)                |
+
+### State Diagram
+
+```
+┌──────────────────────────────────┐
+│                                  │
+│    View (Display Mode)           │
+│    - Shows formatted value       │
+│    - Read-only or ready to edit  │
+│                                  │
+└──────────────────────────────────┘
+              ↑
+              │ focusout()
+              │ submit()
+              │ cancel()
+              │
+              ↓
+┌──────────────────────────────────┐
+│                                  │
+│    Editing (Edit Mode)           │
+│    - Input field active          │
+│    - User can modify value       │
+│    - Dispatch change events      │
+│                                  │
+└──────────────────────────────────┘
+              ↑
+              │ focus()
+              │ (when not readonly)
+              │
+┌──────────────────────────────────┐
+│                                  │
+│    Loading (Async Mode)          │
+│    - Fetching data from server   │
+│    - Data-dependent cells only   │
+│    - Auto-transitions to View    │
+│                                  │
+└──────────────────────────────────┘
+```
+
+### Global Transitions (Available in All States)
+
+All states support these global methods via the `"*"` state:
+
+```javascript
+export const cellState = fsm("View", {
+  "*": {
+    goTo(state) {
+      // Manual state transition (for external control)
+      return state;
+    },
+    reset(value) {
+      // Reset to initial value and View state
+      localValue = undefined;
+    },
+  },
+  // ... state-specific transitions
+});
+```
+
+### Lifecycle Hooks
+
+State transitions can trigger lifecycle methods:
+
+- **`_enter()`** - Called when entering a state
+- **`_exit()`** - Called when exiting a state
+
+Example from CellString:
+
+```javascript
+Editing: {
+  _enter() {
+    originalValue = JSON.stringify(localValue);  // Save for rollback
+    dispatch("enteredit");                       // Notify parent
+  },
+  _exit() {
+    dispatch("exitedit");                        // Cleanup
+  },
+  focusout() {
+    this.submit();  // Submit on blur
+  },
+  submit() {
+    dispatch("change", localValue);
+    return "View";  // Transition back to View
+  },
+},
+```
+
+### Usage Pattern
+
+```javascript
+// Declare FSM with initial state
+export const cellState = fsm(cellOptions.initialState ?? "View", {
+  View: {
+    /* ... */
+  },
+  Editing: {
+    /* ... */
+  },
+  Loading: {
+    /* ... */
+  }, // Optional, for data-dependent cells
+});
+
+// Subscribe to state changes in component
+$: inEdit = $cellState === "Editing";
+$: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
+
+// Trigger transitions from event handlers
+const handleFocus = () => cellState.focus();
+const handleBlur = () => cellState.focusout();
+```
+
+### Data-Dependent Cells
+
+Cells that fetch data (CellOptions, CellTags, CellOptionsAdvanced) use the Loading state:
+
+```javascript
+Loading: {
+  _enter() {
+    // Fetch data from server
+    loadOptions();
+  },
+  syncFetch(fetch) {
+    // Handle synchronous fetch results
+    return "View";  // Auto-transition when done
+  },
+  focus() {
+    // Allow editing while loading
+    return "Editing";
+  },
+},
+```
 
 ## JavaScript Example: CellString.svelte (Reference Implementation)
 
@@ -36,7 +196,7 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax.
   import fsm from "svelte-fsm";
 
   /**
-   * @typedef {import('./types.js').CellStringOptions} CellStringOptions
+   * @typedef {import('./types.js').CellOptions} CellOptions
    * @typedef {import('./types.js').CellApi} CellApi
    */
 
@@ -49,7 +209,7 @@ All types are defined in `types.js` using JSDoc `@typedef` syntax.
   /** @type {string | undefined} */
   export let formattedValue = undefined;
 
-  /** @type {CellStringOptions} */
+  /** @type {CellOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",

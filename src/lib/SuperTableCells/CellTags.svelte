@@ -13,7 +13,7 @@
 
   export let cellOptions;
   export let value;
-  export let fieldSchema;
+
   export let autofocus;
 
   let anchor;
@@ -34,6 +34,33 @@
   let searchTerm = "";
 
   let searchInput;
+
+  // Helper function to add tags while preventing duplicates (case-insensitive comparison)
+  const addUniqueTags = (tagsToAdd) => {
+    if (!tagsToAdd || !tagsToAdd.length) return;
+
+    const existingLower = new Set(
+      (localValue || []).map((t) =>
+        String(t || "")
+          .toLowerCase()
+          .trim()
+      )
+    );
+
+    const newTags = [];
+    tagsToAdd.forEach((tag) => {
+      const trimmedTag = String(tag || "").trim();
+      if (trimmedTag && !existingLower.has(trimmedTag.toLowerCase())) {
+        newTags.push(trimmedTag);
+        existingLower.add(trimmedTag.toLowerCase());
+      }
+    });
+
+    if (newTags.length) {
+      localValue = [...(localValue || []), ...newTags];
+      cellState.change();
+    }
+  };
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
@@ -179,16 +206,25 @@
     },
     Editing: {
       _enter() {
-        originalValue = JSON.stringify(value);
+        originalValue = JSON.stringify(
+          Array.isArray(value) ? value : value ? [value] : []
+        );
         this.clearFilters();
+        editorState.open();
         dispatch("enteredit");
       },
       _exit() {
         editorState.close();
         dispatch("exitedit");
       },
+      focus() {
+        anchor?.focus();
+      },
       focusout(e) {
-        if ($editorState == "Open" || anchor?.contains(e.relatedTarget)) {
+        if (
+          anchor?.contains(e.relatedTarget) ||
+          editor?.contains(e.relatedTarget)
+        ) {
           return;
         } else {
           this.submit();
@@ -215,6 +251,8 @@
         this.submit();
       },
       cancel() {
+        editorState.close();
+        localValue = JSON.parse(originalValue);
         anchor?.blur();
         return "View";
       },
@@ -238,8 +276,8 @@
             localValue.splice(pos, 1);
             localValue = [...localValue];
           } else {
-            // Add if not selected
-            localValue = [...localValue, option];
+            // Add only if not already in localValue
+            addUniqueTags([option]);
           }
           cellState.change();
           // Check if we need to fetch more options
@@ -254,8 +292,8 @@
             localValue.splice(pos, 1);
             localValue = [...localValue];
           } else {
-            // Add if not selected
-            localValue = [...localValue, option];
+            // Add only if not already in localValue
+            addUniqueTags([option]);
           }
           cellState.change();
           // Check if we need to fetch more options
@@ -277,8 +315,7 @@
             .split(",")
             .map((tag) => tag.trim())
             .filter((tag) => tag);
-          localValue = [...localValue, ...tags];
-          cellState.change();
+          addUniqueTags(tags);
         }
         searchTerm = "";
         newTag = null;
@@ -329,14 +366,11 @@
         if (e.key == "Enter") {
           // Add new tag if exists
           if (newTag?.trim()) {
-            localValue = [
-              ...localValue,
-              ...newTag
-                .split(",")
-                .map((tag) => tag.trim())
-                .filter((tag) => tag),
-            ];
-            cellState.change();
+            const tags = newTag
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter((tag) => tag);
+            addUniqueTags(tags);
             newTag = null;
             searchTerm = "";
             // Refocus input
@@ -353,16 +387,29 @@
           // If no focused option, allow space to be input into the search box
         }
         if (e.key == "Tab") {
-          if (focusedOptionIdx > -1 && filteredOptions[focusedOptionIdx])
-            this.toggleOption(focusedOptionIdx);
+          anchor?.focus();
+          editorState.close();
+          e.preventDefault();
+          return;
+        }
 
-          // Keep popup open - no submit/close
+        if (e.key == "Escape") {
+          newTag = null;
+
+          editorState.close();
+          anchor?.focus();
+
+          e.preventDefault();
+          e.stopPropagation();
+          return;
         }
 
         if (e.key == "ArrowDown") this.highlightNext(e.stopPropagation());
         if (e.key == "ArrowUp")
           this.highlightPrevious(e.preventDefault(), e.stopPropagation());
-        if (e.key == "Escape") this.close();
+        if (e.key == "Escape") {
+          cellState.cancel();
+        }
       },
 
       handleKeyboard(e) {
@@ -388,8 +435,6 @@
 
         if (e.key == "ArrowDown") this.highlightNext();
         if (e.key == "ArrowUp") this.highlightPrevious(e.preventDefault());
-
-        if (e.key == "Escape") this.close();
 
         if (controlType != "inputSelect") search = true;
       },
@@ -526,19 +571,16 @@
   class:multirow={true}
   style:color
   style:background
-  style:font-weight={cellOptions.fontWeight}
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
   on:focusin={cellState.focus}
-  on:focusout={(e) => {
-    setTimeout(() => cellState.focusout(e), 50);
-  }}
+  on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
 >
   <div class="value" class:placeholder={isEmpty} tabindex="-1">
     {#if isEmpty && !inEdit}
-      <span>{cellOptions.placeholder || "No Tags"}</span>
+      <span>{cellOptions.placeholder || "Add some Tags"}</span>
     {/if}
 
     <div
@@ -553,7 +595,6 @@
             class="tag"
             style:--option-color={$colors[tag] ||
               colorsArray[idx % colorsArray.length]}
-            tabindex="-1"
           >
             <span class="tag-wrap">
               <span> {tag} </span>
@@ -565,7 +606,7 @@
                 style:z-index={2}
                 on:mousedown|preventDefault|stopPropagation={() =>
                   editorState.toggleOption(tag)}
-              />
+              ></i>
             {/if}
           </div>
         {/each}
@@ -573,8 +614,8 @@
 
       {#if inEdit}
         <i
-          class="ph ph-plus-circle actionIcon"
-          on:mousedown|preventDefault|stopPropagation={editorState.toggle}
+          class="ph ph-plus actionIcon"
+          on:mouseup|preventDefault|stopPropagation={editorState.toggle}
         ></i>
       {/if}
     </div>
@@ -589,83 +630,78 @@
     useAnchorWidth
     maxHeight={250}
     open={$editorState == "Open"}
-    on:close={(e) => {
-      editorState.close();
-      cellState.focusout({});
-    }}
   >
-    <div class="searchControl" on:keydown={editorState.handleInputKeyboard}>
-      <i
-        class={suggestions ? "ph ph-magnifying-glass" : "ph ph-pencil-simple"}
-        class:actionIcon={true}
-      ></i>
-      <input
-        type="text"
-        placeholder={suggestions ? "Search or Add" : "Enter tag..."}
-        class="searchInput"
-        bind:value={searchTerm}
-        bind:this={searchInput}
-        on:input={(e) => editorState.filterOptions(e.target.value)}
-        on:focusout={(e) => {
-          editorState.close();
-          anchor?.focus();
-        }}
-        use:focus
-      />
-    </div>
+    <div bind:this={editor} class="editor" tabindex="-1">
+      <div class="searchControl" on:keydown={editorState.handleInputKeyboard}>
+        <i
+          class={suggestions ? "ph ph-magnifying-glass" : "ph ph-pencil-simple"}
+          class:actionIcon={true}
+        ></i>
+        <input
+          type="text"
+          placeholder={suggestions ? "Search or Add" : "Enter tag..."}
+          class="searchInput"
+          bind:value={searchTerm}
+          bind:this={searchInput}
+          on:input={(e) => editorState.filterOptions(e.target.value)}
+          on:focusout={cellState.focusout}
+        />
+      </div>
 
-    {#if suggestions}
-      <div
-        bind:this={picker}
-        class="options"
-        on:wheel={(e) => e.stopPropagation()}
-        on:mouseleave={() => (focusedOptionIdx = -1)}
-        on:scroll={suggestions ? handleScroll : null}
-      >
-        {#if suggestions}
-          {#if $fetch?.loading && !$fetch?.rows?.length}
-            <div class="option loading">
-              <i class="ri-loader-2-line rotating" />
-              Loading...
-            </div>
-          {:else if filteredOptions?.length}
-            {#each filteredOptions as option, idx (idx)}
-              {#if !localValue?.includes(option)}
-                <div
-                  class="option"
-                  class:text={optionsViewMode == "text"}
-                  class:focused={focusedOptionIdx === idx}
-                  style:--option-color={$colors[option]}
-                  on:mousedown|preventDefault={(e) =>
-                    editorState.toggleOption(idx)}
-                  on:mouseenter={() => (focusedOptionIdx = idx)}
-                >
-                  <span>
-                    {#if cellOptions.optionsViewMode !== "text"}
-                      <i class="ri-checkbox-blank-fill" />
-                    {/if}
-                    {option}
-                  </span>
+      {#if suggestions}
+        <div
+          bind:this={picker}
+          class="options"
+          on:wheel={(e) => e.stopPropagation()}
+          on:mouseleave={() => (focusedOptionIdx = -1)}
+          on:scroll={suggestions ? handleScroll : null}
+          on:mousedown|preventDefault|stopPropagation
+        >
+          {#if suggestions}
+            {#if $fetch?.loading && !$fetch?.rows?.length}
+              <div class="option loading">
+                <i class="ri-loader-2-line rotating"></i>
+                Loading...
+              </div>
+            {:else if filteredOptions?.length}
+              {#each filteredOptions as option, idx (idx)}
+                {#if !localValue?.includes(option)}
+                  <div
+                    class="option"
+                    class:text={optionsViewMode == "text"}
+                    class:focused={focusedOptionIdx === idx}
+                    style:--option-color={$colors[option]}
+                    on:mousedown|preventDefault={(e) =>
+                      editorState.toggleOption(idx)}
+                    on:mouseenter={() => (focusedOptionIdx = idx)}
+                  >
+                    <span>
+                      {#if cellOptions.optionsViewMode !== "text"}
+                        <i class="ri-checkbox-blank-fill"></i>
+                      {/if}
+                      {option}
+                    </span>
+                  </div>
+                {/if}
+              {/each}
+              {#if $fetch?.loading}
+                <div class="option loading">
+                  <i class="ri-loader-2-line rotating"></i>
+                  Loading more...
                 </div>
               {/if}
-            {/each}
-            {#if $fetch?.loading}
-              <div class="option loading">
-                <i class="ri-loader-2-line rotating" />
-                Loading more...
+            {:else}
+              <div class="option not-found">
+                <span>
+                  <i class="ri-close-line"></i>
+                  No matches found, Tag will be added as new
+                </span>
               </div>
             {/if}
-          {:else}
-            <div class="option not-found">
-              <span>
-                <i class="ri-close-line" />
-                No matches found, Tag will be added as new
-              </span>
-            </div>
           {/if}
-        {/if}
-      </div>
-    {/if}
+        </div>
+      {/if}
+    </div>
   </SuperPopover>
 {/if}
 
@@ -697,15 +733,27 @@
     text-transform: uppercase;
     outline: none;
     max-width: 7rem;
+    transition: all 0.2s ease-in-out;
 
     &:hover {
       filter: brightness(0.9);
+
+      & > i {
+        display: block;
+        cursor: pointer;
+      }
     }
 
     & > span {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    & > i {
+      display: none;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
     }
   }
 
@@ -743,11 +791,6 @@
     &:hover {
       background-color: var(--spectrum-global-color-gray-75);
       cursor: pointer;
-    }
-
-    &.selected {
-      color: var(--spectrum-global-color-gray-800);
-      font-weight: 600;
     }
 
     &.focused {
@@ -805,7 +848,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1rem;
+    font-size: 0.85rem;
     color: var(--spectrum-global-color-gray-600);
   }
   .actionIcon:hover {

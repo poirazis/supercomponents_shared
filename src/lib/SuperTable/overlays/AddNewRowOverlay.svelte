@@ -31,9 +31,9 @@
     on:click={tableAPI.insertRow}
   >
     {#if $stbState == "Saving"}
-      <i class="ri-loader-2-line" />
+      <i class="ri-loader-2-line"></i>
     {:else}
-      <i class="ri-save-fill"> </i>
+      <i class="ri-save-fill"></i>
     {/if}
   </div>
 {/if}
@@ -47,6 +47,6 @@
     class:footer
     on:click={stbState.clear()}
   >
-    <i class="ri-filter-off-line" />
+    <i class="ri-filter-off-line"></i>
   </div>
 {/if}

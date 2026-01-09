@@ -158,6 +158,7 @@
         if (cellOptions.debounce) dispatch("change", null);
       },
       cancel() {
+        localValue = JSON.parse(originalValue);
         searchTerm = null;
         anchor?.blur();
         return "View";
@@ -541,7 +542,7 @@
   on:keydown={editorState.handleKeyboard}
 >
   {#if icon}
-    <i class={icon + " field-icon"} class:active={searchTerm} />
+    <i class={icon + " field-icon"} class:active={searchTerm}></i>
   {/if}
 
   {#if inEdit && controlType == "inputSelect"}
@@ -564,7 +565,7 @@
                 style:min-width={"4rem"}
               >
                 {#if pills}
-                  <div class="loope" />
+                  <div class="loope"></div>
                 {/if}
                 <span> {labels[val] || val} </span>
               </div>
@@ -617,7 +618,7 @@
               style:--option-color={$colors[val] ||
                 colorsArray[idx % colorsArray.length]}
             >
-              <i class={"ph-fill ph-square"} />
+              <i class={"ph-fill ph-square"}></i>
               <span> {isObjects ? "JSON" : labels[val] || val} </span>
             </div>
           {/each}
@@ -628,7 +629,7 @@
       <i
         class="ph ph-caret-down control-icon"
         on:mousedown={inEdit ? editorState.toggle : null}
-      />
+      ></i>
     {/if}
   {/if}
 </div>
@@ -649,7 +650,7 @@
           <i
             class="search-icon ph ph-magnifying-glass"
             class:active={searchTerm}
-          />
+          ></i>
           <span class="search-term">{searchTerm}</span>
         </div>
       {/if}
@@ -661,7 +662,7 @@
       >
         {#if optionsSource == "data" && $fetch?.loading && !$fetch?.rows?.length}
           <div class="option loading">
-            <i class="ph ph-spinner spin" />
+            <i class="ph ph-spinner spin"></i>
             Loading...
           </div>
         {:else if filteredOptions?.length}
@@ -682,22 +683,22 @@
                     ? "ph ph-" + $fetch?.rows?.[idx]?.[iconColumn]
                     : "ph-fill ph-square"}
                   style:color={$colors[option]}
-                />
+                ></i>
                 {labels[option] || option}
               </span>
-              <i class="ph ph-check" />
+              <i class="ph ph-check"></i>
             </div>
           {/each}
           {#if optionsSource == "data" && $fetch?.loading}
             <div class="option loading">
-              <i class="ph ph-spinner spin" />
+              <i class="ph ph-spinner spin"></i>
               Loading more...
             </div>
           {/if}
         {:else}
           <div class="option">
             <span>
-              <i class="ri-close-line" />
+              <i class="ri-close-line"></i>
               No Options Found
             </span>
           </div>
@@ -774,19 +775,6 @@
     justify-content: center;
     color: var(--spectrum-global-color-gray-500);
     font-style: italic;
-
-    & > i.rotating {
-      animation: rotate 1s linear infinite;
-    }
-  }
-
-  @keyframes rotate {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   .action-icon {

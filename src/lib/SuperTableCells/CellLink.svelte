@@ -39,17 +39,6 @@
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
     },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
     Editing: {
       _enter() {
         originalValue = JSON.stringify(localValue);
@@ -61,7 +50,12 @@
         dispatch("exitedit");
       },
       focusout(e) {
-        if (popup?.contains(e?.relatedTarget)) return;
+        if (
+          anchor?.contains(e?.relatedTarget) ||
+          popup?.contains(e?.relatedTarget)
+        )
+          return;
+
         this.submit();
       },
 
@@ -78,6 +72,8 @@
         return "View";
       },
       cancel() {
+        localValue = JSON.parse(originalValue);
+        anchor?.blur();
         return "View";
       },
     },
@@ -130,6 +126,7 @@
   const handleKeyboard = (e) => {
     if (e.key == "Escape" && $editorState == "Open") {
       editorState.close();
+      return;
     } else if (e.key == "Escape") {
       cellState.cancel();
     } else if (e.keyCode == 32 && $cellState == "Editing") {
@@ -146,6 +143,7 @@
 
     if (singleSelect) {
       editorState.close();
+      anchor.focus();
     }
   };
 
@@ -192,7 +190,6 @@
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
   on:mousedown={editorState.toggle}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
@@ -224,7 +221,7 @@
                   }
                 : null}
             >
-              <i class={valueIcon} />
+              <i class={valueIcon}></i>
               <span>{val.primaryDisplay}</span>
             </div>
           {/if}
@@ -253,36 +250,46 @@
   <SuperPopover
     {anchor}
     useAnchorWidth
-    bind:popup
     open={$editorState == "Open"}
+    on:close={cellState.cancel}
+    bind:popup
   >
-    {#if fieldSchema.recursiveTable}
-      <CellLinkPickerTree
-        {fieldSchema}
-        filter={filter ?? []}
-        {search}
-        {limit}
-        joinColumn={cellOptions.joinColumn}
-        value={localValue}
-        {ownId}
-        multi={fieldSchema.relationshipType == "many-to-many" ||
-          fieldSchema.relationshipType == "many-to-one"}
-        on:change={handleChange}
-      />
-    {:else}
-      <CellLinkPickerSelect
-        bind:api={pickerApi}
-        {fieldSchema}
-        filter={filter ?? []}
-        {singleSelect}
-        value={localValue}
-        {search}
-        wide={cellOptions.wide && !singleSelect}
-        on:change={handleChange}
-        on:close={() => {
-          cellState.focusout();
-        }}
-      />
-    {/if}
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div
+      class="picker-container"
+      on:keydown={(e) => {
+        if (e.key == "Escape" || e.key == "Tab") {
+          anchor.focus();
+          editorState.close();
+          e.preventDefault();
+        }
+      }}
+    >
+      {#if fieldSchema.recursiveTable}
+        <CellLinkPickerTree
+          {fieldSchema}
+          filter={filter ?? []}
+          {search}
+          {limit}
+          joinColumn={cellOptions.joinColumn}
+          value={localValue}
+          {ownId}
+          multi={fieldSchema.relationshipType == "many-to-many" ||
+            fieldSchema.relationshipType == "many-to-one"}
+          on:change={handleChange}
+        />
+      {:else}
+        <CellLinkPickerSelect
+          bind:api={pickerApi}
+          {fieldSchema}
+          filter={filter ?? []}
+          {singleSelect}
+          value={localValue}
+          {search}
+          wide={cellOptions.wide && !singleSelect}
+          on:change={handleChange}
+        />
+      {/if}
+    </div>
   </SuperPopover>
 {/if}

@@ -2,6 +2,7 @@
   import { getContext } from "svelte";
 
   import Checkbox from "../../UI/elements/Checkbox.svelte";
+  import IconButton from "../..//UI/elements/IconButton.svelte";
 
   const stbState = getContext("stbState");
   const stbSettings = getContext("stbSettings");
@@ -54,15 +55,15 @@
           />
         {/if}
 
-        {#if canDelete}
-          {#if $stbSelected.length}
-            <i
-              class="ri-delete-bin-line delete"
-              on:click={stbAPI.deleteSelectedRows}
-            />
-          {:else}
-            <i class="ri-delete-bin-line disabled" />
-          {/if}
+        {#if canDelete && $stbSelected.length > 1}
+          <IconButton
+            icon="trash"
+            size="small"
+            variant="warning"
+            disabled={$stbSelected.length == 0}
+            tooltip="Delete Selected Rows"
+            on:click={stbAPI.deleteSelectedRows}
+          />
         {/if}
       </div>
     {/if}
@@ -96,15 +97,19 @@
             <Checkbox
               checked={selected}
               disabled={$stbRowMetadata[visibleRow]?.disabled}
+              hovered={$stbHovered == visibleRow}
               on:change={() => stbAPI.selectRow(visibleRow)}
             />
           {/if}
 
           {#if canDelete}
-            <i
-              class="ri-delete-bin-line delete"
-              class:selected
-              on:click={(e) => stbAPI.deleteRow(visibleRow)}
+            <IconButton
+              icon="trash"
+              size="small"
+              variant="warning"
+              disabled={$stbRowMetadata[visibleRow]?.disabled}
+              tooltip="Delete Row"
+              on:click={() => stbAPI.deleteRow(visibleRow)}
             />
           {/if}
         </div>
@@ -130,41 +135,5 @@
     font-size: 13px;
     font-weight: 500;
     align-items: center;
-    &.is-hovered > .delete {
-      color: var(--spectrum-global-color-red-700) !important;
-    }
-    &.is-selected > .delete {
-      color: var(--spectrum-global-color-red-400);
-    }
-    &.is-hovered > i:not(.delete) {
-      color: var(--spectrum-global-color-gray-700);
-    }
-  }
-
-  i {
-    font-size: 14px;
-    color: var(--spectrum-global-color-gray-500);
-
-    &.disabled {
-      color: var(--spectrum-global-color-gray-100);
-    }
-
-    &.delete {
-      &.selected {
-        color: var(--spectrum-global-color-red-400);
-      }
-
-      &:hover {
-        color: var(--spectrum-global-color-red-700);
-      }
-    }
-
-    &.full {
-      color: var(--spectrum-global-color-gray-900);
-    }
-
-    &:hover:not(.disabled) {
-      cursor: pointer;
-    }
   }
 </style>

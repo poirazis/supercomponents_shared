@@ -41,7 +41,7 @@
   export let disabled: boolean = false;
   export let readonly: boolean = false;
   export let initialValues: Record<string, any> | undefined = undefined;
-  export let size: "Medium" | "Large" | undefined = undefined;
+  export const size: "Medium" | "Large" | undefined = undefined;
   export let schema: TableSchema | undefined = undefined;
   export let definition: Table | undefined = undefined;
   export let disableSchemaValidation: boolean = false;

@@ -208,7 +208,7 @@
       style:color={filterTerm
         ? "var(--spectrum-global-color-blue-400)"
         : "var(--spectrum-global-color-gray-700)"}
-    />
+    ></i>
     <input
       bind:this={control}
       class="search"
@@ -257,7 +257,7 @@
               {#each relatedColumns as col}
                 <div class="data-cell">{row[col.name] || ""}</div>
               {/each}
-              <div class="data-cell check"><i class="ri-check-line" /></div>
+              <div class="data-cell check"><i class="ri-check-line" ></i></div>
             </div>
           {/each}
 
@@ -278,7 +278,7 @@
                       <div class="data-cell">{row[col.name] || ""}</div>
                     {/each}
                     <div class="data-cell check">
-                      <i class="ri-check-line" />
+                      <i class="ri-check-line" ></i>
                     </div>
                   </div>
                 {/if}
@@ -289,13 +289,13 @@
           {#if $optionsFetch?.loading}
             <div class="data-row loading">
               <div class="data-cell" style="grid-column: 1 / -1;">
-                <i class="ri-loader-2-line rotating" /> Loading more...
+                <i class="ri-loader-2-line rotating" ></i> Loading more...
               </div>
             </div>
           {:else if $optionsFetch?.loading && !$optionsFetch.loaded}
             <div class="data-row loading">
               <div class="data-cell" style="grid-column: 1 / -1;">
-                <i class="ri-loader-2-line rotating" /> Loading...
+                <i class="ri-loader-2-line rotating" ></i> Loading...
               </div>
             </div>
           {:else if !$optionsFetch?.loading && $optionsFetch?.loaded && !$optionsFetch.rows?.length}
@@ -319,7 +319,7 @@
               on:mousedown|preventDefault|stopPropagation={() => selectRow(row)}
             >
               {row.primaryDisplay || row[primaryDisplay]}
-              <i class="ri-check-line" />
+              <i class="ri-check-line" ></i>
             </div>
           {/each}
 
@@ -337,20 +337,20 @@
                     on:mousedown|preventDefault={() => selectRow(row)}
                   >
                     {row.primaryDisplay || row[primaryDisplay]}
-                    <i class="ri-check-line" />
+                    <i class="ri-check-line" ></i>
                   </div>
                 {/if}
               {/each}
             {/key}
             {#if $optionsFetch?.loading}
               <div class="option loading">
-                <i class="ri-loader-2-line rotating" />
+                <i class="ri-loader-2-line rotating" ></i>
                 Loading more...
               </div>
             {/if}
           {:else if $optionsFetch?.loading && !$optionsFetch.loaded}
             <div class="option loading">
-              <i class="ri-loader-2-line rotating" />
+              <i class="ri-loader-2-line rotating" ></i>
               Loading...
             </div>
           {:else}

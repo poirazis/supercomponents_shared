@@ -22,7 +22,7 @@
   export let disabled;
 
   // the default height
-  export let rowHeight;
+
   let viewport;
   let info;
 
@@ -97,8 +97,10 @@
   style:justify-content={$columnSettings.align}
   on:mouseenter={() => ($stbHovered = index)}
   on:mouseleave={() => ($stbHovered = undefined)}
-  on:click={() =>
-    stbState.handleRowClick(index, field, deepGet(row, field), id)}
+  on:click={() => {
+    if (!meta.disabled)
+      stbState.handleRowClick(index, field, deepGet(row, field), id);
+  }}
   on:contextmenu|preventDefault={() => {
     stbAPI.showContextMenu(index, viewport);
   }}

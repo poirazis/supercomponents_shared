@@ -9,6 +9,7 @@
   export let fetch = null;
 
   $: valid = hasParams($dataSource) && pagination === "limitOffset";
+  $: currentOffset = $dataSource?.queryParams?.offset || 0;
 
   $: currentPage = Math.floor(currentOffset / limit) + 1;
   $: hasMorePages = $fetch?.rows?.length >= limit;
@@ -56,6 +57,7 @@
     <div class="pagination-controls">
       <button
         class="pagination-btn"
+        style:margin-right="-0.25rem"
         on:click={goToFirst}
         disabled={currentPage <= 1}
         title="First Page"

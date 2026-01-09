@@ -34,17 +34,6 @@
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
     },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
     Editing: {
       _enter() {
         originalValue = JSON.stringify(localValue);
@@ -62,9 +51,7 @@
         if (popup?.contains(e.relatedTarget)) return;
         this.submit();
       },
-      popupfocusout(e) {
-        console.log(e);
-      },
+      popupfocusout(e) {},
       clear() {
         localValue = [];
       },
@@ -216,7 +203,7 @@
                 class={fieldSchema.type == "link"
                   ? "ri-links-line"
                   : "ri-user-line"}
-              />
+              ></i>
             {/if}
             <span>{val.primaryDisplay}</span>
           </div>

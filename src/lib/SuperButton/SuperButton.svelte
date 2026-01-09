@@ -1,5 +1,6 @@
 <script>
-  import { getContext, onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
+  import Tooltip from "../UI/elements/Tooltip.svelte";
 
   export let size = "M";
   export let menuItem = false;
@@ -14,9 +15,10 @@
   export let onClick = undefined;
   export let buttonClass = "actionButton";
   export let type = "primary";
+  export let tooltip;
 
   // Visibility Conditions
-  export let conditions = []; // Array of condition objects {field, operator, value}
+  export const conditions = []; // Array of condition objects {field, operator, value}
 
   export let actionsMode = "normal";
   export let condition = undefined; // For backward compatibility
@@ -47,6 +49,26 @@
   let working = false;
   let ui_timer = undefined;
   let elapsed = 0;
+
+  let buttonElement;
+  let tooltipShow = false;
+  let tooltipTimer;
+
+  const showTooltip = () => {
+    if (disabled) return;
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      tooltipShow = true;
+    }, 750);
+  };
+
+  const hideTooltip = () => {
+    if (tooltipTimer) {
+      clearTimeout(tooltipTimer);
+      tooltipTimer = null;
+    }
+    tooltipShow = false;
+  };
 
   async function handleClick(e) {
     if (disabled || working) return;
@@ -103,12 +125,16 @@
 
   onDestroy(() => {
     if (ui_timer) clearInterval(ui_timer);
+    if (tooltipTimer) clearTimeout(tooltipTimer);
   });
 </script>
 
 <button
+  bind:this={buttonElement}
   tabindex={disabled ? -1 : 0}
   on:click={handleClick}
+  on:mouseenter={showTooltip}
+  on:mouseleave={hideTooltip}
   class:super-button={true}
   class:xsmall={size == "XS"}
   class:small={size == "S"}
@@ -137,9 +163,14 @@
     class={icon_class}
     style:order={iconAfterText ? 1 : 0}
     style:color={disabled ? "var(--spectrum-global-color-gray-400)" : iconColor}
-  />
+  ></i>
+
   <span>{text}</span>
 </button>
+
+{#if tooltip}
+  <Tooltip anchor={buttonElement} content={tooltip} show={tooltipShow} />
+{/if}
 
 <style>
   .super-button {

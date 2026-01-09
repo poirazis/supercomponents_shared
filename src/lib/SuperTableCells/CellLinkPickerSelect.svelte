@@ -140,9 +140,9 @@
       e.preventDefault();
       focusIdx -= 1;
       if (focusIdx < 0) focusIdx = $fetch.rows.length - 1;
-    } else if (e.key == "Enter" && focusIdx > -1)
+    } else if (e.key == "Enter" && focusIdx > -1) {
       selectRow($fetch.rows[focusIdx]);
-    if (e.key == "Tab" || e.key == "Escape") dispatch("close");
+    }
   };
 
   // Auto-fetch more if initial data doesn't fill viewport
@@ -180,7 +180,7 @@
       style:color={filterTerm
         ? "var(--spectrum-global-color-blue-400)"
         : "var(--spectrum-global-color-gray-700)"}
-    />
+    ></i>
     <input
       bind:this={control}
       class="search"
@@ -191,7 +191,6 @@
         : "Search"}
       on:input={handleSearch}
       on:keydown={handleNavigation}
-      on:blur={() => dispatch("close")}
     />
   </div>
 
@@ -214,19 +213,19 @@
                       )}
                     >
                       {row[primaryDisplay]}
-                      <i class="ri-add-line" />
+                      <i class="ri-add-line"></i>
                     </div>
                   {/if}
                 {/each}
                 {#if $fetch?.loading && $fetch.loaded}
                   <div class="option wide loading">
-                    <i class="ri-loader-2-line rotating" />
+                    <i class="ri-loader-2-line rotating"></i>
                     Loading more...
                   </div>
                 {/if}
               {:else if $fetch?.loading}
                 <div class="option wide loading">
-                  <i class="ri-loader-2-line rotating" />
+                  <i class="ri-loader-2-line rotating"></i>
                   Loading...
                 </div>
               {:else}
@@ -248,7 +247,7 @@
                     )}
                   >
                     {val.primaryDisplay}
-                    <i class="ri-close-line" />
+                    <i class="ri-close-line"></i>
                   </div>
                 {/if}
               {/each}
@@ -274,18 +273,18 @@
                     on:mousedown|preventDefault|stopPropagation={selectRow(row)}
                   >
                     {row[primaryDisplay]}
-                    <i class="ri-check-line" />
+                    <i class="ri-check-line"></i>
                   </div>
                 {/each}
                 {#if $fetch?.loading && $fetch.loaded}
                   <div class="option loading">
-                    <i class="ri-loader-2-line rotating" />
+                    <i class="ri-loader-2-line rotating"></i>
                     Loading more...
                   </div>
                 {/if}
               {:else if $fetch?.loading}
                 <div class="option loading">
-                  <i class="ri-loader-2-line rotating" />
+                  <i class="ri-loader-2-line rotating"></i>
                   Loading...
                 </div>
               {:else}

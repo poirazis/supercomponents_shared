@@ -150,14 +150,14 @@
         class:showColors
         style:--option-color={itemsColors[draggableItem.item]}
       >
-        <i class="ri-checkbox-blank-fill" />
+        <i class="ri-checkbox-blank-fill"></i>
         <span>{itemsLabels[draggableItem.item] || draggableItem.item}</span>
       </div>
       {#if !reorderOnly && inEdit}
         <i
           class="ph ph-trash-simple"
           on:mousedown|preventDefault={() => removeItem(draggableItem.id)}
-        />
+        ></i>
       {/if}
     </li>
   {/each}

@@ -13,6 +13,10 @@ export { default as SuperList } from "./lib/SuperList/SuperList.svelte";
 // Popover components
 export { default as SuperPopover } from "./lib/SuperPopover/SuperPopover.svelte";
 
+// UI Elements
+export { default as Tooltip } from "./lib/UI/elements/Tooltip.svelte";
+export { default as IconButton } from "./lib/UI/elements/IconButton.svelte";
+
 // Table components
 export { default as SuperTable } from "./lib/SuperTable/SuperTable.svelte";
 export { default as SuperTableColumn } from "./lib/SuperTableColumn/SuperTableColumn.svelte";

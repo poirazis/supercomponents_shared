@@ -412,7 +412,7 @@
   transition: all 130ms;
 }
 
-.superCell.inline:hover:not(.disabled):not(.readonly) {
+.superCell.inline:hover:not(.disabled):not(.readonly):not(.inEdit) {
   background-color: var(--spectrum-global-color-gray-50);
   border: 1px solid var(--spectrum-global-color-gray-300);
   cursor: pointer;
