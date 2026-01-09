@@ -39,17 +39,6 @@
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
     },
-    Hovered: {
-      cancel: () => {
-        return "View";
-      },
-    },
-    Focused: {
-      unfocus() {
-        return "View";
-      },
-    },
-    Error: { check: "View" },
     Editing: {
       _enter() {
         originalValue = JSON.stringify(localValue);

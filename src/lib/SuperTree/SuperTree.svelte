@@ -1,5 +1,6 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onDestroy } from "svelte";
+  import Tooltip from "../UI/elements/Tooltip.svelte";
   const dispatch = createEventDispatcher();
 
   export let tree;
@@ -13,40 +14,70 @@
     ? $selectedGroups.includes(tree.id)
     : !!$selectedNodes.find((x) => x.id == tree.id);
 
+  $: if (hasSelectedDescendant(tree.children || [])) open = true;
+
   let labelElement;
-  $: isOverflowing = labelElement && labelElement.scrollWidth > labelElement.clientWidth;
+  let tooltipShow = false;
+  let tooltipTimer;
+
+  $: isOverflowing =
+    labelElement && labelElement.scrollWidth > labelElement.clientWidth;
+
   $: tooltip = isOverflowing ? tree.label || "Not Set" : null;
+
+  const showTooltip = () => {
+    if (!tooltip) return;
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      tooltipShow = true;
+    }, 750);
+  };
+
+  const hideTooltip = () => {
+    if (tooltipTimer) {
+      clearTimeout(tooltipTimer);
+      tooltipTimer = null;
+    }
+    tooltipShow = false;
+  };
 
   const toggleOpen = (e) => {
     if (tree.disabled) return;
+    if (open && hasSelectedDescendant(tree.children || [])) return;
     open = !open;
     dispatch("nodeClick", { id: tree.id, label: tree.label });
   };
 
   // Recursion
-  const hasChildSelected = (children) => {
-    let found = false;
-    if (!$selectedNodes.length) return found;
-
-    if (children.findIndex((x) => x.id == $selectedNodes[0].id) > -1) {
-      found = true;
-    } else {
-      children.forEach((element) => {
-        found = hasChildSelected(element.children);
-      });
+  const hasSelectedDescendant = (children) => {
+    if (!children || !children.length) return false;
+    for (let child of children) {
+      if (
+        child.isGroup
+          ? $selectedGroups.includes(child.id)
+          : $selectedNodes.some((node) => node.id === child.id)
+      ) {
+        return true;
+      }
+      if (hasSelectedDescendant(child.children)) {
+        return true;
+      }
     }
-    return found;
+    return false;
   };
 
   const toggleNode = (e) => {
-    if (tree.selectable && !tree.disabled)
-      dispatch("nodeSelect", {
-        id: tree.id,
-        label: tree.label,
-        row: tree.row,
-        group: tree.group,
-      });
+    dispatch("nodeSelect", {
+      id: tree.id,
+      label: tree.label,
+      row: tree.row,
+      group: tree.group,
+    });
   };
+
+  onDestroy(() => {
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+  });
 </script>
 
 <!-- svelte-ignore a11y-missing-attribute -->
@@ -58,28 +89,33 @@
   class:is-disabled={tree.disabled}
   class:is-open={open}
 >
-  <div
-    class="spectrum-TreeView-itemLink"
-    style:padding-left={tree?.children?.length ? "0.25rem" : "1.5rem"}
-    style:padding-right={"0.5rem"}
-  >
-    {#if tree.children?.length}
-      <i
-        class={"ri-arrow-right-s-line"}
-        class:open
-        style:z-index={1}
-        style:font-size={"16px"}
-        on:mousedown|self|preventDefault|stopPropagation={toggleOpen}
-      />
-    {/if}
+  <div class="spectrum-TreeView-itemLink" style:padding-right={"0.5rem"}>
+    <i
+      class={"ri-arrow-right-s-line"}
+      class:open
+      class:is-disabled={tree.children.length == 0 || tree.disabled}
+      style:font-size={"16px"}
+      style:z-index={"1"}
+      on:mousedown|stopPropagation={toggleOpen}
+    ></i>
     <div
-      style:z-index={2}
       style:width={"100%"}
-      on:mousedown|preventDefault|stopPropagation={toggleNode}
+      style:z-index={"1"}
+      on:mousedown|stopPropagation|preventDefault={toggleNode}
     >
-      <span class="spectrum-TreeView-itemLabel" style:padding-left={"0.25rem"} bind:this={labelElement} title={tooltip}
-        >{tree.label || "Not Set"}</span
+      <div
+        class="spectrum-TreeView-itemLabel"
+        style:padding-left={"0.25rem"}
+        style:z-index={"10"}
+        style:text-overflow={"ellipsis"}
+        style:overflow={"hidden"}
+        style:white-space={"nowrap"}
+        bind:this={labelElement}
+        on:mouseenter={showTooltip}
+        on:mouseleave={hideTooltip}
       >
+        {tree.label || "Not Set"}
+      </div>
     </div>
 
     {#if selected}
@@ -90,6 +126,10 @@
       ></i>
     {/if}
   </div>
+
+  {#if tooltip}
+    <Tooltip anchor={labelElement} content={tooltip} show={tooltipShow} />
+  {/if}
 
   {#if tree.children?.length}
     <ul class="spectrum-TreeView">
@@ -119,10 +159,16 @@
     align-items: center;
     gap: 0.25rem;
     max-height: 1.75rem;
+    padding: 0.25rem 0.5rem;
   }
 
   i {
     transition: all 130ms;
+  }
+
+  i.is-disabled {
+    opacity: 0.3;
+    pointer-events: none;
   }
   .open {
     transform: rotate(90deg);

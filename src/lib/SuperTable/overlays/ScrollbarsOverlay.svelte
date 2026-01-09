@@ -28,7 +28,6 @@
   let mouseoffset = 0;
   let width;
   let left;
-  let localWidth;
 
   // Positioning Offsets
   $: verticalTopOffset = $stbSettings.appearance.headerHeight + 8 + "px";
@@ -91,50 +90,47 @@
     : () => {}}
 />
 
-{#if verticalRange}
-  <div
-    class="stb-scrollbar"
-    class:highlighted
-    style:--offset={verticalTopOffset}
-    style:--bottomOffset={verticalBottomOffset}
-  >
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div
-      class="stb-scrollbar-indicator"
-      class:dragging
-      style:top
-      style:height
-      on:mousedown|self={(e) => {
-        dragging = true;
-        startPos = e.clientY;
-        startScrollPos = $stbScrollPos;
-      }}
-    />
-  </div>
-{/if}
-
-{#if horizontalRange}
+<div
+  class="stb-scrollbar"
+  class:hidden={!verticalRange}
+  class:highlighted={highlighted || dragging}
+  style:--offset={verticalTopOffset}
+  style:--bottomOffset={verticalBottomOffset}
+>
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
-    bind:clientWidth={localWidth}
-    class="stb-scrollbar horizontal"
-    class:highlighted
-    style:--horizontalOffset={horizontalOffset}
-    style:--horizontalBottomOffset={horizontalBotttomOffset}
-  >
-    <div
-      class="stb-scrollbar-indicator horizontal"
-      style:left
-      style:width
-      class:dragging={horizontalDragging}
-      on:mousedown|self={(e) => {
-        horizontalDragging = true;
-        horizontalStartPos = e.clientX;
-        startScrollPos = $stbHorizontalScrollPos;
-      }}
-    />
-  </div>
-{/if}
+    class="stb-scrollbar-indicator"
+    class:dragging
+    style:top
+    style:height
+    on:mousedown|stopPropagation|preventDefault={(e) => {
+      dragging = true;
+      startPos = e.clientY;
+      startScrollPos = $stbScrollPos;
+    }}
+  ></div>
+</div>
+
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div
+  class="stb-scrollbar horizontal"
+  class:hidden={!horizontalRange}
+  class:highlighted={highlighted || horizontalDragging}
+  style:--horizontalOffset={horizontalOffset}
+  style:--horizontalBottomOffset={horizontalBotttomOffset}
+>
+  <div
+    class="stb-scrollbar-indicator horizontal"
+    style:left
+    style:width
+    class:dragging={horizontalDragging}
+    on:mousedown|stopPropagation|preventDefault={(e) => {
+      horizontalDragging = true;
+      horizontalStartPos = e.clientX;
+      startScrollPos = $stbHorizontalScrollPos;
+    }}
+  ></div>
+</div>
 
 <style>
   .stb-scrollbar {
@@ -148,6 +144,10 @@
     z-index: 1;
     transition: 230ms;
     overflow: hidden;
+  }
+
+  .stb-scrollbar.hidden {
+    display: none;
   }
 
   .stb-scrollbar.horizontal {

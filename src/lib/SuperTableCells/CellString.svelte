@@ -8,7 +8,7 @@
   import fsm from "svelte-fsm";
 
   /**
-   * @typedef {import('./types.js').CellStringOptions} CellStringOptions
+   * @typedef {import('./types.js').CellOptions} CellOptions
    * @typedef {import('./types.js').CellApi} CellApi
    */
 
@@ -21,7 +21,7 @@
   /** @type {string | undefined} */
   export let formattedValue = undefined;
 
-  /** @type {CellStringOptions} */
+  /** @type {CellOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
@@ -260,7 +260,7 @@
         <i
           class="ri-close-line clearIcon"
           on:mousedown|self|preventDefault={cellState.clear}
-        />
+        ></i>
       {/if}
     {/if}
   {:else if textarea}

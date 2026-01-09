@@ -15,6 +15,7 @@
     supportSortingMap,
     supportEditingMap,
   } from "./constants.js";
+  import "./SuperTable.css";
 
   // Overlays
   import ScrollbarsOverlay from "./overlays/ScrollbarsOverlay.svelte";
@@ -724,8 +725,6 @@
             confirmText:
               "Are you sure you want to delete this " +
               (entitySingular || "Row") +
-              "ID" +
-              id +
               " ?",
             tableId: tableId,
             rowId: id,
@@ -898,8 +897,9 @@
       if (fetchState?.definition?.primary?.length === 1)
         return fetchState.definition.primary[0];
       const schema = fetchState?.definition?.schema || fetchState?.schema || {};
+
       if ("id" in schema) return "id";
-      if ("_id" in schema) return "_id";
+      if ("_id" in schema || $dataSourceStore.type == "viewV2") return "_id";
       return null;
     },
     loadPreSelections: (ids) => {

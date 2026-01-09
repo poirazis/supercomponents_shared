@@ -163,8 +163,6 @@
     role: "inlineInput",
     debounce: 50,
   };
-
-  export const api = {};
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -225,5 +223,9 @@
     border-bottom: 1px solid var(--spectrum-global-color-gray-300);
     display: flex;
     align-items: stretch;
+  }
+
+  .spectrum-TreeView {
+    width: 100%;
   }
 </style>

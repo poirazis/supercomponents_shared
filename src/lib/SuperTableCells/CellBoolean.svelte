@@ -108,7 +108,7 @@
             on:change={cellState.change}
             use:focus
           />
-          <span class="spectrum-Switch-switch" />
+          <span class="spectrum-Switch-switch"></span>
           {#if inlineLabel}
             <span class="spectrum-Switch-label">{inlineLabel}</span>
           {/if}

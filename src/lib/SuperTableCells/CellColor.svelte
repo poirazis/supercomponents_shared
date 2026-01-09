@@ -6,8 +6,7 @@
   export let size = "M";
   export let spectrumTheme;
   export let offset;
-  export let align;
-  export let cellState;
+
   export let cellOptions = {};
 
   let open = false;
@@ -213,7 +212,7 @@
     class:circle
     style={value ? `background: ${value};` : ""}
     class:placeholder={!value}
-  />
+  ></div>
 </div>
 
 {#if inEdit}
@@ -238,7 +237,7 @@
                   style="background: var(--spectrum-global-color-{color});"
                 >
                   {#if value === `var(--spectrum-global-color-${color})`}
-                    <i class="ri-check-line" style="color: {checkColor};" />
+                    <i class="ri-check-line" style="color: {checkColor};"></i>
                   {/if}
                 </div>
               </div>
@@ -249,7 +248,7 @@
       {#if customCategory.colors.length > 0}
         <div class="category">
           <div class="heading">
-            <i class="ri-palette-line heading-icon" />
+            <i class="ri-palette-line heading-icon"></i>
             {customCategory.label}
           </div>
           <div class="colors">
@@ -267,7 +266,7 @@
                   style="background: {color};"
                 >
                   {#if value === color}
-                    <i class="ri-check-line" style="color: {checkColor};" />
+                    <i class="ri-check-line" style="color: {checkColor};"></i>
                   {/if}
                 </div>
               </div>
@@ -288,8 +287,9 @@
               }}
               placeholder="Enter custom color"
             />
+            <!-- svelte-ignore a11y_consider_explicit_label -->
             <button class="clear-value" on:click={() => onChange(null)}>
-              <i class="ri-close-line" />
+              <i class="ri-close-line"></i>
             </button>
           </div>
         </div>

@@ -7,7 +7,7 @@
 
 {#if isEmpty}
   <div class="emptyTable" style:top style:bottom>
-    <i class="ri-search-line" />
+    <i class="ri-search-line"></i>
     {message}
   </div>
 {/if}

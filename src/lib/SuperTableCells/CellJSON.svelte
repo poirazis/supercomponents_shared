@@ -202,7 +202,7 @@
         on:focusout={cellState.focusout}
         on:keydown={cellState.handleKeyboard}
         use:focus
-      />
+      ></textarea>
     {:else}
       <input
         bind:this={editor}
@@ -230,7 +230,7 @@
       <i
         class="ri-close-line clearIcon"
         on:mousedown|self|preventDefault={cellState.clear}
-      />
+      ></i>
     {/if}
   {:else}
     <div

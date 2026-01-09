@@ -9,7 +9,7 @@
   export let fieldSchema: any;
   export let tableid: string;
   export let API;
-  export let height = "auto";
+  export const height = "auto";
   export let inBuilder;
 
   const dispatch = createEventDispatcher();

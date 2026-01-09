@@ -153,10 +153,10 @@
   aria-label="Select icon"
 >
   {#if value}
-    <i class="ph ph-{iconName}" />
+    <i class="ph ph-{iconName}"></i>
   {:else}
     <div class="empty-state">
-      <i class="ph ph-image" />
+      <i class="ph ph-image"></i>
     </div>
   {/if}
 </div>
@@ -188,7 +188,7 @@
         </div>
       {/if}
       <div class="search-container">
-        <i class="ph ph-magnifying-glass search-icon" />
+        <i class="ph ph-magnifying-glass search-icon"></i>
         <input
           type="text"
           bind:value={searchQuery}
@@ -202,7 +202,7 @@
             on:click={() => (searchQuery = "")}
             aria-label="Clear search"
           >
-            <i class="ph ph-x" />
+            <i class="ph ph-x"></i>
           </button>
         {/if}
       </div>
@@ -231,14 +231,14 @@
                 aria-label={`Select ${icon} icon`}
                 tabindex="0"
               >
-                <i class="ph ph-{icon}" />
+                <i class="ph ph-{icon}"></i>
               </button>
             {/each}
           </div>
         </VirtualList>
       {:else}
         <div class="no-results">
-          <i class="ph ph-magnifying-glass" />
+          <i class="ph ph-magnifying-glass"></i>
           <p>No icons found</p>
         </div>
       {/if}
@@ -247,7 +247,7 @@
     <div class="footer">
       {#if value}
         <button class="clear-button" on:click={clearSelection}>
-          <i class="ph ph-x" /> Clear
+          <i class="ph ph-x"></i> Clear
         </button>
       {/if}
     </div>

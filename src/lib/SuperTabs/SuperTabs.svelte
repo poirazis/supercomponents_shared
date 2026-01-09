@@ -49,7 +49,7 @@
       {#if theme === "list" && list_title}
         <div class="tab list-title">
           {#if list_icon}
-            <i class={list_icon} />
+            <i class={list_icon}></i>
           {/if}
           {list_title}
         </div>
@@ -76,7 +76,7 @@
               class={container.icon}
               style:font-size={tabsIconsOnly ? "20px" : null}
               style:color={container.color}
-            />
+            ></i>
           {/if}
 
           {#if !tabsIconsOnly || !container.icon}

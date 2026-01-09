@@ -8,7 +8,7 @@
   import fsm from "svelte-fsm";
 
   /**
-   * @typedef {import('./types.js').CellNumberOptions} CellNumberOptions
+   * @typedef {import('./types.js').CellOptions} CellOptions
    * @typedef {import('./types.js').CellApi} CellApi
    */
 
@@ -18,7 +18,7 @@
 
   /** @type {number | null} */
   export let value;
-  /** @type {CellNumberOptions} */
+  /** @type {CellOptions} */
   export let cellOptions = {};
   export let autofocus = false;
 
@@ -51,9 +51,28 @@
   } = cellOptions ?? {});
 
   // Helper function to format number with thousands separator
+  /**
+   * @param {number | string | null | undefined} num
+   * @param {string | undefined} separator
+   * @param {number | undefined} decimals
+   * @returns {string}
+   */
   function formatNumber(num, separator, decimals) {
-    if (!num && num !== 0) return "";
-    const fixed = num.toFixed(decimals ?? 0);
+    // Parse string to number if needed
+    const parsedNum = typeof num === "string" ? parseFloat(num) : num;
+
+    // Check if it's a valid number
+    if (isNaN(parsedNum) || (parsedNum !== 0 && !parsedNum)) return "";
+
+    // If decimals not specified and input was a string, preserve original decimals
+    let fixed;
+    if (decimals === undefined && typeof num === "string") {
+      // Keep the string representation to preserve decimals
+      fixed = parsedNum.toString();
+    } else {
+      fixed = parsedNum.toFixed(decimals ?? 0);
+    }
+
     if (!separator) return fixed;
 
     const parts = fixed.split(".");
@@ -113,7 +132,7 @@
         dispatch("exitedit");
       },
       clear() {
-        if (debounceDelay) dispatch("change", null);
+        dispatch("change", null);
         lastEdit = new Date();
         localValue = null;
       },

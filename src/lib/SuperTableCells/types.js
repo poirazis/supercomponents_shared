@@ -1,7 +1,13 @@
 /**
  * @fileoverview Shared type definitions for SuperTableCells components using JSDoc
  * These types provide IntelliSense and type checking for both JavaScript and TypeScript files.
+ *
+ * Uses a unified CellOptions type with common base properties and optional type-specific extensions.
  */
+
+// ============================================================================
+// ENUMS & PRIMITIVE TYPES
+// ============================================================================
 
 /**
  * Cell role determines the rendering context and styling
@@ -9,7 +15,10 @@
  */
 
 /**
- * Cell state for FSM
+ * Cell state for FSM. Represents reachable states in the cell component finite state machines.
+ * - View: Default read-only display state
+ * - Editing: User is actively editing the cell value
+ * - Loading: Data is being fetched (used by cells with data dependencies)
  * @typedef {"View" | "Editing" | "Loading"} CellState
  */
 
@@ -19,211 +28,151 @@
  */
 
 /**
- * Common options available to all cell components
- * @typedef {Object} BaseCellOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
+ * Control type union covering all cell variants
+ * @typedef {"input" | "textarea" | "switch" | "checkbox" | "pills" | "text" | "links" | "list" | "buttons" | "radio" | "grid" | "carousel" | "expanded" | "inputSelect"} CellControlType
+ */
+
+// ============================================================================
+// UNIFIED CELL OPTIONS
+// ============================================================================
+
+/**
+ * Unified options for all Cell components.
+ * Contains common base properties and optional type-specific extensions.
+ *
+ * @typedef {Object} CellOptions
+ *
+ * ---------------------------------------------------------------------------
+ * COMMON PROPERTIES (used by all/most cells)
+ * ---------------------------------------------------------------------------
+ * @property {CellRole} [role="formInput"] - Role determines the rendering context and styling
+ * @property {CellState} [initialState="View"] - Initial FSM state
  * @property {number} [debounce] - Debounce delay in milliseconds for change events
  * @property {boolean} [readonly] - Whether the cell is read-only
  * @property {boolean} [disabled] - Whether the cell is disabled
  * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
+ * @property {string} [template] - Template string for formatting display value (uses processStringSync)
+ * @property {string} [icon] - Icon CSS class to display (e.g., "ph ph-warning")
+ * @property {boolean} [error] - Whether the cell has an error state
+ * @property {boolean} [showDirty] - Whether to show dirty/modified indicator
  * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- */
-
-/**
- * Options specific to CellString component
- * @typedef {Object} CellStringOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {"input" | "textarea"} [controlType] - Control type for input
- * @property {boolean} [clearIcon] - Whether to show clear icon
- */
-
-/**
- * Options specific to CellNumber component
- * @typedef {Object} CellNumberOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {number} [defaultValue] - Default value for the cell
- * @property {boolean} [showStepper] - Whether to show stepper controls
- * @property {number} [stepSize] - Step increment value
- * @property {number} [min] - Minimum value
- * @property {number} [max] - Maximum value
- * @property {number} [decimals] - Decimal places to show
- * @property {string} [thousandsSeparator] - Thousands separator character
- * @property {string} [clearValueIcon] - Icon to clear value
- * @property {boolean} [enableWheel] - Whether to enable mouse wheel
- */
-
-/**
- * Options specific to CellBoolean component
- * @typedef {Object} CellBooleanOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
+ * @property {string} [color] - Text color (CSS value)
+ * @property {string} [background] - Background color (CSS value)
  * @property {string | number} [fontWeight] - Font weight
- * @property {"switch" | "checkbox"} [controlType] - Control type: switch or checkbox
- * @property {string} [inlineLabel] - Label to display inline with control
- */
-
-/**
- * Options specific to CellOptions/CellOptionsAdvanced components
- * @typedef {Object} CellOptionsOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
+ * @property {CellControlType} [controlType] - Control type variant for the cell
+ * @property {boolean} [clearIcon] - Whether to show clear/reset icon
+ *
+ * ---------------------------------------------------------------------------
+ * NUMBER PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {number} [defaultValue] - Default numeric value
+ * @property {boolean} [showStepper] - Whether to show increment/decrement stepper controls
+ * @property {number} [stepSize] - Step increment value for stepper
+ * @property {number} [min] - Minimum allowed value
+ * @property {number} [max] - Maximum allowed value
+ * @property {number} [decimals] - Number of decimal places to display
+ * @property {string} [thousandsSeparator] - Thousands separator character (e.g., ",")
+ * @property {string} [clearValueIcon] - Icon for clearing numeric value
+ * @property {boolean} [enableWheel] - Whether to enable mouse wheel for value changes
+ *
+ * ---------------------------------------------------------------------------
+ * BOOLEAN PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {string} [inlineLabel] - Label to display inline with boolean control
+ * @property {boolean} [showFalse] - Whether to show icon/indicator for false value
+ *
+ * ---------------------------------------------------------------------------
+ * OPTIONS/SELECT PROPERTIES
+ * ---------------------------------------------------------------------------
  * @property {"pills" | "text" | "links" | "list" | "buttons" | "radio"} [optionsViewMode] - View mode for options display
- * @property {boolean} [reorderOnly] - Whether to allow reordering
- * @property {boolean} [showColors] - Whether to show colors
- * @property {"schema" | "custom" | "datasource"} [optionsSource] - Data source type
+ * @property {"schema" | "custom" | "data"} [optionsSource] - Data source type for options
  * @property {Array<{label: string, value: any, color?: string}>} [customOptions] - Custom options array
- */
-
-/**
- * Options specific to CellAttachment components
- * @typedef {Object} CellAttachmentOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
- * @property {"list" | "grid" | "carousel"} [controlType] - Control type for display
- * @property {"landscape" | "portrait" | "square"} [imageRatio] - Image aspect ratio
- * @property {number} [gridColumns] - Grid columns (for grid mode)
- * @property {boolean} [isGallery] - Whether in gallery mode
- * @property {"view" | "download" | "none"} [onClickAction] - Action on click
- * @property {boolean} [slotted] - Whether using slot content
- * @property {boolean} [carouselDots] - Show carousel dots
- * @property {boolean} [carouselArrows] - Show carousel arrows
- * @property {boolean} [carouselInfinite] - Enable infinite carousel
- * @property {boolean} [carouselAutoplay] - Enable autoplay
- * @property {number} [carouselAutoplaySpeed] - Autoplay speed in ms
- * @property {number} [carouselItemsToShow] - Number of items to show
- * @property {number} [carouselItemsToScroll] - Number of items to scroll
- * @property {"standard" | "marquee"} [carouselMode] - Carousel mode
- */
-
-/**
- * Options specific to CellDatetime/CellDateRange components
- * @typedef {Object} CellDatetimeOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
+ * @property {boolean} [reorderOnly] - Whether to only allow reordering (no add/remove)
+ * @property {boolean} [showColors] - Whether to show option colors
+ * @property {boolean} [autocomplete] - Whether to enable autocomplete filtering
+ * @property {string} [valueColumn] - Column name for option values (datasource mode)
+ * @property {string} [labelColumn] - Column name for option labels (datasource mode)
+ * @property {string} [colorColumn] - Column name for option colors (datasource mode)
+ * @property {string} [sortColumn] - Column to sort options by
+ * @property {"ascending" | "descending"} [sortOrder] - Sort order for options
+ * @property {Object} [datasource] - Datasource configuration for options
+ * @property {Array} [filter] - Filter array for datasource options
+ *
+ * ---------------------------------------------------------------------------
+ * DATETIME PROPERTIES
+ * ---------------------------------------------------------------------------
  * @property {"default" | "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD" | "MMM DD, YYYY" | "DD MMM YYYY"} [dateFormat] - Date format string
  * @property {boolean} [showTime] - Whether to show time picker
+ *
+ * ---------------------------------------------------------------------------
+ * JSON PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {boolean} [multiline] - Whether to enable multiline JSON editing
+ *
+ * ---------------------------------------------------------------------------
+ * LINK/RELATIONSHIP PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {"pills" | "text"} [relViewMode] - View mode for relationship display
+ * @property {boolean} [simpleView] - Use simple text view for links
+ * @property {number} [limit] - Limit number of related records to fetch
+ * @property {string} [search] - Search term for filtering related records
+ * @property {string} [ownId] - Current row ID (for self-referencing relationships)
+ * @property {string} [joinColumn] - Join column for SQL relationships
+ *
+ * ---------------------------------------------------------------------------
+ * ATTACHMENT PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {"landscape" | "portrait" | "square"} [imageRatio] - Image aspect ratio
+ * @property {number} [gridColumns] - Number of grid columns (for grid mode)
+ * @property {boolean} [isGallery] - Whether in gallery mode
+ * @property {"view" | "download" | "none"} [onClickAction] - Action on attachment click
+ * @property {boolean} [slotted] - Whether using slot content
+ * @property {boolean} [carouselDots] - Show carousel navigation dots
+ * @property {boolean} [carouselArrows] - Show carousel navigation arrows
+ * @property {boolean} [carouselInfinite] - Enable infinite carousel loop
+ * @property {boolean} [carouselAutoplay] - Enable carousel autoplay
+ * @property {number} [carouselAutoplaySpeed] - Autoplay speed in milliseconds
+ * @property {number} [carouselItemsToShow] - Number of items to show in carousel
+ * @property {number} [carouselItemsToScroll] - Number of items to scroll per action
+ * @property {"standard" | "marquee"} [carouselMode] - Carousel animation mode
+ *
+ * ---------------------------------------------------------------------------
+ * ICON PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {boolean} [showCategories] - Whether to show icon category tabs
+ *
+ * ---------------------------------------------------------------------------
+ * COLOR PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {boolean} [allowCustom] - Whether to allow custom color input
+ * @property {"circle" | "square"} [swatch] - Color swatch shape
+ * @property {boolean} [themeColors] - Whether to show theme colors
+ * @property {boolean} [staticColors] - Whether to show static colors
+ * @property {Array<{label: string, value: string}>} [customColors] - Custom color palette
+ *
+ * ---------------------------------------------------------------------------
+ * TAGS PROPERTIES
+ * ---------------------------------------------------------------------------
+ * @property {boolean} [suggestions] - Whether to show tag suggestions from datasource
  */
 
-/**
- * Options specific to CellJSON component
- * @typedef {Object} CellJSONOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
- * @property {boolean} [multiline] - Whether to enable multiline editing
- */
+// ============================================================================
+// BACKWARD-COMPATIBLE TYPE ALIASES
+// These allow existing imports to continue working during migration
+// ============================================================================
 
-/**
- * Options specific to CellLink/CellLinkAdvanced/CellSQLLink components
- * @typedef {Object} CellLinkOptions
- * @property {CellRole} [role] - Role determines the rendering context
- * @property {CellState} [initialState] - Initial FSM state
- * @property {number} [debounce] - Debounce delay in milliseconds
- * @property {boolean} [readonly] - Whether the cell is read-only
- * @property {boolean} [disabled] - Whether the cell is disabled
- * @property {string} [placeholder] - Placeholder text when empty
- * @property {string} [template] - Template string for formatting display value
- * @property {string} [icon] - Icon to display (CSS class)
- * @property {boolean} [error] - Whether the cell has an error
- * @property {boolean} [showDirty] - Whether to show dirty indicator
- * @property {CellAlign} [align] - Text/content alignment
- * @property {string} [color] - Text color
- * @property {string} [background] - Background color
- * @property {string | number} [fontWeight] - Font weight
- * @property {boolean} [simpleView] - View mode for links display
- * @property {*} [filter] - Filter for relationship options
- * @property {number} [limit] - Limit number of options
- * @property {string} [search] - Search term
- */
+/** @typedef {CellOptions} BaseCellOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellStringOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellNumberOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellBooleanOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellOptionsOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellAttachmentOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellDatetimeOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellJSONOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellLinkOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellColorOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellIconOptions - @deprecated Use CellOptions instead */
+/** @typedef {CellOptions} CellTagsOptions - @deprecated Use CellOptions instead */
 
 /**
  * Common API interface for all cell components
