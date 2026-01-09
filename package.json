@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "description": "Shared Svelte components library",
   "type": "module",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "svelte": "^4.2.0"
+    "svelte": "^5.0.0"
   },
   "dependencies": {
     "@budibase/types": "^2.33.14",
@@ -53,7 +53,7 @@
     "@tsconfig/svelte": "^5.0.4",
     "sass": "^1.89.0",
     "sass-embedded": "^1.96.0",
-    "svelte": "^4.2.20",
+    "svelte": "^5.0.0",
     "svelte-check": "^3.8.6",
     "typescript": "^5.8.3",
     "vite": "^5.4.19"
