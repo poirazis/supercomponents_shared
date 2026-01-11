@@ -24,6 +24,25 @@
   let search;
   let pickerApi;
 
+  const editorState = fsm("Closed", {
+    Open: {
+      close() {
+        return "Closed";
+      },
+      toggle() {
+        return "Closed";
+      },
+    },
+    Closed: {
+      open() {
+        return "Open";
+      },
+      toggle() {
+        return "Open";
+      },
+    },
+  });
+
   export let cellState = fsm(cellOptions.initialState ?? "View", {
     "*": {
       goTo(state) {
@@ -64,25 +83,6 @@
       },
       cancel() {
         return "View";
-      },
-    },
-  });
-
-  const editorState = fsm("Closed", {
-    Open: {
-      close() {
-        return "Closed";
-      },
-      toggle() {
-        return "Closed";
-      },
-    },
-    Closed: {
-      open() {
-        return "Open";
-      },
-      toggle() {
-        return "Open";
       },
     },
   });
@@ -219,7 +219,6 @@
   style:color={cellOptions.color}
   style:background={cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
-  on:mousedown={editorState.toggle}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
   on:focusout={cellState.focusout}
@@ -261,7 +260,7 @@
     {/if}
   </div>
   {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
-    <i class="ph ph-caret-down control-icon"></i>
+    <i class="ph ph-caret-down control-icon" on:click={editorState.toggle}></i>
   {/if}
 </div>
 
@@ -269,8 +268,11 @@
   <SuperPopover
     {anchor}
     useAnchorWidth
-    bind:popup
     open={$editorState == "Open"}
+    on:close={(e) => {
+      console.log("closing editor");
+      editorState.close();
+    }}
   >
     {#if fieldSchema.recursiveTable}
       <CellLinkPickerTree
@@ -292,9 +294,6 @@
         value={localValue}
         bind:api={pickerApi}
         on:change={handleChange}
-        on:close={() => {
-          cellState.focusout(null);
-        }}
       />
     {/if}
   </SuperPopover>

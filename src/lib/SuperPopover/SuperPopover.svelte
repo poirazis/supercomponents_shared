@@ -1,5 +1,5 @@
 <script>
-  import Portal from "svelte-portal";
+  import { Portal } from "@jsrob/svelte-portal";
   import { createEventDispatcher } from "svelte";
   import positionDropdown from "../Actions/position_dropdown";
   import clickOutside from "../Actions/click_outside";
@@ -53,7 +53,7 @@
   };
 
   export const hasFocus = () => {
-    return viewport.matches(":focus-within");
+    return viewport?.matches(":focus-within");
   };
 
   const handleOutsideClick = (e) => {

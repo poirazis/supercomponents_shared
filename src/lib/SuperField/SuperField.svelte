@@ -69,9 +69,6 @@
 
     &.multirow {
       max-height: var(--height);
-      & > .inline-cells.inline-buttons {
-        flex-direction: column;
-      }
     }
 
     &.left-label {
@@ -82,9 +79,6 @@
     &.tall {
       height: 100%;
       justify-content: stretch;
-      & > .inline-cells > .inline-buttons {
-        flex-direction: column;
-      }
     }
 
     &.tall.left-label {
@@ -110,11 +104,6 @@
       flex-direction: column;
       align-items: stretch;
       justify-content: flex;
-    }
-
-    & > .inline-buttons {
-      display: flex;
-      padding-left: 0.5rem;
     }
   }
 
