@@ -3,7 +3,6 @@
   import fsm from "svelte-fsm";
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import CellLinkPickerTree from "../../lib/SuperTableCells/CellLinkPickerTree.svelte";
-  import { readonly } from "svelte/store";
   const dispatch = createEventDispatcher();
 
   export let value;

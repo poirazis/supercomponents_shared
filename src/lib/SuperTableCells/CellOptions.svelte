@@ -14,6 +14,7 @@
 
   let anchor;
   let editor;
+  let optionsList;
   let options = memo([]);
   let labels = {};
   let optionColors = {};
@@ -85,7 +86,7 @@
     Loading: {
       _enter() {
         if (cellOptions.optionsSource != "data" || $fetch?.loaded)
-          this.goTo.debounce(5, cellOptions.initialState || "View");
+          this.goTo.debounce(15, cellOptions.initialState || "View");
       },
       _exit() {
         if (cellOptions.optionsSource == "custom") this.loadCustomOptions();
@@ -209,7 +210,7 @@
     Open: {
       _enter() {
         searchTerm = "";
-        this.filterOptions();
+        // this.filterOptions();
         focusedOptionIdx = -1;
       },
       filterOptions(term) {
@@ -272,8 +273,10 @@
         }
 
         if (e.key == "Escape") {
+          e.stopPropagation();
+          e.preventDefault();
           searchTerm = null;
-          anchor?.focus();
+          //anchor?.focus();
           return "Closed";
         }
 
@@ -593,7 +596,7 @@
     <div
       class="value"
       class:placeholder={isEmpty && !searchTerm}
-      on:mousedown={inEdit ? editorState.toggle : null}
+      on:mousedown={inEdit ? editorState.toggle : () => {}}
     >
       {#if isEmpty && !open}
         <span>{searchTerm || placeholder}</span>
@@ -637,13 +640,7 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 {#if inEdit}
-  <SuperPopover
-    {anchor}
-    useAnchorWidth
-    maxHeight={250}
-    {open}
-    on:close={editorState.close}
-  >
+  <SuperPopover {anchor} useAnchorWidth maxHeight={250} {open}>
     <div class="picker" on:mousedown|stopPropagation|preventDefault>
       {#if searchTerm && !isEmpty}
         <div class="searchControl">
@@ -655,6 +652,7 @@
         </div>
       {/if}
       <div
+        bind:this={optionsList}
         class="options"
         on:wheel={(e) => e.stopPropagation()}
         on:mouseleave={() => (focusedOptionIdx = -1)}

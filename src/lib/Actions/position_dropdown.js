@@ -39,14 +39,17 @@ export default function positionDropdown(element, opts) {
     if (typeof customUpdate === "function") {
       styles = customUpdate(anchorBounds, elementBounds, styles);
     } else {
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+
       // Determine vertical styles
       if (align === "right-outside" || align === "left-outside") {
-        styles.top = anchorBounds.top;
+        styles.top = anchorBounds.top + scrollY;
       } else if (window.innerHeight - anchorBounds.bottom < (maxHeight || 50)) {
-        styles.top = anchorBounds.top - elementBounds.height - offset;
+        styles.top = anchorBounds.top - elementBounds.height - offset + scrollY;
         styles.maxHeight = maxHeight || 240;
       } else {
-        styles.top = anchorBounds.bottom + (offsetBelow || offset);
+        styles.top = anchorBounds.bottom + (offsetBelow || offset) + scrollY;
         styles.maxHeight =
           maxHeight || window.innerHeight - anchorBounds.bottom - 20;
       }
@@ -63,13 +66,17 @@ export default function positionDropdown(element, opts) {
 
       if (align === "right") {
         styles.left =
-          anchorBounds.left + anchorBounds.width - elementBounds.width;
+          anchorBounds.left +
+          anchorBounds.width -
+          elementBounds.width +
+          scrollX;
       } else if (align === "right-outside") {
-        styles.left = anchorBounds.right + offset;
+        styles.left = anchorBounds.right + offset + scrollX;
       } else if (align === "left-outside") {
-        styles.left = anchorBounds.left - elementBounds.width - offset;
+        styles.left =
+          anchorBounds.left - elementBounds.width - offset + scrollX;
       } else {
-        styles.left = anchorBounds.left;
+        styles.left = anchorBounds.left + scrollX;
       }
     }
 
