@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.2.2",
+  "version": "1.2.6",
   "description": "Shared Svelte components library",
   "type": "module",
   "packageManager": "bun@1.0.0",
@@ -11,8 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "SASS_API=modern vite build",
     "watch": "vite build --watch",
-    "dev": "vite",
-    "prepare": "npm run build"
+    "dev": "vite"
   },
   "files": [
     "dist",
@@ -37,27 +36,27 @@
     "svelte": "^5.0.0"
   },
   "dependencies": {
-    "@budibase/types": "^2.33.14",
+    "@budibase/types": "^3.24.4",
     "@jsrob/svelte-portal": "^0.2.1",
     "@phosphor-icons/web": "^2.1.2",
     "@sveltejs/svelte-virtual-list": "^3.0.1",
-    "date-picker-svelte": "^2.16.0",
+    "date-picker-svelte": "^2.17.0",
     "imask": "^6.6.3",
     "shortid": "^2.2.17",
     "svelte-carousel": "^1.0.25",
-    "svelte-dnd-action": "^0.9.65",
+    "svelte-dnd-action": "^0.9.69",
     "svelte-fsm": "^1.2.0"
   },
   "devDependencies": {
-    "@sveltejs/package": "^2.3.11",
-    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@sveltejs/package": "^2.3.12",
+    "@sveltejs/vite-plugin-svelte": "^4.0.1",
     "@tsconfig/svelte": "^5.0.4",
-    "sass": "^1.89.0",
-    "sass-embedded": "^1.96.0",
-    "svelte": "^5.0.0",
+    "sass": "^1.90.2",
+    "sass-embedded": "^1.97.0",
+    "svelte": "^5.46.4",
     "svelte-check": "^3.8.6",
-    "typescript": "^5.8.3",
-    "vite": "^5.4.19"
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
   },
   "trustedDependencies": [
     "svelte-preprocess"
