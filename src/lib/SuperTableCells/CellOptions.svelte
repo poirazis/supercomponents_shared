@@ -79,9 +79,6 @@
         }
         $options = $options;
       },
-      clearFilters() {
-        filteredOptions = $options;
-      },
     },
     Loading: {
       _enter() {
@@ -111,7 +108,7 @@
         searchTerm = null;
       },
       focus(e) {
-        if (!cellOptions.readonly && !cellOptions.disabled) {
+        if (!readonly && !disabled) {
           return "Editing";
         }
       },
@@ -206,13 +203,6 @@
           else editor?.focus();
         }
       },
-    },
-    Open: {
-      _enter() {
-        searchTerm = "";
-        // this.filterOptions();
-        focusedOptionIdx = -1;
-      },
       filterOptions(term) {
         if (cellOptions.optionsSource == "data") {
           // For datasource, update the fetch with filter
@@ -246,6 +236,13 @@
             filteredOptions = $options;
           }
         }
+      },
+    },
+    Open: {
+      _enter() {
+        searchTerm = "";
+        this.filterOptions();
+        focusedOptionIdx = -1;
       },
       toggle() {
         return "Closed";
@@ -347,8 +344,11 @@
         searchTerm = null;
         focusedOptionIdx = -1;
       },
-      toggle() {
-        return "Open";
+      toggle(e) {
+        if (inEdit) {
+          e.preventDefault();
+          return "Open";
+        }
       },
       open() {
         return "Open";
@@ -367,6 +367,8 @@
         });
       },
       handleKeyboard(e) {
+        if (!inEdit) return;
+
         if (e.key == "Escape") {
           cellState.cancel();
           return;
@@ -471,7 +473,7 @@
   $: inputSelect = controlType == "inputSelect";
 
   $: if (cellOptions.optionsSource == "data")
-    fetch.update({
+    fetch?.update?.({
       query,
       sortColumn: cellOptions.sortColumn,
       sortOrder: cellOptions.sortOrder,
@@ -540,9 +542,11 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
+  style:cursor={inEdit ? "pointer" : "default"}
   on:focusin={cellState.focus}
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
+  on:mousedown={editorState.toggle}
 >
   {#if icon}
     <i class={icon + " field-icon"} class:active={searchTerm}></i>
@@ -593,11 +597,7 @@
       <i class="ph ph-caret-down"></i>
     </div>
   {:else}
-    <div
-      class="value"
-      class:placeholder={isEmpty && !searchTerm}
-      on:mousedown={inEdit ? editorState.toggle : () => {}}
-    >
+    <div class="value" class:placeholder={isEmpty && !searchTerm}>
       {#if isEmpty && !open}
         <span>{searchTerm || placeholder}</span>
       {:else if isEmpty && open}
@@ -629,10 +629,7 @@
       {/if}
     </div>
     {#if !readonly && (role == "formInput" || inEdit)}
-      <i
-        class="ph ph-caret-down control-icon"
-        on:mousedown={inEdit ? editorState.toggle : null}
-      ></i>
+      <i class="ph ph-caret-down control-icon"></i>
     {/if}
   {/if}
 </div>

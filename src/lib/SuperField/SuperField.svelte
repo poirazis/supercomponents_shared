@@ -1,4 +1,6 @@
 <script>
+  import Tooltip from "../UI/elements/Tooltip.svelte";
+
   export let labelPos;
   export let multirow;
   export let tall;
@@ -10,8 +12,48 @@
   export let height;
   export let maxHeight;
 
-  let showHelp;
+  let showTooltip = false;
+  let labelElement;
+  let tooltipTimer;
+  let isLabelTruncated = false;
+  let tooltipContent = "";
+
+  const checkIfTruncated = () => {
+    return labelElement && labelElement.scrollWidth > labelElement.offsetWidth;
+  };
+
+  const buildTooltipContent = () => {
+    const parts = [];
+    if (checkIfTruncated()) {
+      parts.push(label || field);
+    }
+
+    if (helpText) {
+      parts.push(helpText);
+    }
+
+    return parts.join(" - ");
+  };
+
+  const showHelpTooltip = () => {
+    if (!helpText && !isLabelTruncated) return;
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      tooltipContent = buildTooltipContent();
+      showTooltip = true;
+    }, 500);
+  };
+
+  const hideHelpTooltip = () => {
+    if (tooltipTimer) {
+      clearTimeout(tooltipTimer);
+      tooltipTimer = null;
+    }
+    showTooltip = false;
+  };
+
   $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
+  $: isLabelTruncated = checkIfTruncated(labelElement);
 </script>
 
 <div
@@ -33,17 +75,22 @@
       <!-- svelte-ignore missing-declaration -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div
+        bind:this={labelElement}
         class="label"
-        class:showHelp
-        on:mouseenter={helpText ? () => (showHelp = true) : null}
-        on:mouseleave={helpText ? () => (showHelp = false) : null}
+        class:has-interaction={helpText || isLabelTruncated}
+        on:mouseenter={showHelpTooltip}
+        on:mouseleave={hideHelpTooltip}
       >
-        {#if showHelp && helpText}
-          {helpText}
-        {:else}
-          {label || field}
-        {/if}
+        {label || field}
       </div>
+      {#if (helpText || checkIfTruncated()) && showTooltip}
+        <Tooltip
+          anchor={labelElement}
+          content={tooltipContent}
+          show={showTooltip}
+          align="top"
+        />
+      {/if}
       {#if error}
         <div class="error-message">
           {error}
@@ -147,8 +194,8 @@
       text-overflow: ellipsis;
       font-size: 12px;
 
-      &.showHelp {
-        font-style: italic;
+      &.has-interaction {
+        cursor: help;
       }
     }
 
