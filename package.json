@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "description": "Shared Svelte components library",
   "type": "module",
   "packageManager": "bun@1.0.0",
@@ -57,7 +57,7 @@
     "pug": "^3.0.2",
     "sass": "^1.90.2",
     "sass-embedded": "^1.97.0",
-    "stylus": "^0.61.0",
+    "stylus": "^0.60.0",
     "svelte": "^5.46.4",
     "svelte-check": "^3.8.6",
     "svelte-preprocess": "^5.1.4",
