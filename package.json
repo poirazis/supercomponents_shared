@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "Shared Svelte components library",
   "type": "module",
   "packageManager": "bun@1.0.0",
@@ -56,6 +56,7 @@
     "sass": "^1.90.2",
     "svelte": "^5.46.4",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vite-plugin-css-injected-by-js": "^3.5.2"
   }
 }
