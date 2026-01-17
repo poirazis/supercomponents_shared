@@ -71,7 +71,7 @@
   };
 
   async function handleClick(e) {
-    if (disabled || working) return;
+    if (disabled || working || actionsMode == "timer") return;
     working = true;
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
@@ -131,10 +131,10 @@
 
 <button
   bind:this={buttonElement}
-  tabindex={disabled ? -1 : 0}
   on:click={handleClick}
   on:mouseenter={showTooltip}
   on:mouseleave={hideTooltip}
+  tabindex={disabled ? -1 : 0}
   class:super-button={true}
   class:xsmall={size == "XS"}
   class:small={size == "S"}
@@ -165,7 +165,7 @@
     style:color={disabled ? "var(--spectrum-global-color-gray-400)" : iconColor}
   ></i>
 
-  <span>{text}</span>
+  <span>{actionsMode !== "timer" ? text : elapsed + "s"}</span>
 </button>
 
 {#if tooltip}
@@ -219,10 +219,9 @@
 
     &.iconOnly {
       min-width: unset;
-      aspect-ratio: 1/1;
+      padding: 0rem 0.5rem;
       border-radius: 0.25rem;
-      font-weight: 600;
-      font-size: 14px;
+      aspect-ratio: 1 / 1;
       & > span {
         display: none;
       }

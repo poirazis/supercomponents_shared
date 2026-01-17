@@ -6,6 +6,7 @@
     onDestroy,
   } from "svelte";
   import fsm from "svelte-fsm";
+  import "./CellCommon.css";
 
   /**
    * @typedef {import('./types.js').CellOptions} CellOptions
@@ -201,7 +202,6 @@
 <div
   class="superCell"
   class:multirow={controlType == "textarea"}
-  class:textarea={controlType == "textarea"}
   class:inEdit
   class:isDirty={isDirty && showDirty}
   class:inline={role == "inlineInput"}
@@ -216,7 +216,6 @@
   {#if icon}
     <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
-
   {#if inEdit}
     {#if textarea}
       <textarea
@@ -290,24 +289,12 @@
 </div>
 
 <style>
-  .editor.textarea {
-    flex: 1 1 auto;
-    all: inherit;
-    height: 100%;
-    overflow: auto;
-    padding: 0.5rem;
-  }
-  .superCell.textarea {
-    height: 100%;
-  }
-
   .value.textarea {
-    flex: 1 1 auto;
+    flex: 1 0 auto;
     display: flex;
     align-items: flex-start;
     white-space: pre-wrap;
     padding: 0.5rem;
-    height: 100%;
     overflow-y: auto;
   }
 

@@ -14,6 +14,7 @@ export default defineConfig({
     svelte({
       preprocess: vitePreprocess(),
       compilerOptions: { dev: false },
+      emitCss: false,
       onwarn: (warning, handler) => {
         if (warning.code !== "unused-export-let") {
           handler(warning);
@@ -27,6 +28,7 @@ export default defineConfig({
       name: "SupercomponentsShared",
       fileName: "index",
     },
+    cssCodeSplit: false,
     rollupOptions: {
       external: ["svelte", "@budibase/bbui"],
       output: {

@@ -43,7 +43,7 @@
 
 {#if show}
   <SuperPopover {anchor} {align} open={show} dismissible={false} animate={true}>
-    <div class="tooltip-content">
+    <div class="tooltip-content info">
       {content}
     </div>
   </SuperPopover>
@@ -54,12 +54,18 @@
     padding: 8px 12px;
     font-size: 12px;
     line-height: 1.4;
-    color: var(--spectrum-global-color-gray-900);
+    color: var(--spectrum-global-color-gray-700);
     background-color: var(--spectrum-global-color-gray-50);
     border: 1px solid var(--spectrum-global-color-gray-300);
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     max-width: 200px;
     word-wrap: break-word;
+  }
+
+  .tooltip-content.info {
+    background-color: var(--spectrum-global-color-blue-100);
+    border-color: rgb(from var(--spectrum-global-color-blue-500) r g b / 50%);
+    color: var(--spectrum-global-color-gray-800);
   }
 </style>

@@ -12,36 +12,15 @@ jobs:
         with:
           fetch-depth: 0 # Required for getting tags
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18.x"
-          registry-url: "https://registry.npmjs.org"
-          scope: "@poirazis"
-
-      - name: Verify version
-        run: |
-          npm version --no-git-tag-version
-          echo "Version: $(npm pkg get version)"
+      - uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
-        run: npm install
+        run: bun install
 
       - name: Build
-        run: npm run build
-
-      - name: Configure npm
-        run: |
-          npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
-          npm config set @poirazis:registry=https://registry.npmjs.org/
+        run: bun run build
 
       - name: Publish to npm
-        run: |
-          npm publish --access public
+        run: bun publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Cleanup
-        run: |
-          rm -rf node_modules
-          npm cache clean --force
