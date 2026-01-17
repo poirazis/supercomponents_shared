@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Shared Svelte components library",
   "type": "module",
   "packageManager": "bun@1.0.0",
