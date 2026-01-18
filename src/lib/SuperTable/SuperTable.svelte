@@ -2,7 +2,7 @@
   import { getContext, setContext, onDestroy, tick } from "svelte";
   import fsm from "svelte-fsm";
   import { writable } from "svelte/store";
-  import {
+  import type {
     LogicalOperator,
     EmptyFilterOption,
     SearchFilters,
