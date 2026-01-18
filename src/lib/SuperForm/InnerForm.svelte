@@ -2,7 +2,7 @@
   import { setContext, getContext, createEventDispatcher } from "svelte";
   import type { Readable, Writable } from "svelte/store";
   import { derived, get, writable } from "svelte/store";
-  import {
+  import type {
     DataFetchDatasource,
     FieldSchema,
     FieldType,
