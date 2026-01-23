@@ -151,7 +151,7 @@
         });
 
         Promise.all(
-          missingIds.map((id) => API.fetchRow(relatedTableId, id, true))
+          missingIds.map((id) => API.fetchRow(relatedTableId, id, true)),
         )
           .then((rows) => {
             const newEnriched = rows.map((row) => ({
@@ -270,7 +270,6 @@
     useAnchorWidth
     open={$editorState == "Open"}
     on:close={(e) => {
-      console.log("closing editor");
       editorState.close();
     }}
   >

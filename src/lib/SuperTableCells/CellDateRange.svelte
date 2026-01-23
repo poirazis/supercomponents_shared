@@ -101,7 +101,7 @@
     dateFormat,
     fromTime,
     toTime,
-    showTime
+    showTime,
   ) {
     if (!showTime) {
       return {
@@ -120,14 +120,7 @@
 
   // Date formatting helper function
   function formatDateRange(fromDate, toDate, dateFormat) {
-    console.log("🔍 formatDateRange called with:", {
-      fromDate,
-      toDate,
-      dateFormat,
-    });
-
     if (!dateFormat || dateFormat === "default") {
-      console.log("➡️ Using default format");
       return {
         from: fromDate.toDateString(),
         to: toDate.toDateString(),
@@ -138,30 +131,18 @@
     if (dateFormat === "MM/DD/YYYY") {
       const fromFormatted = `${(fromDate.getMonth() + 1).toString().padStart(2, "0")}/${fromDate.getDate().toString().padStart(2, "0")}/${fromDate.getFullYear()}`;
       const toFormatted = `${(toDate.getMonth() + 1).toString().padStart(2, "0")}/${toDate.getDate().toString().padStart(2, "0")}/${toDate.getFullYear()}`;
-      console.log("✅ MM/DD/YYYY formatted:", {
-        from: fromFormatted,
-        to: toFormatted,
-      });
       return { from: fromFormatted, to: toFormatted };
     }
 
     if (dateFormat === "DD/MM/YYYY") {
       const fromFormatted = `${fromDate.getDate().toString().padStart(2, "0")}/${(fromDate.getMonth() + 1).toString().padStart(2, "0")}/${fromDate.getFullYear()}`;
       const toFormatted = `${toDate.getDate().toString().padStart(2, "0")}/${(toDate.getMonth() + 1).toString().padStart(2, "0")}/${toDate.getFullYear()}`;
-      console.log("✅ DD/MM/YYYY formatted:", {
-        from: fromFormatted,
-        to: toFormatted,
-      });
       return { from: fromFormatted, to: toFormatted };
     }
 
     if (dateFormat === "YYYY-MM-DD") {
       const fromFormatted = `${fromDate.getFullYear()}-${(fromDate.getMonth() + 1).toString().padStart(2, "0")}-${fromDate.getDate().toString().padStart(2, "0")}`;
       const toFormatted = `${toDate.getFullYear()}-${(toDate.getMonth() + 1).toString().padStart(2, "0")}-${toDate.getDate().toString().padStart(2, "0")}`;
-      console.log("✅ YYYY-MM-DD formatted:", {
-        from: fromFormatted,
-        to: toFormatted,
-      });
       return { from: fromFormatted, to: toFormatted };
     }
 
@@ -182,22 +163,16 @@
     };
 
     const format = options[dateFormat];
-    console.log("📅 Format object:", format);
 
     if (format) {
       const fromFormatted = fromDate.toLocaleDateString("en-US", format);
       const toFormatted = toDate.toLocaleDateString("en-US", format);
-      console.log("✅ Formatted result:", {
-        from: fromFormatted,
-        to: toFormatted,
-      });
       return {
         from: fromFormatted,
         to: toFormatted,
       };
     }
 
-    console.log("⚠️ Format not found, using fallback");
     // Fallback to default
     return {
       from: fromDate.toDateString(),
@@ -240,7 +215,7 @@
             dateFormat,
             fromTime,
             fromTime,
-            true
+            true,
           );
           fromFormatted = formatted.from;
         } else {
@@ -263,7 +238,7 @@
             dateFormat,
             toTime,
             toTime,
-            true
+            true,
           );
           toFormatted = formatted.to;
         } else {

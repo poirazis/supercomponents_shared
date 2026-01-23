@@ -1,7 +1,28 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
   import fsm from "svelte-fsm";
-  import IMask from "imask";
+  import {
+    Masked,
+    InputMask,
+    createMask,
+    MaskedPattern,
+    MaskedRegExp,
+    MaskedNumber,
+    MaskedDate,
+    MaskedEnum,
+    MaskedRange,
+    MaskedDynamic,
+  } from "imask";
+
+  // Register mask classes with Masked.overloads to ensure they're available for createMask
+  // This is required for imask 6.x to properly handle pattern-based masks
+  if (MaskedPattern && Masked.overloads) {
+    // Ensure MaskedPattern is available as an overload
+    if (!Masked.overloads.find((o) => o.mask === MaskedPattern)) {
+      Masked.overloads.unshift({ mask: MaskedPattern });
+    }
+  }
+
   const dispatch = createEventDispatcher();
 
   export let value;
@@ -23,9 +44,53 @@
   let inputMask;
   let inputElement;
 
+  function createMaskInstance(maskPattern) {
+    if (!maskPattern) return null;
+    try {
+      // For imask 6.x, explicitly create a MaskedPattern instance
+      // This avoids the "Masked class is not found" error by directly instantiating
+      const mask = new MaskedPattern({
+        mask: maskPattern,
+        lazy: false,
+        placeholderChar: "_",
+      });
+      return mask;
+    } catch (patternError) {
+      try {
+        // Fallback: try as a regex pattern
+        const mask = new MaskedRegExp({
+          mask: new RegExp(maskPattern),
+          lazy: false,
+        });
+        return mask;
+      } catch (regexError) {
+        try {
+          // Last fallback: use generic createMask
+          return createMask({
+            mask: maskPattern,
+            lazy: false,
+          });
+        } catch (createError) {
+          console.error(
+            "Failed to create mask - pattern:",
+            maskPattern,
+            "errors:",
+            {
+              patternError: patternError?.message,
+              regexError: regexError?.message,
+              createError: createError?.message,
+            },
+          );
+          return null;
+        }
+      }
+    }
+  }
+
   function applyMask(rawValue) {
     if (!mask || !rawValue) return rawValue;
-    const tempMask = IMask.createMask({ mask: mask });
+    const tempMask = createMaskInstance(mask);
+    if (!tempMask) return rawValue;
     tempMask.unmaskedValue = rawValue;
     return tempMask.value;
   }
@@ -42,7 +107,11 @@
       return;
     }
 
-    const tempMask = IMask.createMask({ mask: mask });
+    const tempMask = createMaskInstance(mask);
+    if (!tempMask) {
+      isComplete = false;
+      return;
+    }
     tempMask.resolve(localValue);
     isComplete = tempMask.isComplete;
   }
@@ -158,16 +227,18 @@
         // For input validation, check if typed key is valid for mask
         if (e.key.length === 1 && mask) {
           // Check if key matches mask pattern (e.g., for "00000", only digits)
-          const tempMask = IMask.createMask({ mask: mask });
-          const currentLength = (localValue || "").length;
-          // Get the expected pattern for this position
-          // For simplicity, if mask contains only digits or specific chars, check if key matches
-          const placeholder =
-            tempMask.blocks[0]?.placeholder ||
-            (tempMask.mask.includes("0") ? "0" : null);
-          if (placeholder === "0" && !/\d/.test(e.key)) {
-            e.preventDefault();
-            return;
+          const tempMask = createMaskInstance(mask);
+          if (tempMask) {
+            const currentLength = (localValue || "").length;
+            // Get the expected pattern for this position
+            // For simplicity, if mask contains only digits or specific chars, check if key matches
+            const placeholder =
+              tempMask.blocks?.[0]?.placeholder ||
+              (tempMask.mask?.includes("0") ? "0" : null);
+            if (placeholder === "0" && !/\d/.test(e.key)) {
+              e.preventDefault();
+              return;
+            }
           }
         }
       },
@@ -180,6 +251,7 @@
   $: error = cellOptions?.error;
   $: icon = error ? "ph ph-warning" : cellOptions?.icon;
   $: cellState.reset(value);
+  $: displayValue = inEdit ? localValue : applyMask(value);
 
   const focus = (node) => {
     node?.focus();
@@ -217,18 +289,41 @@
       };
     }
 
-    inputMask = IMask(node, { mask: maskPattern });
-    inputMask.unmaskedValue = localValue || "";
+    try {
+      // Try to create mask instance using MaskedPattern first
+      const maskInstance = createMaskInstance(maskPattern);
+      if (maskInstance) {
+        inputMask = new InputMask(node, { mask: maskPattern });
+      } else {
+        throw new Error("Failed to create mask instance");
+      }
 
-    inputMask.on("accept", () => {
-      localValue = inputMask.unmaskedValue;
-      updateIsComplete();
-      lastEdit = new Date();
-    });
+      inputMask.unmaskedValue = localValue || "";
 
-    inputMask.on("complete", () => {
-      isComplete = true;
-    });
+      inputMask.on("accept", () => {
+        localValue = inputMask.unmaskedValue;
+        updateIsComplete();
+        lastEdit = new Date();
+      });
+
+      inputMask.on("complete", () => {
+        isComplete = true;
+      });
+    } catch (e) {
+      console.error("Error initializing IMask:", e);
+      // Fallback to plain input without masking
+      const handleInput = (e) => {
+        localValue = node.value;
+        lastEdit = new Date();
+      };
+      node.addEventListener("input", handleInput);
+      node.value = localValue || "";
+      return {
+        destroy() {
+          node.removeEventListener("input", handleInput);
+        },
+      };
+    }
 
     return {
       destroy() {
@@ -236,6 +331,8 @@
       },
     };
   }
+
+  $: console.log(value, localValue, isComplete);
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -302,7 +399,7 @@
       on:focusin={cellState.focus}
     >
       <span>
-        {applyMask(localValue) || placeholder}
+        {displayValue || placeholder}
       </span>
     </div>
   {/if}

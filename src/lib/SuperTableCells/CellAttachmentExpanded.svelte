@@ -589,7 +589,6 @@
     bind:open={showModal}
     bind:currentIndex
     bind:selectedIndices
-    on:close={() => console.log("closed")}
     {canSelect}
     {canDelete}
   />

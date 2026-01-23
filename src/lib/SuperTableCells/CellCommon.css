@@ -304,6 +304,7 @@
 
   &:hover:not(.disabled):not(.readonly):not(.inEdit) {
     border: 1px solid var(--spectrum-global-color-gray-400);
+    cursor: pointer;
   }
 
   &.disabled {

@@ -320,7 +320,6 @@
     bind:open={showModal}
     bind:currentIndex={modalImageIndex}
     bind:selectedIndices
-    on:close={() => console.log("lightbox closed")}
     on:delete={(e) => {
       handleDelete(e.detail.index);
     }}

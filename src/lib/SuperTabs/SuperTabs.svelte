@@ -74,7 +74,7 @@
           {#if container.icon}
             <i
               class={container.icon}
-              style:font-size={tabsIconsOnly ? "20px" : null}
+              style:font-size={tabsIconsOnly ? "20px" : "inherit"}
               style:color={container.color}
             ></i>
           {/if}
@@ -121,13 +121,12 @@
     flex: auto;
     display: flex;
     gap: 1rem;
-    padding: 0.35rem 0.5rem;
-    border-bottom: 1px solid var(--spectrum-global-color-gray-200);
-    border-top: 1px solid var(--spectrum-global-color-gray-200);
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--spectrum-global-color-gray-300);
   }
 
   .tabs.buttons {
-    gap: 0.5rem;
+    gap: 0.25rem;
   }
 
   .tabs.list {
@@ -170,8 +169,12 @@
   }
 
   .tab.button {
-    border-radius: 4px;
-    padding: 0.35rem 1rem;
+    border-radius: 0.25rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    line-height: 14px;
+    border: 1px solid transparent;
+    height: 1.85rem;
   }
 
   .tab.button.vertical {
@@ -179,12 +182,17 @@
   }
 
   .tab.button:active:not(.disabled):not(.list-section) {
-    background-color: var(--spectrum-global-color-gray-200);
+    background-color: rgb(
+      from var(--spectrum-global-color-gray-200) r g b / 0.85
+    );
   }
 
   .tab.button.selected {
     color: var(--spectrum-global-color-gray-800);
-    background-color: var(--spectrum-global-color-gray-300);
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    background-color: rgb(
+      from var(--spectrum-global-color-gray-200) r g b / 0.85
+    );
   }
 
   .tab.list {
@@ -234,11 +242,13 @@
 
   .tab:hover:not(.disabled):not(.list-title):not(.list-section) {
     cursor: pointer;
-    color: var(--spectrum-global-color-gray-800);
   }
 
   .tab.button:hover:not(.selected) {
-    background-color: var(--spectrum-global-color-gray-200);
+    background-color: rgb(
+      from var(--spectrum-global-color-gray-200) r g b / 0.65
+    );
+    border-color: var(--spectrum-global-color-gray-200);
   }
 
   .tab.selected {
