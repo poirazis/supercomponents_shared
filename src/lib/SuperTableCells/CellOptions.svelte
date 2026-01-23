@@ -116,7 +116,7 @@
     Editing: {
       _enter() {
         originalValue = JSON.stringify(
-          Array.isArray(value) ? value : value ? [value] : []
+          Array.isArray(value) ? value : value ? [value] : [],
         );
         inputValue = multi ? "" : labels[localValue[0]] || localValue[0] || "";
         // Open the popup if the focus in came from a TAB
@@ -230,7 +230,7 @@
           // Client-side filtering for non-datasource
           if (term) {
             filteredOptions = $options.filter((x) =>
-              x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())
+              x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase()),
             );
           } else {
             filteredOptions = $options;
@@ -403,7 +403,7 @@
     $options.forEach(
       (option, index) =>
         (obj[option] =
-          optionColors[option] ?? colorsArray[index % colorsArray.length])
+          optionColors[option] ?? colorsArray[index % colorsArray.length]),
     );
     return obj;
   });
@@ -441,7 +441,7 @@
   ];
 
   let originalValue = JSON.stringify(
-    Array.isArray(value) ? value : value ? [value] : []
+    Array.isArray(value) ? value : value ? [value] : [],
   );
 
   $: ({
@@ -492,7 +492,7 @@
     iconColumn,
     colorColumn,
     $dataSourceStore,
-    customOptions
+    customOptions,
   );
 
   // We always keep an internal value as an array
@@ -542,7 +542,6 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
-  style:cursor={inEdit ? "pointer" : "default"}
   on:focusin={cellState.focus}
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}

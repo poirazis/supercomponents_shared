@@ -106,7 +106,7 @@
 
 <style>
   .super-field {
-    min-width: 120px;
+    min-width: 80px;
     width: 100%;
     display: flex;
     flex-direction: column;

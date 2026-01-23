@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher, getContext } from "svelte";
+  import { getContext, createEventDispatcher } from "svelte";
   import fsm from "svelte-fsm";
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import CellLinkPickerSelect from "./CellLinkPickerSelect.svelte";
@@ -66,7 +66,7 @@
         if (isDirty)
           dispatch(
             "change",
-            returnSingle && localValue ? localValue[0] : localValue
+            returnSingle && localValue ? localValue[0] : localValue,
           );
 
         return "View";
@@ -190,10 +190,16 @@
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  on:mousedown={editorState.toggle}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
   on:focusout={cellState.focusout}
+  on:mousedown={(e) => {
+    if (inEdit) {
+      // Prevent losing focus when clicking to open the picker
+      e.preventDefault();
+      editorState.toggle();
+    }
+  }}
 >
   {#if cellOptions?.icon}
     <i class={cellOptions.icon + " field-icon"}></i>
