@@ -15,14 +15,14 @@
   export let tabsIconsOnly;
   export let list_icon;
   export let list_title;
-  export let wide = true;
+  export let tabsWidth = "200px";
 
   export let quietTabs;
 
   // Computed for repeated logic
   $: isVertical = tabsPosition == "left" || theme === "list";
   $: justify = direction === "row" ? hAlign : vAlign;
-  $: button = theme === "buttons" || theme === "wideButtons";
+  $: button = theme === "buttons";
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -33,15 +33,14 @@
     class:quietTabs
     class:list={theme === "list"}
     class:vertical={isVertical}
-    class:wide={theme === "wideButtons" && wide}
     style:justify-content={justify}
+    style:width={isVertical ? tabsWidth || "200px" : "100%"}
   >
     <div
       class="tabs"
       class:vertical={isVertical}
       class:buttons={button}
       class:list={theme === "list"}
-      class:wide={theme === "wideButtons" && wide}
       style:justify-content={buttonsAlignment}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
@@ -104,17 +103,12 @@
   }
 
   .outer-tabs.vertical {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
     flex-direction: column;
     align-items: stretch;
-    margin-right: 0.75rem;
     margin-bottom: unset;
-    width: 10rem;
-    background-color: var(--spectrum-global-color-gray-100);
     --selected-tab: var(--spectrum-global-color-gray-200);
-  }
-
-  .outer-tabs.vertical.wide {
-    width: 14rem;
   }
 
   .tabs {
@@ -179,6 +173,7 @@
 
   .tab.button.vertical {
     width: 100%;
+    padding: 0.5rem 0.75rem;
   }
 
   .tab.button:active:not(.disabled):not(.list-section) {
@@ -188,7 +183,7 @@
   }
 
   .tab.button.selected {
-    color: var(--spectrum-global-color-gray-800);
+    color: var(--spectrum-global-color-gray-700);
     border: 1px solid var(--spectrum-global-color-gray-300);
     background-color: rgb(
       from var(--spectrum-global-color-gray-200) r g b / 0.85

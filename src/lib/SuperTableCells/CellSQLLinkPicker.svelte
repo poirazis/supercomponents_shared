@@ -1,6 +1,5 @@
 <script lang="ts">
   import { getContext, createEventDispatcher, tick } from "svelte";
-  import type { LogicalOperator, EmptyFilterOption } from "@budibase/types";
 
   const { API, fetchData, QueryUtils } = getContext("sdk");
   const dispatch = createEventDispatcher();
@@ -71,17 +70,15 @@
       return defaultQuery;
     }
     const extended = {
-      [LogicalOperator.AND]: {
+      ["$and"]: {
         conditions: [
           ...(defaultQuery ? [defaultQuery] : []),
           ...Object.values(extensions || {}),
         ],
       },
-      onEmptyFilter: EmptyFilterOption.RETURN_NONE,
+      onEmptyFilter: "none",
     };
-    return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
-      ? extended
-      : {};
+    return (extended["$and"]?.conditions?.length ?? 0) > 0 ? extended : {};
   };
 
   const rowSelected = (val) => {
@@ -108,7 +105,7 @@
       } else localValue = [selectedItem];
     } else {
       let pos = localValue.findIndex(
-        (v) => v[relatedField] == val[relatedField]
+        (v) => v[relatedField] == val[relatedField],
       );
       if (pos > -1) {
         localValue.splice(pos, 1);

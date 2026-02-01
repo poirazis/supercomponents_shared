@@ -58,6 +58,9 @@
 
         this.submit();
       },
+      toggle() {
+        editorState.toggle();
+      },
 
       clear() {
         localValue = [];
@@ -176,7 +179,7 @@
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="superCell"
+  class="superCell has-popup"
   tabindex={cellOptions?.disabled ? -1 : 0}
   bind:this={anchor}
   class:isDirty={isDirty && cellOptions.showDirty}
@@ -188,18 +191,13 @@
   class:disabled={cellOptions.disabled}
   class:readonly
   class:error={cellOptions.error}
+  class:open-popup={$editorState == "Open"}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
   on:focusout={cellState.focusout}
-  on:mousedown={(e) => {
-    if (inEdit) {
-      // Prevent losing focus when clicking to open the picker
-      e.preventDefault();
-      editorState.toggle();
-    }
-  }}
+  on:mousedown={cellState.toggle}
 >
   {#if cellOptions?.icon}
     <i class={cellOptions.icon + " field-icon"}></i>

@@ -331,8 +331,6 @@
       },
     };
   }
-
-  $: console.log(value, localValue, isComplete);
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->

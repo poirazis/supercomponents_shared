@@ -106,6 +106,7 @@
     View: {
       _enter() {
         searchTerm = null;
+        editorState.close();
       },
       focus(e) {
         if (!readonly && !disabled) {
@@ -128,10 +129,10 @@
         editorState.filterOptions();
         dispatch("exitedit");
       },
+      toggle() {
+        editorState.toggle();
+      },
       focusout(e) {
-        // If the focus is moving to the search input inside the popup, ignore
-        if (anchor.contains(e.relatedTarget)) return;
-
         dispatch("focusout");
 
         // For debounced inputs, dispatch the current value immediately on focusout
@@ -344,11 +345,8 @@
         searchTerm = null;
         focusedOptionIdx = -1;
       },
-      toggle(e) {
-        if (inEdit) {
-          e.preventDefault();
-          return "Open";
-        }
+      toggle() {
+        return "Open";
       },
       open() {
         return "Open";
@@ -505,6 +503,8 @@
   $: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
   $: inEdit = $cellState == "Editing";
   $: pills = optionsViewMode == "pills";
+  $: bullets = optionsViewMode == "bullets";
+
   $: multi =
     fieldSchema && fieldSchema.type ? fieldSchema.type == "array" : multi;
 
@@ -542,10 +542,12 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
+  class:has-popup={controlType == "select"}
+  class:open-popup={open}
   on:focusin={cellState.focus}
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
-  on:mousedown={editorState.toggle}
+  on:mousedown={cellState.toggle}
 >
   {#if icon}
     <i class={icon + " field-icon"} class:active={searchTerm}></i>
@@ -611,7 +613,7 @@
         <div
           class="items"
           class:pills
-          class:colorText={optionsViewMode == "colorText"}
+          class:bullets
           style:justify-content={cellOptions.align ?? "flex-start"}
         >
           {#each localValue as val, idx (val)}
@@ -620,7 +622,7 @@
               style:--option-color={$colors[val] ||
                 colorsArray[idx % colorsArray.length]}
             >
-              <i class={"ph-fill ph-square"}></i>
+              <div class="loope"></div>
               <span> {isObjects ? "JSON" : labels[val] || val} </span>
             </div>
           {/each}
@@ -811,5 +813,16 @@
     max-height: 248px;
     width: 100%;
     overflow: hidden;
+  }
+
+  .loope {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: var(
+      --option-color,
+      var(--spectrum-global-color-gray-300)
+    );
+    flex-shrink: 0;
   }
 </style>

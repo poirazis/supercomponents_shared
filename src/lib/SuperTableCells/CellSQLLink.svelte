@@ -205,7 +205,7 @@
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="superCell"
+  class="superCell has-popup"
   tabindex={cellOptions?.disabled ? -1 : 0}
   bind:this={anchor}
   class:isDirty={isDirty && cellOptions.showDirty}
@@ -215,12 +215,14 @@
   class:formInput={cellOptions.role == "formInput"}
   class:disabled={cellOptions.disabled}
   class:readonly
+  class:open-popup={$editorState == "Open"}
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
+  on:mousedown={inEdit ? editorState.toggle : () => {}}
   on:focusout={cellState.focusout}
 >
   {#if cellOptions?.icon}
@@ -260,7 +262,7 @@
     {/if}
   </div>
   {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
-    <i class="ph ph-caret-down control-icon" on:click={editorState.toggle}></i>
+    <i class="ph ph-caret-down control-icon"></i>
   {/if}
 </div>
 
@@ -269,6 +271,7 @@
     {anchor}
     useAnchorWidth
     open={$editorState == "Open"}
+    bind:popup
     on:close={(e) => {
       editorState.close();
     }}

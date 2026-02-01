@@ -2,12 +2,7 @@
   import { getContext, setContext, onDestroy, tick } from "svelte";
   import fsm from "svelte-fsm";
   import { writable } from "svelte/store";
-  import type {
-    LogicalOperator,
-    EmptyFilterOption,
-    SearchFilters,
-  } from "@budibase/types";
-
+  import type { SearchFilters } from "@budibase/types";
   import {
     sizingMap,
     defaultOperatorMap,
@@ -110,7 +105,7 @@
   export let footerColorTemplate, footerBGColorTemplate;
 
   export let useOptionColors = true;
-  export let optionsViewMode = "colorText";
+  export let optionsViewMode = "bullets";
   export let relViewMode = "pills";
   export let zebraColors = false;
   export let quiet;
@@ -148,7 +143,7 @@
     ? toNumber(
         processStringSync(rowHeight, {
           [comp_id]: { row: {} },
-        })
+        }),
       ) || sizingMap[size].rowHeight
     : sizingMap[size].rowHeight;
 
@@ -387,7 +382,7 @@
                 !specialColumns.includes(v) &&
                 !schema[v].nestedJSON &&
                 schema[v]?.visible != false &&
-                v != idColumn
+                v != idColumn,
             )
             .map((v) => {
               return tableAPI.enrichColumn(schema, schema[v]);
@@ -471,7 +466,7 @@
         headerAlign: bbcolumn.align ? bbcolumn.align : "flex-start",
         type,
         displayName: tableAPI.beautifyLabel(
-          bbcolumn.displayName ?? bbcolumn.name
+          bbcolumn.displayName ?? bbcolumn.name,
         ),
         schema: columnSchema,
       };
@@ -548,7 +543,7 @@
       }
       if (!conditions || conditions.length === 0) return true;
       const hasShow = conditions.some(
-        (cond) => cond.action.toLowerCase() === "show"
+        (cond) => cond.action.toLowerCase() === "show",
       );
       let visible = !hasShow;
       for (const cond of conditions) {
@@ -566,7 +561,7 @@
     executeRowButtonAction: async (index, action) => {
       let cmd = enrichButtonActions(
         action,
-        tableAPI.enrichContext($stbData?.rows[index])
+        tableAPI.enrichContext($stbData?.rows[index]),
       );
       await cmd?.();
     },
@@ -576,7 +571,7 @@
     executeCellOnClickAction: async (index, column, value, id) => {
       let cmd = enrichButtonActions(
         onCellClick,
-        tableAPI.enrichContext($stbData?.rows[index])
+        tableAPI.enrichContext($stbData?.rows[index]),
       );
       await cmd?.({ column, value, id });
     },
@@ -596,7 +591,7 @@
       await tick();
       let cmd = enrichButtonActions(
         onRowSelect,
-        tableAPI.enrichContext($stbData?.rows[index])
+        tableAPI.enrichContext($stbData?.rows[index]),
       );
       await cmd?.();
     },
@@ -633,7 +628,7 @@
               "Cannot select more than " +
                 maxSelected +
                 " " +
-                (entityPlural || "Rows")
+                (entityPlural || "Rows"),
             );
         }
       } else {
@@ -666,7 +661,7 @@
         try {
           saved_row = await API.saveRow(
             { ...$new_row, tableId },
-            { suppressErrors: true }
+            { suppressErrors: true },
           );
 
           // Clear errors on success
@@ -736,13 +731,13 @@
       let cmd;
       let cmd_after = enrichButtonActions(
         afterDelete,
-        tableAPI.enrichContext($stbData?.rows[index])
+        tableAPI.enrichContext($stbData?.rows[index]),
       );
 
       if (onDelete?.length) {
         cmd = enrichButtonActions(
           onDelete,
-          tableAPI.enrichContext($stbData?.rows[index])
+          tableAPI.enrichContext($stbData?.rows[index]),
         );
       } else {
         cmd = enrichButtonActions(autoDelete, {});
@@ -755,7 +750,7 @@
       if ($stbSelected.includes(tableAPI.getRowId(row, index))) {
         $stbSelected.splice(
           $stbSelected.indexOf(tableAPI.getRowId(row, index)),
-          1
+          1,
         );
         $stbSelected = $stbSelected;
       }
@@ -818,7 +813,7 @@
           tableId,
           ...patch,
         },
-        true
+        true,
       );
 
       stbState.refresh();
@@ -846,25 +841,23 @@
     },
     extendQuery: (
       defaultQuery: SearchFilters,
-      extensions: Record<string, any>
+      extensions: Record<string, any>,
     ): SearchFilters => {
       if (!Object.keys(extensions).length) {
         return defaultQuery;
       }
       const extended: SearchFilters = {
-        [LogicalOperator.AND]: {
+        ["$and"]: {
           conditions: [
             ...(defaultQuery ? [defaultQuery] : []),
             ...Object.values(extensions || {}),
           ],
         },
-        onEmptyFilter: EmptyFilterOption.RETURN_NONE,
+        onEmptyFilter: "none",
       };
 
       // If there are no conditions applied at all, clear the request.
-      return (extended[LogicalOperator.AND]?.conditions?.length ?? 0) > 0
-        ? extended
-        : {};
+      return (extended["$and"]?.conditions?.length ?? 0) > 0 ? extended : {};
     },
     addQueryExtension: (key, extension) => {
       if (!key || !extension) {
@@ -943,7 +936,7 @@
         rowColorTemplate,
         rowHeight,
         rowDisabledTemplate,
-        stbSelected
+        stbSelected,
       ) {
         if (stbData?.loading) return;
 
@@ -954,7 +947,7 @@
                   processStringSync(rowHeight, {
                     ...$context,
                     [comp_id]: { row },
-                  })
+                  }),
                 ) || $stbSettings.appearance.rowHeight
               : $stbSettings.appearance.rowHeight,
             bgcolor: rowBGColorTemplate
@@ -1108,9 +1101,9 @@
         $stbScrollPos = Math.max(
           Math.min(
             $stbScrollPos + delta,
-            Math.max(0, scrollHeight - maxBodyHeight)
+            Math.max(0, scrollHeight - maxBodyHeight),
           ),
-          0
+          0,
         );
         $stbScrollPercent =
           scrollHeight > maxBodyHeight
@@ -1386,7 +1379,7 @@
     rowColorTemplate,
     rowHeight,
     rowDisabledTemplate,
-    $stbSelected
+    $stbSelected,
   );
 
   $: stbSelectedRows = derivedMemo(
@@ -1394,17 +1387,17 @@
     ([$stbData, $stbSelected, $maxSelectedStore]) => {
       if ($stbData?.rows) {
         $stbSelected = $stbSelected.filter((id) =>
-          $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id)
+          $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id),
         );
       }
       const selectedRows = $stbData?.rows?.filter((row, i) =>
-        $stbSelected?.includes(tableAPI.getRowId(row, i))
+        $stbSelected?.includes(tableAPI.getRowId(row, i)),
       );
       if ($maxSelectedStore === 1) {
         return selectedRows.length > 0 ? selectedRows[0] : [];
       }
       return selectedRows;
-    }
+    },
   );
 
   // Scroll to Top when filter changes
@@ -1427,16 +1420,16 @@
         $stbSchema,
         $columnsStore,
         $stbSettings.showAutoColumns,
-        $stbSettings.showSpecialColumns
+        $stbSettings.showSpecialColumns,
       );
-    }
+    },
   );
 
   $: cumulativeHeights = derivedMemo(stbRowMetadata, ($meta) => {
     return $meta?.map((_, i) =>
       $meta
         .slice(0, i + 1)
-        .reduce((sum, meta) => sum + Math.max(meta.height, 0), 0)
+        .reduce((sum, meta) => sum + Math.max(meta.height, 0), 0),
     );
   });
 
@@ -1448,7 +1441,7 @@
     fetchOnScroll,
     $stbSortColumn,
     $stbSortOrder,
-    $cumulativeHeights
+    $cumulativeHeights,
   );
 
   // Derived Store with common column settings
