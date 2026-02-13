@@ -363,7 +363,6 @@
       bind:this={inputElement}
       tabindex="0"
       class="editor"
-      class:with-icon={cellOptions.icon}
       {placeholder}
       style:color={!isComplete
         ? "var(--spectrum-global-color-gray-700)"
@@ -391,7 +390,6 @@
     <div
       class="value"
       tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
-      class:with-icon={cellOptions.icon}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}

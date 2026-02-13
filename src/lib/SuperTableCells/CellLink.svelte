@@ -50,18 +50,17 @@
         dispatch("exitedit");
       },
       focusout(e) {
-        if (
-          anchor?.contains(e?.relatedTarget) ||
-          popup?.contains(e?.relatedTarget)
-        )
-          return;
-
+        if (popup?.contains(e?.relatedTarget)) return;
         this.submit();
       },
-      toggle() {
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+        }
+      },
+      toggle(e) {
         editorState.toggle();
       },
-
       clear() {
         localValue = [];
       },
@@ -74,9 +73,9 @@
 
         return "View";
       },
-      cancel() {
+      cancel(e) {
         localValue = JSON.parse(originalValue);
-        anchor?.blur();
+        anchor.blur();
         return "View";
       },
     },
@@ -225,7 +224,9 @@
                   }
                 : null}
             >
-              <i class={valueIcon}></i>
+              {#if isUser}
+                <i class={valueIcon}></i>
+              {/if}
               <span>{val.primaryDisplay}</span>
             </div>
           {/if}
@@ -251,16 +252,11 @@
 </div>
 
 {#if inEdit}
-  <SuperPopover
-    {anchor}
-    useAnchorWidth
-    open={$editorState == "Open"}
-    on:close={cellState.cancel}
-    bind:popup
-  >
+  <SuperPopover {anchor} useAnchorWidth open={$editorState == "Open"}>
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       class="picker-container"
+      bind:this={popup}
       on:keydown={(e) => {
         if (e.key == "Escape" || e.key == "Tab") {
           anchor.focus();
@@ -292,6 +288,7 @@
           {search}
           wide={cellOptions.wide && !singleSelect}
           on:change={handleChange}
+          on:focusout={cellState.popupfocusout}
         />
       {/if}
     </div>

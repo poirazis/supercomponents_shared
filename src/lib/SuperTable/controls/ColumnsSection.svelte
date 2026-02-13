@@ -7,7 +7,6 @@
   export let columnsViewport;
   export let showActionColumn;
   export let canScroll;
-  export let stbData;
 </script>
 
 <div bind:this={columnsViewport} class="st-master-columns" tabIndex="-1">
@@ -22,7 +21,6 @@
   {:else}
     {#each $superColumns as column, idx (idx)}
       <SuperTableColumn
-        {stbData}
         columnOptions={{
           ...$commonColumnOptions,
           ...column,

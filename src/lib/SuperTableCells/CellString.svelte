@@ -8,21 +8,13 @@
   import fsm from "svelte-fsm";
   import "./CellCommon.css";
 
-  /**
-   * @typedef {import('./types.js').CellOptions} CellOptions
-   * @typedef {import('./types.js').CellApi} CellApi
-   */
-
   const dispatch = createEventDispatcher();
   const { processStringSync } = getContext("sdk");
 
-  /** @type {string | null} */
   export let value;
 
-  /** @type {string | undefined} */
   export let formattedValue = undefined;
 
-  /** @type {CellOptions} */
   export let cellOptions = {
     role: "formInput",
     initialState: "Editing",
@@ -157,7 +149,6 @@
   });
 
   // Public API
-  /** @type {CellApi} */
   export const cellApi = {
     focus: () => cellState.focus(),
     reset: () => cellState.reset(value),
@@ -201,6 +192,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   class="superCell"
+  tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
   class:multirow={controlType == "textarea"}
   class:inEdit
   class:isDirty={isDirty && showDirty}
@@ -212,8 +204,9 @@
   class:error
   style:color
   style:background
+  on:focusin={cellState.focus}
 >
-  {#if icon}
+  {#if icon && !textarea}
     <i class={icon + " field-icon"} class:with-error={error}></i>
   {/if}
   {#if inEdit}
@@ -247,39 +240,30 @@
           : cellOptions.align == "flex-end"
             ? "right"
             : "left"}
-        style:padding-right={cellOptions.align != "flex-start"
-          ? "2rem"
-          : "0.75rem"}
         on:input={cellState.debounce}
         on:focusout={cellState.focusout}
         on:keydown={cellState.handleKeyboard}
         use:focus
       />
-      {#if localValue && cellOptions?.clearIcon !== false}
-        <i
-          class="ri-close-line clearIcon"
-          on:mousedown|self|preventDefault={cellState.clear}
-        ></i>
-      {/if}
+      <i
+        class="ri-close-line clear-icon"
+        class:visible={localValue && cellOptions?.clearIcon !== false}
+        on:mousedown|self|preventDefault={cellState.clear}
+      ></i>
     {/if}
   {:else if textarea}
     <div
       class="value textarea"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
-      class:with-icon={cellOptions.icon || error}
       class:placeholder={!value && !formattedValue}
       style:justify-content={cellOptions.align}
-      on:focusin={cellState.focus}
     >
       {formattedValue || value || placeholder}
     </div>
   {:else}
     <div
       class="value"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? -1 : 0}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
-      on:focusin={cellState.focus}
     >
       <span>
         {formattedValue || value || placeholder}
@@ -294,7 +278,7 @@
     display: flex;
     align-items: flex-start;
     white-space: pre-wrap;
-    padding: 0.5rem;
+    padding: 0.5rem 0rem;
     overflow-y: auto;
   }
 

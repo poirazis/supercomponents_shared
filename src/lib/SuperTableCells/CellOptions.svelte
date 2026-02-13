@@ -106,7 +106,7 @@
     View: {
       _enter() {
         searchTerm = null;
-        editorState.close();
+        editorState.filterOptions();
       },
       focus(e) {
         if (!readonly && !disabled) {
@@ -116,20 +116,19 @@
     },
     Editing: {
       _enter() {
+        editorState.open();
         originalValue = JSON.stringify(
           Array.isArray(value) ? value : value ? [value] : [],
         );
         inputValue = multi ? "" : labels[localValue[0]] || localValue[0] || "";
-        // Open the popup if the focus in came from a TAB
-        editorState.open();
+
         dispatch("enteredit");
       },
       _exit() {
         editorState.close();
-        editorState.filterOptions();
         dispatch("exitedit");
       },
-      toggle() {
+      toggle(e) {
         editorState.toggle();
       },
       focusout(e) {
@@ -144,6 +143,12 @@
         }
 
         return "View";
+      },
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+          return "View";
+        }
       },
       submit() {
         if (isDirty && !cellOptions.debounce) {
@@ -594,7 +599,7 @@
       use:focus
       {placeholder}
     />
-    <div class="action-icon" on:click={editorState.toggle}>
+    <div class="control-icon" on:click={editorState.toggle}>
       <i class="ph ph-caret-down"></i>
     </div>
   {:else}
@@ -630,7 +635,7 @@
       {/if}
     </div>
     {#if !readonly && (role == "formInput" || inEdit)}
-      <i class="ph ph-caret-down control-icon"></i>
+      <i class="ph ph-caret-down control-icon" on:mousedown></i>
     {/if}
   {/if}
 </div>
@@ -771,21 +776,6 @@
     justify-content: center;
     color: var(--spectrum-global-color-gray-500);
     font-style: italic;
-  }
-
-  .action-icon {
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-left: 1px solid var(--spectrum-global-color-blue-500);
-    min-width: 2rem;
-    font-size: 16px;
-  }
-  .action-icon:hover {
-    cursor: pointer;
-    background-color: var(--spectrum-global-color-gray-75);
-    font-weight: 800;
   }
 
   .search-icon {

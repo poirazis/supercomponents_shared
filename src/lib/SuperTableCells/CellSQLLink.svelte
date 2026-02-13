@@ -23,6 +23,8 @@
   let popup;
   let search;
   let pickerApi;
+  let isLoading = false;
+  let localValue;
 
   const editorState = fsm("Closed", {
     Open: {
@@ -54,7 +56,10 @@
     },
     View: {
       _enter() {},
-      focus() {
+      toggle() {
+        return;
+      },
+      focus(e) {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
       },
     },
@@ -68,11 +73,18 @@
         editorState.close();
         dispatch("exitedit");
       },
+      toggle(e) {
+        editorState.toggle();
+      },
       focusout(e) {
         if (popup?.contains(e?.relatedTarget)) return;
         this.submit();
       },
-
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+        }
+      },
       clear() {
         localValue = [];
       },
@@ -82,6 +94,8 @@
         return "View";
       },
       cancel() {
+        anchor.blur();
+        localValue = JSON.parse(originalValue);
         return "View";
       },
     },
@@ -94,7 +108,9 @@
   $: pills = cellOptions.relViewMode == "pills";
   $: ownId = ownId || cellOptions?.ownId;
 
-  $: localValue = enrichValue(value);
+  $: if (!isLoading) {
+    localValue = enrichValue(value);
+  }
 
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue != JSON.stringify(localValue);
@@ -116,17 +132,7 @@
     } else if (e.key == "Tab" && $editorState == "Open") {
       cellState.focusout(e);
     } else if ($editorState == "Open") {
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        pickerApi?.focusPrev();
-        pickerApi?.scrollIntoView();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        pickerApi?.focusNext();
-        pickerApi?.scrollIntoView();
-      } else if (e.key.length == 1 && e.key.match(/\S/)) {
-        pickerApi?.setSearch(e.key);
-      }
+      pickerApi?.focus();
     }
   };
 
@@ -135,6 +141,7 @@
 
     if (!multi) {
       editorState.close();
+      anchor.focus();
     }
   };
 
@@ -146,6 +153,7 @@
         : [];
       const missingIds = x.filter((id) => !existingIds.includes(id));
       if (missingIds.length > 0) {
+        isLoading = true;
         API.fetchTableDefinition(relatedTableId).then((def) => {
           fieldSchema.primaryDisplay = def.primaryDisplay;
         });
@@ -155,16 +163,20 @@
         )
           .then((rows) => {
             const newEnriched = rows.map((row) => ({
-              [relatedField]: row[relatedField],
+              ...row,
               primaryDisplay: fieldSchema.primaryDisplay
                 ? row[fieldSchema.primaryDisplay]
                 : row.name || row.id,
             }));
             // Append new enriched items to existing localValue
             localValue = [...(localValue || []), ...newEnriched];
+            // Dispatch enrich event with full row context
+            dispatch("enrich", { rows: newEnriched });
+            isLoading = false;
           })
           .catch((e) => {
             // On error, keep existing localValue
+            isLoading = false;
           });
       }
       return localValue || [];
@@ -173,23 +185,27 @@
       const existing =
         localValue && localValue.find((v) => v[relatedField] === x);
       if (!existing) {
+        isLoading = true;
         API.fetchTableDefinition(relatedTableId).then((def) => {
           fieldSchema.primaryDisplay = def.primaryDisplay;
         });
 
         API.fetchRow(relatedTableId, x, true)
           .then((row) => {
-            localValue = [
-              {
-                [relatedField]: row[relatedField],
-                primaryDisplay: fieldSchema.primaryDisplay
-                  ? row[fieldSchema.primaryDisplay]
-                  : row.name || row.id,
-              },
-            ];
+            const enrichedRow = {
+              ...row,
+              primaryDisplay: fieldSchema.primaryDisplay
+                ? row[fieldSchema.primaryDisplay]
+                : row.name || row.id,
+            };
+            localValue = [enrichedRow];
+            // Dispatch enrich event with full row context
+            dispatch("enrich", { rows: [enrichedRow] });
+            isLoading = false;
           })
           .catch((e) => {
             localValue = [];
+            isLoading = false;
           });
       }
       return localValue || [];
@@ -219,62 +235,62 @@
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
-  on:mousedown={inEdit ? editorState.toggle : () => {}}
+  on:mousedown={cellState.toggle}
   on:focusout={cellState.focusout}
 >
-  {#if cellOptions?.icon}
-    <i class={cellOptions.icon + " field-icon"}></i>
-  {/if}
-
-  <div class="value" class:placeholder={localValue?.length < 1}>
-    {#if localValue?.length < 1}
-      <span> {placeholder} </span>
-    {:else if pills}
-      <div
-        class="items"
-        class:pills
-        class:withCount={localValue.length > 5}
-        class:inEdit
-      >
-        {#each localValue as val, idx}
-          {#if idx < 5}
-            <div class="item">
-              <span>{val.primaryDisplay}</span>
-            </div>
-          {/if}
-        {/each}
-        {#if localValue.length > 5}
-          <span class="count">
-            (+ {localValue.length - 5})
-          </span>
-        {/if}
-      </div>
-    {:else}
-      <span>
-        {#if cellOptions.role == "formInput" && localValue.length > 1}
-          ({localValue.length})
-        {/if}
-        {localValue.map((v) => v.primaryDisplay).join(", ")}
-      </span>
+  {#if !isLoading}
+    {#if cellOptions?.icon}
+      <i class={cellOptions.icon + " field-icon"}></i>
     {/if}
-  </div>
-  {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
-    <i class="ph ph-caret-down control-icon"></i>
+
+    <div class="value" class:placeholder={localValue?.length < 1}>
+      {#if localValue?.length < 1}
+        <span> {placeholder} </span>
+      {:else if pills}
+        <div
+          class="items"
+          class:pills
+          class:withCount={localValue.length > 5}
+          class:inEdit
+        >
+          {#each localValue as val, idx}
+            {#if idx < 5}
+              <div class="item">
+                <span>{val.primaryDisplay}</span>
+              </div>
+            {/if}
+          {/each}
+          {#if localValue.length > 5}
+            <span class="count">
+              (+ {localValue.length - 5})
+            </span>
+          {/if}
+        </div>
+      {:else}
+        <span>
+          {#if cellOptions.role == "formInput" && localValue.length > 1}
+            ({localValue.length})
+          {/if}
+          {localValue.map((v) => v.primaryDisplay).join(", ")}
+        </span>
+      {/if}
+    </div>
+    {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
+      <i class="ph ph-caret-down control-icon"></i>
+    {/if}
   {/if}
 </div>
 
 {#if inEdit}
   <SuperPopover
     {anchor}
-    useAnchorWidth
+    useAnchorWidth={true}
+    minWidth={cellOptions.pickerWidth || undefined}
+    align="left"
     open={$editorState == "Open"}
     bind:popup
-    on:close={(e) => {
-      editorState.close();
-    }}
   >
     {#if fieldSchema.recursiveTable}
       <CellLinkPickerTree
@@ -296,6 +312,7 @@
         value={localValue}
         bind:api={pickerApi}
         on:change={handleChange}
+        on:focusout={cellState.popupfocusout}
       />
     {/if}
   </SuperPopover>

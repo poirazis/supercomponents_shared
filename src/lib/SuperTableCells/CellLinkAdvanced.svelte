@@ -58,7 +58,7 @@
         if (isDirty)
           dispatch(
             "change",
-            returnSingle && localValue ? localValue[0] : localValue
+            returnSingle && localValue ? localValue[0] : localValue,
           );
         editorState.close();
         return "View";
@@ -178,14 +178,10 @@
   on:mousedown={editorState.toggle}
 >
   {#if cellOptions?.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
-  <div
-    class="value"
-    class:with-icon={cellOptions?.icon}
-    class:placeholder={localValue?.length < 1}
-  >
+  <div class="value" class:placeholder={localValue?.length < 1}>
     {#if localValue?.length < 1}
       <span>
         {cellOptions.placeholder ?? null}

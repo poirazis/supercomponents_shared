@@ -17,7 +17,7 @@
   let control;
   let filterTerm;
   let initLimit = 15;
-  let listElement;
+
   let isInitialLoad = true;
   let hasMoreData = true;
   let optionRefs = [];
@@ -25,12 +25,23 @@
   let optionsFetch;
   let searchFilter;
   let currentLimit = initLimit;
+  let searchExtensions = {};
 
   $: localValue = Array.isArray(value) ? value : [];
   $: defaultQuery = QueryUtils.buildQuery(filter);
-  $: searchExtensions = searchFilter
-    ? { search: QueryUtils.buildQuery(searchFilter) }
-    : {};
+  $: {
+    if (searchFilter) {
+      // If searchFilter is already in $or format (object), use it directly
+      // Otherwise if it's legacy array format, build it through QueryUtils
+      if (Array.isArray(searchFilter)) {
+        searchExtensions = { search: QueryUtils.buildQuery(searchFilter) };
+      } else {
+        searchExtensions = { search: searchFilter };
+      }
+    } else {
+      searchExtensions = {};
+    }
+  }
 
   $: query = extendQuery(defaultQuery, searchExtensions);
 
@@ -49,6 +60,10 @@
   $: optionsFetch?.update({ query: query, limit: currentLimit });
 
   $: primaryDisplay = $optionsFetch?.definition?.primaryDisplay || "id";
+  $: gridTemplate = relatedColumns
+    .map((col) => col.width || "1fr")
+    .concat("32px")
+    .join(" ");
 
   $: if ($optionsFetch?.loaded) {
     hasMoreData = $optionsFetch.rows.length >= currentLimit;
@@ -95,6 +110,7 @@
         : val[primaryDisplay];
 
     const selectedItem = {
+      ...val, // Include the full row object
       [relatedField]: val[relatedField],
       primaryDisplay: displayValue,
     };
@@ -121,15 +137,29 @@
   const handleSearch = (e) => {
     filterTerm = e.target.value;
     if (e.target.value) {
-      searchFilter = [
-        {
-          field: primaryDisplay,
-          type: "string",
-          operator: "fuzzy",
-          value: e.target.value,
-          valueType: "Value",
-        },
-      ];
+      // If we have relatedColumns, create an OR filter that matches any column
+      if (relatedColumns && relatedColumns.length > 0) {
+        searchFilter = {
+          $or: {
+            conditions: relatedColumns.map((col) => ({
+              fuzzy: {
+                [col.name]: e.target.value,
+              },
+            })),
+          },
+        };
+      } else {
+        // Otherwise use primary display field
+        searchFilter = [
+          {
+            field: primaryDisplay,
+            type: "string",
+            operator: "fuzzy",
+            value: e.target.value,
+            valueType: "Value",
+          },
+        ];
+      }
     } else {
       searchFilter = undefined;
     }
@@ -183,12 +213,7 @@
       filterTerm = char;
       control?.focus();
     },
-    focusList: () => {
-      listElement?.focus();
-    },
   };
-
-  $: numCols = relatedColumns.length;
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -218,7 +243,7 @@
         : "Search"}
       on:input={handleSearch}
       on:keydown={handleNavigation}
-      on:blur={() => dispatch("close")}
+      on:focusout
     />
   </div>
 
@@ -226,18 +251,19 @@
     <div
       class="list"
       class:table-mode={relatedColumns && relatedColumns.length > 0}
-      bind:this={listElement}
       on:scroll={handleScroll}
     >
       {#if relatedColumns && relatedColumns.length > 1}
         <div
           class="grid-container"
-          style="--num-cols: {numCols}"
+          style="--grid-template: {gridTemplate}"
           on:scroll={handleScroll}
         >
           <div class="header-row">
             {#each relatedColumns as col}
-              <div class="header-cell">{col.displayName}</div>
+              <div class="header-cell">
+                {col.displayName || col.name}
+              </div>
             {/each}
             <div class="header-cell check"></div>
           </div>
@@ -252,7 +278,9 @@
               on:mousedown|preventDefault={() => selectRow(row)}
             >
               {#each relatedColumns as col}
-                <div class="data-cell">{row[col.name] || ""}</div>
+                <div class="data-cell">
+                  {row[col.name] || ""}
+                </div>
               {/each}
               <div class="data-cell check"><i class="ri-check-line"></i></div>
             </div>
@@ -315,7 +343,7 @@
               on:mouseleave={() => (focusIdx = -1)}
               on:mousedown|preventDefault|stopPropagation={() => selectRow(row)}
             >
-              {row.primaryDisplay || row[primaryDisplay]}
+              <span>{row.primaryDisplay || row[primaryDisplay]}</span>
               <i class="ri-check-line"></i>
             </div>
           {/each}
@@ -333,7 +361,7 @@
                     on:mouseleave={() => (focusIdx = -1)}
                     on:mousedown|preventDefault={() => selectRow(row)}
                   >
-                    {row.primaryDisplay || row[primaryDisplay]}
+                    <span>{row.primaryDisplay || row[primaryDisplay]}</span>
                     <i class="ri-check-line"></i>
                   </div>
                 {/if}
@@ -441,13 +469,18 @@
     line-height: 1.5rem;
     padding: 0.15rem 0.5rem;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     display: flex;
+    min-width: 0;
     justify-content: space-between;
 
     & > i {
       visibility: hidden;
+    }
+
+    & > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &.selected {
@@ -489,13 +522,13 @@
     background-color: var(--spectrum-global-color-gray-100);
     z-index: 1;
     display: grid;
-    grid-template-columns: repeat(var(--num-cols), 1fr) 32px;
+    grid-template-columns: var(--grid-template);
     height: 1.75rem;
   }
 
   .data-row {
     display: grid;
-    grid-template-columns: repeat(var(--num-cols), 1fr) 32px;
+    grid-template-columns: var(--grid-template);
     cursor: pointer;
   }
 

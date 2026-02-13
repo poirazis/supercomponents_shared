@@ -61,7 +61,7 @@
   export let limit = 50;
 
   export let autoRefreshRate;
-  export let paginate;
+  export let paginate = true;
   export let filter;
 
   export let columnList;
@@ -130,9 +130,10 @@
   const columnsStore = memo(columnList);
   const stbRowMetadata = writable([]);
   const filterStore = memo(filter);
+  const cachedRows = writable([]);
+  const loading = writable(false);
 
   $: dataSourceStore.set(dataSource);
-  $: tableAPI.decidePagination($dataSourceStore);
   $: filterStore.set(filter);
   $: stbSchema.set($stbData?.definition?.schema);
 
@@ -151,7 +152,7 @@
   let tableId;
   let idColumn;
   let pagination;
-  let fetchOnScroll = false;
+  let fetchOnScroll = true;
   let timer;
 
   let highlighted;
@@ -167,8 +168,9 @@
   let touchStartX = 0;
   let overflow;
   let isEmpty;
-  let _limit = limit;
+
   let initializing = false;
+  let refresh = false;
   let initTimer;
   let start,
     end = 0;
@@ -295,16 +297,6 @@
   });
 
   const createFetch = (datasource) => {
-    if (datasource.parameters) {
-      datasource = {
-        ...datasource,
-        queryParams: {
-          ...datasource.queryParams,
-          limit: limit,
-        },
-      };
-    }
-
     return fetchData({
       API,
       datasource,
@@ -561,7 +553,7 @@
     executeRowButtonAction: async (index, action) => {
       let cmd = enrichButtonActions(
         action,
-        tableAPI.enrichContext($stbData?.rows[index]),
+        tableAPI.enrichContext($cachedRows[index]),
       );
       await cmd?.();
     },
@@ -571,7 +563,7 @@
     executeCellOnClickAction: async (index, column, value, id) => {
       let cmd = enrichButtonActions(
         onCellClick,
-        tableAPI.enrichContext($stbData?.rows[index]),
+        tableAPI.enrichContext($cachedRows[index]),
       );
       await cmd?.({ column, value, id });
     },
@@ -591,7 +583,7 @@
       await tick();
       let cmd = enrichButtonActions(
         onRowSelect,
-        tableAPI.enrichContext($stbData?.rows[index]),
+        tableAPI.enrichContext($cachedRows[index]),
       );
       await cmd?.();
     },
@@ -613,7 +605,7 @@
       tableAPI.executeRowButtonAction(null, action);
     },
     selectRow: (index) => {
-      let id = tableAPI.getRowId($stbData?.rows[index], index);
+      let id = tableAPI.getRowId($cachedRows[index], index);
       let disabled = $stbRowMetadata[index]["disabled"];
 
       if (maxSelected != 1) {
@@ -643,8 +635,8 @@
       if ($stbSelected.length) tableAPI.executeRowOnSelectAction(index);
     },
     selectAllRows: () => {
-      if ($stbSelected.length != $stbData?.rows.length)
-        $stbSelected = $stbData?.rows.map((x, i) => tableAPI.getRowId(x, i));
+      if ($stbSelected.length != $cachedRows.length)
+        $stbSelected = $cachedRows.map((x, i) => tableAPI.getRowId(x, i));
       else $stbSelected = [];
     },
     clearSelection: () => {
@@ -704,7 +696,7 @@
       }
     },
     deleteRow: async (index) => {
-      let row = $stbData?.rows[index];
+      let row = $cachedRows[index];
       $stbRowMetadata[index]["disabled"] = true;
       await tick();
       let id = row[idColumn];
@@ -731,13 +723,13 @@
       let cmd;
       let cmd_after = enrichButtonActions(
         afterDelete,
-        tableAPI.enrichContext($stbData?.rows[index]),
+        tableAPI.enrichContext($cachedRows[index]),
       );
 
       if (onDelete?.length) {
         cmd = enrichButtonActions(
           onDelete,
-          tableAPI.enrichContext($stbData?.rows[index]),
+          tableAPI.enrichContext($cachedRows[index]),
         );
       } else {
         cmd = enrichButtonActions(autoDelete, {});
@@ -756,7 +748,7 @@
       }
 
       // Refresh the dataset
-      stbData.refresh();
+      stbState.refresh();
     },
     deleteSelectedRows: async () => {
       let rowsToDelete = $stbSelected
@@ -765,7 +757,7 @@
       let idsToDelete = rowsToDelete.map((row) => row._id);
 
       rowsToDelete.forEach((row) => {
-        const rowIndex = $stbData.rows.indexOf(row);
+        const rowIndex = $cachedRows.indexOf(row);
         if (rowIndex !== -1) {
           $stbRowMetadata[rowIndex]["disabled"] = true;
         }
@@ -800,7 +792,7 @@
       await cmd?.();
       await cmd_after?.();
 
-      stbData.refresh();
+      stbState.refresh();
     },
     patchRow: async (patch) => {
       // We can only patch tables
@@ -834,9 +826,9 @@
     },
     getRowById: (id) => {
       if (idColumn) {
-        return $stbData.rows.find((row) => row[idColumn]?.toString() === id);
+        return $cachedRows.find((row) => row[idColumn]?.toString() === id);
       } else {
-        return $stbData.rows[parseInt(id)];
+        return $cachedRows[parseInt(id)];
       }
     },
     extendQuery: (
@@ -904,21 +896,6 @@
             ? [ids]
             : [];
     },
-    decidePagination: (ds) => {
-      if (!ds) {
-        pagination = "none";
-        return;
-      }
-
-      if (ds.parameters && ds.parameters.length) {
-        const paramNames = ds.parameters.map((p) => p.name.toLowerCase());
-        if (paramNames.includes("offset") && paramNames.includes("limit"))
-          pagination = "limitOffset";
-      } else if (dataSource.tableId) pagination = "cursor";
-      else pagination = "none";
-
-      fetchOnScroll = pagination == "cursor";
-    },
   };
 
   // Super Table State Machine
@@ -927,20 +904,15 @@
       init() {
         return "Init";
       },
-      refresh() {
-        stbData?.refresh();
-      },
       enrichRows(
-        stbData,
+        cachedRows,
         rowBGColorTemplate,
         rowColorTemplate,
         rowHeight,
         rowDisabledTemplate,
         stbSelected,
       ) {
-        if (stbData?.loading) return;
-
-        $stbRowMetadata = stbData?.rows?.map((row, index) => {
+        $stbRowMetadata = cachedRows.map((row, index) => {
           return {
             height: rowHeight
               ? toNumber(
@@ -1011,7 +983,7 @@
         this.calculateRowBoundaries();
       },
       calculateBoundaries() {
-        let rows = $stbData?.rows;
+        let rows = $cachedRows;
         if (!rows || !viewport) return;
 
         const defaultRowHeight = $stbSettings.appearance.rowHeight;
@@ -1045,7 +1017,9 @@
       calculateRowBoundaries() {
         let start = 0;
         let end = 0;
-        let rows = $stbData?.rows || [];
+        let rows = $cachedRows || [];
+
+        if (!rows.length) return;
 
         end = rows.length;
 
@@ -1066,7 +1040,7 @@
         }
 
         // Update visible rows
-        $stbVisibleRows = $stbData?.rows
+        $stbVisibleRows = $cachedRows
           .slice(start, end)
           .map((_, i) => i + start);
 
@@ -1075,23 +1049,8 @@
         $stbScrollOffset = $stbScrollPos - startHeight;
 
         // Fetch more rows if nearing the end
-        if (fetchOnScroll && rows.length > 0) {
-          const loadedHeight = $cumulativeHeights[rows.length - 1];
-          const remainingHeight =
-            loadedHeight - ($stbScrollPos + maxBodyHeight);
-
-          // Only fetch if we're actually scrolling near the end AND haven't loaded all possible rows
-          // Check if total rows loaded < total available (if known) or if remainingHeight indicates need
-          const hasMoreData =
-            !$stbData.info?.total || rows.length < $stbData.info.total;
-          if (
-            remainingHeight < maxBodyHeight &&
-            rows.length === _limit &&
-            hasMoreData &&
-            $stbScrollPos > 0
-          ) {
-            stbState.fetchMoreRows(limit); // Debounced fetch
-          }
+        if (fetchOnScroll && $cachedRows.length - end < 5) {
+          stbState.fetchMoreRows();
         }
       },
       handleVerticalScroll(delta) {
@@ -1225,6 +1184,7 @@
       _enter() {
         if (timer) clearInterval(timer);
         if (initTimer) clearTimeout(initTimer);
+
         start = 0;
         end = 0;
 
@@ -1232,9 +1192,8 @@
         $stbScrollOffset = 0;
         $stbHorizontalScrollPos = 0;
         $stbSelected = [];
-
+        $cachedRows = [];
         $stbVisibleRows = [];
-        if (_limit != limit) _limit = limit;
 
         stbData = createFetch($dataSourceStore);
 
@@ -1250,11 +1209,12 @@
         if (fetchState.loaded) {
           if (autoRefreshRate && !inBuilder) {
             timer = setInterval(() => {
-              if (!$stbData?.loading) stbData?.refresh();
+              stbState.refresh();
               onRefresh?.();
             }, autoRefreshRate * 1000);
           }
 
+          $cachedRows = [...fetchState.rows];
           return "Idle";
         }
       },
@@ -1263,26 +1223,53 @@
       _enter() {
         clearTimeout(initTimer);
         initializing = false;
-        isEmpty = $stbData?.rows.length < 1;
-        this.calculateRowBoundaries();
+        isEmpty = $cachedRows.length < 1;
       },
       _exit() {},
-      synch(fetchState) {
-        if (fetchState.loading && !fetchState.loaded) return;
-        isEmpty = !$stbData?.rows.length;
-        if (fetchState.loaded) {
-          this.calculateRowBoundaries();
-        }
-      },
       addFilter(filterObj) {
         let extention = QueryUtils.buildQuery([{ ...filterObj }]);
         stbColumnFilters.add(filterObj.id);
         tableAPI.addQueryExtension(filterObj.id, extention);
         return "Filtered";
       },
+      refresh() {
+        if ($stbData?.loading) return;
+
+        if ($stbData.pageNumber > 0) {
+          stbData.update({ limit: $cachedRows.length });
+        } else {
+          stbData.refresh();
+        }
+
+        return "Refreshing";
+      },
       fetchMoreRows(size) {
-        _limit = _limit + size;
-        stbData.update({ limit: _limit });
+        if ($stbData.hasNextPage && !$stbData.loading) {
+          stbData.nextPage();
+          return "Fetching";
+        }
+      },
+    },
+    Refreshing: {
+      _enter() {},
+      _exit() {},
+      synch(fetchState) {
+        if (fetchState.loading) return;
+        if (fetchState.loaded) {
+          $cachedRows = [...fetchState.rows];
+          return "Idle";
+        }
+      },
+    },
+    Fetching: {
+      _enter() {},
+      _exit() {},
+      synch(fetchState) {
+        if (!fetchState.loading) {
+          isEmpty = fetchState.rows.length < 1;
+          $cachedRows = [...$cachedRows, ...fetchState.rows];
+          return "Idle";
+        }
       },
     },
     Filtered: {
@@ -1311,14 +1298,31 @@
         columnStates.forEach(({ state }) => state.reset());
         return "Idle";
       },
+      refresh() {
+        if ($stbData?.loading) return;
+        stbData.refresh();
+      },
       synch(fetchState) {
+        if (fetchState.loading) return;
         if (fetchState.loaded) {
           isEmpty = fetchState.rows.length < 1;
+          $cachedRows = [...fetchState.rows];
           this.calculateRowBoundaries();
         }
       },
     },
     Editing: {
+      enter() {
+        if (timer) clearInterval(timer);
+      },
+      _exit() {
+        if (autoRefreshRate && !inBuilder) {
+          timer = setInterval(() => {
+            stbState.refresh();
+            onRefresh?.();
+          }, autoRefreshRate * 1000);
+        }
+      },
       async patchRow(index, id, rev, field, change) {
         let patch = { _id: id, _rev: rev, [field]: change };
         await tableAPI.patchRow(index, patch);
@@ -1374,7 +1378,7 @@
   $: stbState.init($dataSourceStore);
   $: stbState.synch($stbData);
   $: stbState.enrichRows(
-    $stbData,
+    $cachedRows,
     rowBGColorTemplate,
     rowColorTemplate,
     rowHeight,
@@ -1383,14 +1387,14 @@
   );
 
   $: stbSelectedRows = derivedMemo(
-    [stbData, stbSelected, maxSelectedStore],
-    ([$stbData, $stbSelected, $maxSelectedStore]) => {
-      if ($stbData?.rows) {
+    [cachedRows, stbSelected, maxSelectedStore],
+    ([$cachedRows, $stbSelected, $maxSelectedStore]) => {
+      if ($cachedRows.length) {
         $stbSelected = $stbSelected.filter((id) =>
-          $stbData.rows.some((row, i) => tableAPI.getRowId(row, i) === id),
+          $cachedRows.some((row, i) => tableAPI.getRowId(row, i) === id),
         );
       }
-      const selectedRows = $stbData?.rows?.filter((row, i) =>
+      const selectedRows = $cachedRows?.filter((row, i) =>
         $stbSelected?.includes(tableAPI.getRowId(row, i)),
       );
       if ($maxSelectedStore === 1) {
@@ -1410,6 +1414,7 @@
     query,
     sortColumn,
     sortOrder,
+    limit,
   });
 
   // Derived Store with the columns to be rendered
@@ -1491,7 +1496,7 @@
     },
     {
       type: ActionTypes.RefreshDatasource,
-      callback: stbData?.refresh,
+      callback: stbState.refresh,
     },
     {
       type: ActionTypes.AddDataProviderQueryExtension,
@@ -1505,9 +1510,9 @@
 
   // The "row" is dynamically enriched, but show the first one in the builder for preview
   $: dataContext = {
-    row: inBuilder ? $stbData?.rows[0] : {},
+    row: inBuilder ? $cachedRows?.[0] : {},
     newRow: $new_row,
-    rows: $stbData?.rows,
+    rows: $cachedRows,
     selectedRows: $stbSelectedRows,
     selectedIds: Array.isArray($stbSelectedRows)
       ? $stbSelectedRows.map((row) => row[idColumn])
@@ -1522,7 +1527,7 @@
       query: $stbData.query,
     },
     loaded: $stbData?.loaded,
-    rowsLength: $stbData?.rows.length,
+    rowsLength: $cachedRows.length,
     pageNumber: $stbData?.pageNumber + 1,
   };
 
@@ -1547,9 +1552,10 @@
   setContext("stbVisibleRows", stbVisibleRows);
   setContext("stbRowMetadata", stbRowMetadata);
 
+  setContext("data", cachedRows);
+
   // Reactive Context
 
-  $: setContext("stbData", stbData);
   $: setContext("stbSchema", stbSchema);
   $: setContext("new_row", new_row);
 
@@ -1573,6 +1579,8 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
+
+  $: console.log($stbState);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1617,7 +1625,6 @@
 
       {#if stickFirstColumn && $superColumns.length > 1}
         <SuperTableColumn
-          {stbData}
           sticky={true}
           scrollPos={$stbHorizontalScrollPos}
           columnOptions={{

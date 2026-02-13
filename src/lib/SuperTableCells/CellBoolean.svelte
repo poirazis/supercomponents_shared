@@ -135,7 +135,6 @@
       class="value"
       tabIndex="0"
       style:justify-content={cellOptions.align ?? "center"}
-      class:with-icon={cellOptions.icon}
       on:focusin={cellState.focus}
     >
       {#if value}
