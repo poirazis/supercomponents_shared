@@ -1,5 +1,6 @@
 <script>
   import { getContext, onDestroy } from "svelte";
+  import { is } from "zod/v4/locales";
 
   const { Provider, ContextScopes } = getContext("sdk");
 
@@ -26,11 +27,16 @@
   let viewport;
   let info;
 
-  $: meta = $rowMetadata?.[index] ?? {};
+  // Get Row overrides from metadata or fallback to column settings
+  $: color = $rowMetadata[index]?.color ?? "inherit";
+  $: height = $rowMetadata[index]?.height;
+  $: bgcolor = $rowMetadata[index]?.bgcolor ?? "inherit";
+
   $: id = row?.[idField] ?? index;
   $: value = deepGet(row, field);
   $: isHovered = $stbHovered == index || $stbMenuID == index;
   $: isSelected = $rowMetadata?.[index]?.selected ?? false;
+  $: isDisabled = $rowMetadata?.[index]?.disabled ?? false;
   $: hasChildren = $columnSettings.hasChildren > 0;
 
   const patchRow = async (change) => {
@@ -89,11 +95,11 @@
   class:is-selected={isSelected}
   class:is-hovered={isHovered}
   class:is-editing={isEditing}
-  class:is-disabled={meta.disabled}
+  class:is-disabled={isDisabled}
   class:isLast
-  style:height={meta.height + "px"}
-  style:color={meta.color}
-  style:background-color={meta.bgcolor}
+  style:height
+  style:color
+  style:background-color={bgcolor}
   style:justify-content={$columnSettings.align}
   on:mouseenter={() => ($stbHovered = index)}
   on:mouseleave={() => ($stbHovered = undefined)}

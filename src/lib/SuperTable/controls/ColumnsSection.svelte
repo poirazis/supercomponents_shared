@@ -14,23 +14,17 @@
     <slot />
   {/if}
 
-  {#if $superColumns.length === 0}
-    <div class="no-columns-placeholder">
-      No columns defined. Please add columns to the Super Table.
-    </div>
-  {:else}
-    {#each $superColumns as column, idx (idx)}
-      <SuperTableColumn
-        columnOptions={{
-          ...$commonColumnOptions,
-          ...column,
-          isFirst: idx == 0,
-          isLast:
-            idx == $superColumns.length - 1 && !showActionColumn && canScroll,
-        }}
-      />
-    {/each}
-  {/if}
+  {#each $superColumns as column, idx (idx)}
+    <SuperTableColumn
+      columnOptions={{
+        ...$commonColumnOptions,
+        ...column,
+        isFirst: idx == 0,
+        isLast:
+          idx == $superColumns.length - 1 && !showActionColumn && canScroll,
+      }}
+    />
+  {/each}
 
   {#if $stbSettings.superColumnsPos == "last"}
     <slot />

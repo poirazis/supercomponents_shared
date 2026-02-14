@@ -397,6 +397,7 @@
   min-height: 1.8rem;
   min-width: unset;
   transition: all 130ms;
+  align-items: center !important;
 }
 
 .superCell.inline:hover:not(.disabled):not(.readonly):not(.inEdit) {
@@ -407,7 +408,7 @@
 
 .superCell.inline.inEdit {
   background-color: var(--spectrum-global-color-gray-50);
-  border: 1px solid var(--spectrum-global-color-blue-400);
+  border: 1px solid var(--spectrum-global-color-gray-400);
   cursor: text;
 }
 

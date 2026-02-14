@@ -1012,15 +1012,16 @@
             : 0;
 
         // Recalculate visible row boundaries
-        this.calculateRowBoundaries();
+        this.calculateRowBoundaries.debounce(0);
       },
       calculateRowBoundaries() {
-        let start = 0;
-        let end = 0;
         let rows = $cachedRows || [];
+        if (!rows.length) {
+          $stbVisibleRows = [];
+          return;
+        }
 
-        if (!rows.length) return;
-
+        start = 0;
         end = rows.length;
 
         // Find start index
@@ -1232,6 +1233,14 @@
         tableAPI.addQueryExtension(filterObj.id, extention);
         return "Filtered";
       },
+      synch(fetchState) {
+        if (fetchState.loading) return;
+        if (fetchState.loaded) {
+          isEmpty = fetchState.rows.length < 1;
+          $cachedRows = [...fetchState.rows];
+          this.calculateRowBoundaries();
+        }
+      },
       refresh() {
         if ($stbData?.loading) return;
 
@@ -1288,15 +1297,22 @@
       clearFilter(id) {
         stbColumnFilters.delete(id);
         tableAPI.removeQueryExtension(id);
-        return "Idle";
       },
       clear() {
-        stbColumnFilters.forEach((id) => {
-          tableAPI.removeQueryExtension(id);
-        });
-        stbColumnFilters.clear();
-        columnStates.forEach(({ state }) => state.reset());
-        return "Idle";
+        console.log("Clearing All Filters");
+        console.log("Current Filters:", stbColumnFilters);
+
+        try {
+          stbColumnFilters.forEach((id) => {
+            tableAPI.removeQueryExtension(id);
+          });
+          stbColumnFilters.clear();
+          columnStates.forEach(({ state }) => state.reset());
+        } catch (e) {
+          console.error("Error clearing filters:", e);
+        } finally {
+          return "Idle";
+        }
       },
       refresh() {
         if ($stbData?.loading) return;
@@ -1308,6 +1324,12 @@
           isEmpty = fetchState.rows.length < 1;
           $cachedRows = [...fetchState.rows];
           this.calculateRowBoundaries();
+        }
+      },
+      fetchMoreRows(size) {
+        if ($stbData.hasNextPage && !$stbData.loading) {
+          stbData.nextPage();
+          return "Fetching";
         }
       },
     },
@@ -1324,6 +1346,8 @@
         }
       },
       async patchRow(index, id, rev, field, change) {
+        console.log("Patching Row:", { index, id, rev, field, change });
+
         let patch = { _id: id, _rev: rev, [field]: change };
         await tableAPI.patchRow(index, patch);
         stbState.refresh();
@@ -1430,7 +1454,7 @@
     },
   );
 
-  $: cumulativeHeights = derivedMemo(stbRowMetadata, ($meta) => {
+  const cumulativeHeights = derivedMemo(stbRowMetadata, ($meta) => {
     return $meta?.map((_, i) =>
       $meta
         .slice(0, i + 1)
@@ -1580,7 +1604,7 @@
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
 
-  $: console.log($stbState);
+  $: console.log($stbState, $cachedRows, "Visible:", $stbVisibleRows);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1617,7 +1641,7 @@
     <Provider {actions} data={dataContext} />
 
     <ControlSection>
-      <SelectionColumn {stbData} {hideSelectionColumn} />
+      <SelectionColumn {hideSelectionColumn} />
 
       {#if showButtonColumnLeft}
         <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />

@@ -40,6 +40,7 @@
         columnState.filter(buildFilter(filterOperator, filterValue));
       }
     } else {
+      console.log("Clearing filter due to empty value");
       showFilteringOptions = false;
       filterValue = null;
       columnState.clear();
@@ -125,7 +126,6 @@
       fieldSchema={$columnOptions.schema}
       multi={filterOperator == "containsAny" || filterOperator == "oneOf"}
       on:change={handleValueChange}
-      on:cancel={columnState.cancel}
       on:focusout={handleBlur}
     />
   {:else}

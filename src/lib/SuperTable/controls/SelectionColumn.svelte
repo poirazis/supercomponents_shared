@@ -13,16 +13,15 @@
   const stbAPI = getContext("stbAPI");
   const stbVisibleRows = getContext("stbVisibleRows");
   const stbRowMetadata = getContext("stbRowMetadata");
+  const data = getContext("data");
 
   export let sticky;
   export let hideSelectionColumn;
-  export let stbData;
 
   $: partialSelection =
-    $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
+    $stbSelected.length && $stbSelected.length != $data.length;
 
-  $: fullSelection =
-    $stbSelected.length == $stbData?.rows?.length && $stbData?.rows?.length > 0;
+  $: fullSelection = $stbSelected.length == $data.length && $data.length > 0;
 
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
