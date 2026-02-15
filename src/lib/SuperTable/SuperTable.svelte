@@ -170,10 +170,9 @@
   let isEmpty;
 
   let initializing = false;
-  let refresh = false;
+
   let initTimer;
-  let start,
-    end = 0;
+  let start, end;
 
   let stbData = writable({ rows: [], count: 0, definition: {} });
 
@@ -297,6 +296,9 @@
   });
 
   const createFetch = (datasource) => {
+    defaultQuery = QueryUtils.buildQuery($filterStore);
+    query = tableAPI.extendQuery(defaultQuery, queryExtensions);
+
     return fetchData({
       API,
       datasource,
@@ -305,7 +307,6 @@
         sortColumn,
         sortOrder,
         limit,
-        paginate: true,
       },
     });
   };
@@ -1012,7 +1013,7 @@
             : 0;
 
         // Recalculate visible row boundaries
-        this.calculateRowBoundaries.debounce(0);
+        this.calculateRowBoundaries();
       },
       calculateRowBoundaries() {
         let rows = $cachedRows || [];
@@ -1050,7 +1051,7 @@
         $stbScrollOffset = $stbScrollPos - startHeight;
 
         // Fetch more rows if nearing the end
-        if (fetchOnScroll && $cachedRows.length - end < 5) {
+        if (fetchOnScroll && $cachedRows.length - end < 10) {
           stbState.fetchMoreRows();
         }
       },
@@ -1186,9 +1187,6 @@
         if (timer) clearInterval(timer);
         if (initTimer) clearTimeout(initTimer);
 
-        start = 0;
-        end = 0;
-
         $stbScrollPos = 0;
         $stbScrollOffset = 0;
         $stbHorizontalScrollPos = 0;
@@ -1299,9 +1297,6 @@
         tableAPI.removeQueryExtension(id);
       },
       clear() {
-        console.log("Clearing All Filters");
-        console.log("Current Filters:", stbColumnFilters);
-
         try {
           stbColumnFilters.forEach((id) => {
             tableAPI.removeQueryExtension(id);
@@ -1346,8 +1341,6 @@
         }
       },
       async patchRow(index, id, rev, field, change) {
-        console.log("Patching Row:", { index, id, rev, field, change });
-
         let patch = { _id: id, _rev: rev, [field]: change };
         await tableAPI.patchRow(index, patch);
         stbState.refresh();
@@ -1398,51 +1391,8 @@
     },
   });
 
-  // Initialize and Enrich Rows
-  $: stbState.init($dataSourceStore);
-  $: stbState.synch($stbData);
-  $: stbState.enrichRows(
-    $cachedRows,
-    rowBGColorTemplate,
-    rowColorTemplate,
-    rowHeight,
-    rowDisabledTemplate,
-    $stbSelected,
-  );
-
-  $: stbSelectedRows = derivedMemo(
-    [cachedRows, stbSelected, maxSelectedStore],
-    ([$cachedRows, $stbSelected, $maxSelectedStore]) => {
-      if ($cachedRows.length) {
-        $stbSelected = $stbSelected.filter((id) =>
-          $cachedRows.some((row, i) => tableAPI.getRowId(row, i) === id),
-        );
-      }
-      const selectedRows = $cachedRows?.filter((row, i) =>
-        $stbSelected?.includes(tableAPI.getRowId(row, i)),
-      );
-      if ($maxSelectedStore === 1) {
-        return selectedRows.length > 0 ? selectedRows[0] : [];
-      }
-      return selectedRows;
-    },
-  );
-
-  // Scroll to Top when filter changes
-  $: stbState.scrollToTop(query);
-
-  // Data Related
-  $: defaultQuery = QueryUtils.buildQuery($filterStore);
-  $: query = tableAPI.extendQuery(defaultQuery, queryExtensions);
-  $: stbData?.update({
-    query,
-    sortColumn,
-    sortOrder,
-    limit,
-  });
-
   // Derived Store with the columns to be rendered
-  $: superColumns = derivedMemo(
+  const superColumns = derivedMemo(
     [stbSchema, columnsStore, stbSettings],
     ([$stbSchema, $columnsStore, $stbSettings]) => {
       return tableAPI.populateColumns(
@@ -1461,17 +1411,6 @@
         .reduce((sum, meta) => sum + Math.max(meta.height, 0), 0),
     );
   });
-
-  // Virtual List Capabilities reacting to viewport change
-  $: stbState.calculateBoundaries(
-    clientHeight,
-    canInsert,
-    $stbSortColumn,
-    fetchOnScroll,
-    $stbSortColumn,
-    $stbSortOrder,
-    $cumulativeHeights,
-  );
 
   // Derived Store with common column settings
   const commonColumnOptions = derivedMemo(stbSettings, ($stbSettings) => {
@@ -1511,6 +1450,61 @@
     headerHeight: $stbSettings.appearance?.headerHeight || "0px",
     footerHeight: $stbSettings.appearance?.footerHeight || "0px",
   }));
+
+  // Initialize and Enrich Rows
+  $: stbState.init($dataSourceStore);
+  $: stbState.synch($stbData);
+  $: stbState.enrichRows(
+    $cachedRows,
+    rowBGColorTemplate,
+    rowColorTemplate,
+    rowHeight,
+    rowDisabledTemplate,
+    $stbSelected,
+    size,
+  );
+
+  $: stbSelectedRows = derivedMemo(
+    [cachedRows, stbSelected, maxSelectedStore],
+    ([$cachedRows, $stbSelected, $maxSelectedStore]) => {
+      if ($cachedRows.length) {
+        $stbSelected = $stbSelected.filter((id) =>
+          $cachedRows.some((row, i) => tableAPI.getRowId(row, i) === id),
+        );
+      }
+      const selectedRows = $cachedRows?.filter((row, i) =>
+        $stbSelected?.includes(tableAPI.getRowId(row, i)),
+      );
+      if ($maxSelectedStore === 1) {
+        return selectedRows.length > 0 ? selectedRows[0] : [];
+      }
+      return selectedRows;
+    },
+  );
+
+  // Scroll to Top when filter changes
+  $: stbState.scrollToTop(query);
+
+  // Data Related
+  $: defaultQuery = QueryUtils.buildQuery($filterStore);
+  $: query = tableAPI.extendQuery(defaultQuery, queryExtensions);
+  $: stbData?.update({
+    query,
+    sortColumn,
+    sortOrder,
+    limit,
+  });
+
+  // Virtual List Capabilities reacting to viewport change
+  $: stbState.calculateBoundaries(
+    clientHeight,
+    canInsert,
+    $stbSortColumn,
+    fetchOnScroll,
+    $stbSortColumn,
+    $stbSortOrder,
+    $cumulativeHeights,
+  );
 
   // Build our data and actions ontext
   $: actions = [
@@ -1577,11 +1571,8 @@
   setContext("stbRowMetadata", stbRowMetadata);
 
   setContext("data", cachedRows);
-
-  // Reactive Context
-
-  $: setContext("stbSchema", stbSchema);
-  $: setContext("new_row", new_row);
+  setContext("stbSchema", stbSchema);
+  setContext("new_row", new_row);
 
   function toNumber(input) {
     const num = Number(input);
@@ -1603,8 +1594,6 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
-
-  $: console.log($stbState, $cachedRows, "Visible:", $stbVisibleRows);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1641,7 +1630,9 @@
     <Provider {actions} data={dataContext} />
 
     <ControlSection>
-      <SelectionColumn {hideSelectionColumn} />
+      <SelectionColumn
+        hideSelectionColumn={hideSelectionColumn || $superColumns.length === 0}
+      />
 
       {#if showButtonColumnLeft}
         <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
@@ -1664,7 +1655,6 @@
     </ControlSection>
 
     <ColumnsSection
-      {stbData}
       {stbSettings}
       {superColumns}
       {commonColumnOptions}
@@ -1676,7 +1666,7 @@
       {/key}
     </ColumnsSection>
 
-    {#if showButtonColumnRight && !isEmpty}
+    {#if showButtonColumnRight && $superColumns.length > 0}
       <ControlSection>
         <RowButtonsColumn
           {rowMenuItems}

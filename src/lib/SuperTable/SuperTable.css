@@ -5,6 +5,7 @@
   border: 1px solid var(--spectrum-global-color-gray-300);
   background: var(--spectrum-global-color-gray-50);
   color: var(--spectrum-global-color-gray-800);
+  border-radius: 0.25rem;
   overflow: hidden;
   height: 360px;
   --row-selection-color: rgba(75, 117, 255, 0.15);
@@ -232,7 +233,7 @@
     border-bottom-color: var(--spectrum-global-color-green-400);
   }
 
-  &.is-hovered {
+  &.hovered {
     color: var(--spectrum-global-color-gray-900);
     background: var(
       --row-hover-color,
@@ -244,12 +245,12 @@
     }
   }
 
-  &.is-selected {
+  &.selected {
     color: var(--spectrum-global-color-gray-900);
     background-color: var(--row-selection-color) !important;
   }
 
-  &.is-disabled {
+  &.disabled {
     color: var(--spectrum-global-color-gray-500) !important;
     font-style: italic;
   }
@@ -267,7 +268,7 @@
   .row-number {
     min-width: 1.25rem;
     text-align: right;
-    color: var(--spectrum-global-color-gray-500);
+    color: var(--spectrum-global-color-gray-600);
     font-size: 12px;
     font-family: monospace;
   }

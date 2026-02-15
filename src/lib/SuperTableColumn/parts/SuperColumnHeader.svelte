@@ -28,6 +28,10 @@
   }
 
   $: isEntering = $columnState == "Entering";
+  $: if ($columnState == "Idle") {
+    filterValue = null;
+    filterOperator = $columnOptions.defaultFilteringOperator;
+  }
 
   const handleValueChange = (e) => {
     if (e.detail != undefined && e.detail != null && e.detail != "") {
@@ -40,7 +44,6 @@
         columnState.filter(buildFilter(filterOperator, filterValue));
       }
     } else {
-      console.log("Clearing filter due to empty value");
       showFilteringOptions = false;
       filterValue = null;
       columnState.clear();

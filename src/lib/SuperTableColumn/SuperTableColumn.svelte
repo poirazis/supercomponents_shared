@@ -352,8 +352,6 @@
   onDestroy(() => {
     stbAPI?.unregisterSuperColumn(id);
   });
-
-  $: console.log("Column State:", $columnState);
 </script>
 
 <svelte:window

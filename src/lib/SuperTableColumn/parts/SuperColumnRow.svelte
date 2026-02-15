@@ -1,6 +1,5 @@
 <script>
   import { getContext, onDestroy } from "svelte";
-  import { is } from "zod/v4/locales";
 
   const { Provider, ContextScopes } = getContext("sdk");
 
@@ -22,21 +21,18 @@
   export let isLast;
   export let disabled;
 
-  // the default height
-
-  let viewport;
   let info;
 
   // Get Row overrides from metadata or fallback to column settings
-  $: color = $rowMetadata[index]?.color ?? "inherit";
+  $: color = $rowMetadata[index]?.color;
   $: height = $rowMetadata[index]?.height;
-  $: bgcolor = $rowMetadata[index]?.bgcolor ?? "inherit";
+  $: bgcolor = $rowMetadata[index]?.bgcolor;
 
   $: id = row?.[idField] ?? index;
   $: value = deepGet(row, field);
-  $: isHovered = $stbHovered == index || $stbMenuID == index;
-  $: isSelected = $rowMetadata?.[index]?.selected ?? false;
-  $: isDisabled = $rowMetadata?.[index]?.disabled ?? false;
+  $: hovered = $stbHovered == index || $stbMenuID == index;
+  $: selected = $rowMetadata?.[index]?.selected ?? false;
+  $: disabled = $rowMetadata?.[index]?.disabled ?? false;
   $: hasChildren = $columnSettings.hasChildren > 0;
 
   const patchRow = async (change) => {
@@ -79,23 +75,30 @@
     } else return obj[path] ?? undefined;
   };
 
+  const onClick = () => {
+    if (disabled) return;
+    stbState.handleRowClick(index, field, deepGet(row, field), id);
+  };
   onDestroy(() => {
     if ($stbEditing == index) {
       columnState.exitedit();
     }
   });
+
+  const onContextMenu = (e) => {
+    stbAPI.showContextMenu(index, e.__root);
+  };
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
-  bind:this={viewport}
   class="super-row"
-  class:is-selected={isSelected}
-  class:is-hovered={isHovered}
-  class:is-editing={isEditing}
-  class:is-disabled={isDisabled}
+  class:selected
+  class:hovered
+  class:isEditing
+  class:disabled
   class:isLast
   style:height
   style:color
@@ -103,13 +106,8 @@
   style:justify-content={$columnSettings.align}
   on:mouseenter={() => ($stbHovered = index)}
   on:mouseleave={() => ($stbHovered = undefined)}
-  on:click={() => {
-    if (!meta.disabled)
-      stbState.handleRowClick(index, field, deepGet(row, field), id);
-  }}
-  on:contextmenu|preventDefault={() => {
-    stbAPI.showContextMenu(index, viewport);
-  }}
+  on:click={onClick}
+  on:contextmenu|preventDefault={onContextMenu}
 >
   {#if !hasChildren}
     <svelte:component
