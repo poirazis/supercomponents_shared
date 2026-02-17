@@ -334,9 +334,10 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   bind:this={anchor}
-  class="superCell"
+  class="superCell has-popup"
   tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
   class:inEdit
+  class:open-popup={open}
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline
   class:tableCell={cellOptions.role == "tableCell"}
@@ -352,13 +353,12 @@
   on:focusout={cellState.focusout}
 >
   {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
   {#if inEdit}
     <div
       class="editor"
-      class:with-icon={cellOptions.icon}
       class:placeholder={!value}
       on:click={() => (open = !open)}
     >
@@ -380,7 +380,6 @@
   {:else}
     <div
       class="value"
-      class:with-icon={cellOptions.icon}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
     >

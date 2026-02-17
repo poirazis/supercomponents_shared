@@ -28,6 +28,10 @@
   }
 
   $: isEntering = $columnState == "Entering";
+  $: if ($columnState == "Idle") {
+    filterValue = null;
+    filterOperator = $columnOptions.defaultFilteringOperator;
+  }
 
   const handleValueChange = (e) => {
     if (e.detail != undefined && e.detail != null && e.detail != "") {
@@ -125,7 +129,6 @@
       fieldSchema={$columnOptions.schema}
       multi={filterOperator == "containsAny" || filterOperator == "oneOf"}
       on:change={handleValueChange}
-      on:cancel={columnState.cancel}
       on:focusout={handleBlur}
     />
   {:else}

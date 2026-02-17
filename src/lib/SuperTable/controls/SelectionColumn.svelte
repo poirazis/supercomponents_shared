@@ -13,22 +13,21 @@
   const stbAPI = getContext("stbAPI");
   const stbVisibleRows = getContext("stbVisibleRows");
   const stbRowMetadata = getContext("stbRowMetadata");
+  const data = getContext("data");
 
   export let sticky;
   export let hideSelectionColumn;
-  export let stbData;
 
   $: partialSelection =
-    $stbSelected.length && $stbSelected.length != $stbData?.rows?.length;
+    $stbSelected.length && $stbSelected.length != $data.length;
 
-  $: fullSelection =
-    $stbSelected.length == $stbData?.rows?.length && $stbData?.rows?.length > 0;
+  $: fullSelection = $stbSelected.length == $data.length && $data.length > 0;
 
   $: numbering = $stbSettings.appearance.numberingColumn;
   $: checkBoxes = $stbSettings.features.canSelect && !hideSelectionColumn;
   $: canDelete = $stbSettings.features.canDelete;
   $: sticky = $stbHorizontalScrollPos > 0;
-  $: visible = numbering || checkBoxes || canDelete;
+  $: visible = (numbering || checkBoxes || canDelete) && !hideSelectionColumn;
   $: zebra = $stbSettings.appearance.zebraColors;
   $: quiet = $stbSettings.appearance.quiet;
   $: headerCheckbox =
@@ -74,16 +73,16 @@
       class:quiet
       class:sticky
       style:margin-top={"var(--super-column-top-offset)"}
+      style:border-right={"1px solid var(--spectrum-global-color-gray-200)"}
     >
       {#each $stbVisibleRows as visibleRow (visibleRow)}
         {@const selected = $stbRowMetadata[visibleRow]?.selected}
         <div
           class="super-row selection"
-          class:is-selected={selected}
-          class:is-hovered={$stbHovered == visibleRow ||
-            $stbMenuID == visibleRow}
-          class:is-disabled={$stbRowMetadata[visibleRow]?.disabled}
-          style:min-height={$stbRowMetadata[visibleRow]?.height}
+          class:selected
+          class:hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
+          class:disabled={$stbRowMetadata[visibleRow]?.disabled}
+          style:height={$stbRowMetadata[visibleRow]?.height}
           on:mouseenter={() => ($stbHovered = visibleRow)}
           on:mouseleave={() => ($stbHovered = null)}
         >

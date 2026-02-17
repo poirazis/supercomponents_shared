@@ -10,12 +10,11 @@
     debounce: 250,
   };
 
-  $: formattedValue =
-    cellOptions?.template
-      ? processStringSync(cellOptions.template, {
-          value,
-        })
-      : undefined;;
+  $: formattedValue = cellOptions?.template
+    ? processStringSync(cellOptions.template, {
+        value,
+      })
+    : undefined;
 
   $: placeholder =
     cellOptions.readonly || cellOptions.disabled
@@ -39,12 +38,11 @@
   style:font-weight={cellOptions.fontWeight}
 >
   {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
   <div
     class="value"
-    class:with-icon={cellOptions.icon}
     class:placeholder={!value}
     style:justify-content={cellOptions.align}
   >

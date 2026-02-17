@@ -50,15 +50,17 @@
         dispatch("exitedit");
       },
       focusout(e) {
-        if (
-          anchor?.contains(e?.relatedTarget) ||
-          popup?.contains(e?.relatedTarget)
-        )
-          return;
-
+        if (popup?.contains(e?.relatedTarget)) return;
         this.submit();
       },
-
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+        }
+      },
+      toggle(e) {
+        editorState.toggle();
+      },
       clear() {
         localValue = [];
       },
@@ -71,9 +73,9 @@
 
         return "View";
       },
-      cancel() {
+      cancel(e) {
         localValue = JSON.parse(originalValue);
-        anchor?.blur();
+        anchor.blur();
         return "View";
       },
     },
@@ -176,7 +178,7 @@
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="superCell"
+  class="superCell has-popup"
   tabindex={cellOptions?.disabled ? -1 : 0}
   bind:this={anchor}
   class:isDirty={isDirty && cellOptions.showDirty}
@@ -188,18 +190,13 @@
   class:disabled={cellOptions.disabled}
   class:readonly
   class:error={cellOptions.error}
+  class:open-popup={$editorState == "Open"}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
   on:focusin={cellState.focus}
   on:keydown|self={handleKeyboard}
   on:focusout={cellState.focusout}
-  on:mousedown={(e) => {
-    if (inEdit) {
-      // Prevent losing focus when clicking to open the picker
-      e.preventDefault();
-      editorState.toggle();
-    }
-  }}
+  on:mousedown={cellState.toggle}
 >
   {#if cellOptions?.icon}
     <i class={cellOptions.icon + " field-icon"}></i>
@@ -227,7 +224,9 @@
                   }
                 : null}
             >
-              <i class={valueIcon}></i>
+              {#if isUser}
+                <i class={valueIcon}></i>
+              {/if}
               <span>{val.primaryDisplay}</span>
             </div>
           {/if}
@@ -253,16 +252,11 @@
 </div>
 
 {#if inEdit}
-  <SuperPopover
-    {anchor}
-    useAnchorWidth
-    open={$editorState == "Open"}
-    on:close={cellState.cancel}
-    bind:popup
-  >
+  <SuperPopover {anchor} useAnchorWidth open={$editorState == "Open"}>
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       class="picker-container"
+      bind:this={popup}
       on:keydown={(e) => {
         if (e.key == "Escape" || e.key == "Tab") {
           anchor.focus();
@@ -294,6 +288,7 @@
           {search}
           wide={cellOptions.wide && !singleSelect}
           on:change={handleChange}
+          on:focusout={cellState.popupfocusout}
         />
       {/if}
     </div>

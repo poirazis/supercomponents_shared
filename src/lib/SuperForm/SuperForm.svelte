@@ -28,12 +28,15 @@
   export let disableSchemaValidation: boolean = false;
   export let editAutoColumns: boolean = false;
   export let provideContext: boolean = true;
+  export let provideContextScope: "local" | "global" = "global";
+  export let labelPosition: "above" | "left" | false;
 
   // Export the full form API to be used by parents
   export let form;
   export let formState;
   export let formValue: Record<string, any> = {};
   export let row;
+  export let columns: number = 1;
 
   const context = getContext("context");
   const component = getContext("component");
@@ -61,17 +64,21 @@
     dataSource,
     $component.path,
     $context,
-    row
+    row,
   );
   $: resetKey = hashString(
-    schemaKey + JSON.stringify(initialValues) + actionType
+    schemaKey +
+      JSON.stringify(initialValues) +
+      actionType +
+      readonly +
+      disabled,
   );
 
   const getInitialValues = (
     type: string,
     dataSource: DataFetchDatasource,
     path: string[],
-    context: Record<string, any>
+    context: Record<string, any>,
   ) => {
     if (type !== "Update" && type !== "View") {
       return {};
@@ -141,7 +148,10 @@
       {disableSchemaValidation}
       {editAutoColumns}
       {currentStep}
+      {columns}
       {provideContext}
+      {provideContextScope}
+      {labelPosition}
       on:change
       on:reset
     >

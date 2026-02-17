@@ -172,7 +172,7 @@
   style:font-weight={cellOptions.fontWeight}
 >
   {#if cellOptions.icon && !cellOptions.multiline}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
   {#if inEdit}
@@ -181,7 +181,6 @@
         bind:this={editor}
         tabindex="0"
         class="editor"
-        class:with-icon={cellOptions.icon}
         class:placeholder={!value && !formattedValue && !localValue}
         value={displayValue}
         placeholder={cellOptions?.placeholder ?? ""}
@@ -208,7 +207,6 @@
         bind:this={editor}
         tabindex="0"
         class="editor"
-        class:with-icon={cellOptions.icon}
         class:placeholder={!value && !formattedValue && !localValue}
         value={localValue ?? ""}
         placeholder={cellOptions?.placeholder ?? ""}
@@ -237,7 +235,6 @@
       class="value"
       class:multiline={cellOptions.multiline}
       tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
-      class:with-icon={cellOptions.icon}
       class:placeholder={!value}
       style:justify-content={cellOptions.align}
       on:focusin={cellState.focus}

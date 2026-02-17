@@ -7,18 +7,11 @@
   } from "svelte";
   import fsm from "svelte-fsm";
 
-  /**
-   * @typedef {import('./types.js').CellOptions} CellOptions
-   * @typedef {import('./types.js').CellApi} CellApi
-   */
-
   const { processStringSync } = getContext("sdk");
   const context = getContext("context");
   const dispatch = createEventDispatcher();
 
-  /** @type {number | null} */
   export let value;
-  /** @type {CellOptions} */
   export let cellOptions = {};
   export let autofocus = false;
 
@@ -48,15 +41,10 @@
     decimals,
     thousandsSeparator,
     role,
+    calculated,
   } = cellOptions ?? {});
 
   // Helper function to format number with thousands separator
-  /**
-   * @param {number | string | null | undefined} num
-   * @param {string | undefined} separator
-   * @param {number | undefined} decimals
-   * @returns {string}
-   */
   function formatNumber(num, separator, decimals) {
     // Parse string to number if needed
     const parsedNum = typeof num === "string" ? parseFloat(num) : num;
@@ -90,11 +78,12 @@
   $: formattedValue = template
     ? processStringSync(template, {
         ...$context,
-        value,
+        value: formatNumber(displayValue, thousandsSeparator, decimals),
       })
     : formatNumber(displayValue, thousandsSeparator, decimals);
 
   $: stepValue = stepSize ?? 1;
+  $: clearValue = cellOptions.clearValue && cellOptions.role != "tableCell";
 
   // Reset when value changes externally
   $: cellState.reset(value);
@@ -119,7 +108,7 @@
         return state;
       },
       focus() {
-        if (!readonly && !disabled) return "Editing";
+        if (!readonly && !disabled && !calculated) return "Editing";
       },
     },
     Editing: {
@@ -275,7 +264,6 @@
     },
   });
 
-  /** @type {CellApi} */
   export const cellApi = {
     focus: () => cellState.focus(),
     reset: () => cellState.reset(value),
@@ -320,7 +308,7 @@
   class:formInput={role == "formInput"}
   style:color
   style:background
-  tabIndex={disabled ? -1 : 0}
+  tabIndex={disabled ? -1 : (cellOptions.order ?? 0)}
   on:focusin={cellState.focus}
 >
   {#if icon}
@@ -344,12 +332,15 @@
       on:wheel={(e) => cellState.handleWheel(e)}
       use:focus
     />
+
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <i
-      class="ri-close-line clear-icon visible"
+      class="ri-close-line clear-icon"
+      class:visible={clearValue}
       on:mousedown|preventDefault|stopPropagation={cellState.clear}
     >
     </i>
+
     {#if showStepper}
       <div class="controls">
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -369,7 +360,6 @@
   {:else}
     <div
       class="value"
-      style:padding-right={"12px"}
       class:placeholder={!value && value !== 0}
       style:justify-content={cellOptions.align ?? "flex-end"}
     >
@@ -380,22 +370,27 @@
 
 <style>
   .controls {
+    height: 100%;
     display: flex;
     flex-direction: row;
+    align-items: stretch;
     gap: 0.25rem;
-    padding-right: 0.5rem;
-    margin-left: -0.25rem;
+    padding: 0.25rem 0rem;
   }
 
   .controls i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    padding: 0.15rem;
+    padding: 0.25rem;
     background-color: var(--spectrum-global-color-gray-100);
     border-radius: 0.25rem;
     transition: all 0.2s ease-in-out;
   }
 
   .controls i:hover {
-    background-color: var(--spectrum-global-color-gray-200);
+    background-color: var(--spectrum-global-color-gray-300);
+    color: var(--spectrum-global-color-gray-900);
   }
 </style>

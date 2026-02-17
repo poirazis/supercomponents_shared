@@ -28,6 +28,8 @@
   const stbState = getContext("stbState");
   const stbAPI = getContext("stbAPI");
 
+  const data = getContext("data");
+
   // Cell Components Map
   const cellComponents = {
     string: CellString,
@@ -68,7 +70,6 @@
   export let columnOptions;
   export let sticky;
   export let scrollPos;
-  export let stbData;
 
   // Internal Variables
   let id = Math.random() * 100;
@@ -106,9 +107,7 @@
       })
     : undefined;
 
-  $: values = $stbData?.rows?.map((row) =>
-    deepGet(row, $columnOptionsStore.name)
-  );
+  $: values = $data.map((row) => deepGet(row, $columnOptionsStore.name));
 
   $: if ($stbSortColumn == $columnOptionsStore.name) {
     sorted = $stbSortOrder;
@@ -139,7 +138,7 @@
         color: $columnOptionsStore.color,
         controlType: "checkbox",
       };
-    }
+    },
   );
 
   const headerCellOptions = derivedMemo(
@@ -160,7 +159,7 @@
         initialState: "Editing",
         role: "inlineInput",
       };
-    }
+    },
   );
 
   // Allow the Super Table to bind to the Super Column State Machine to control it
@@ -177,7 +176,7 @@
         if (columnOptions.canSort) {
           stbState.sortBy(
             columnOptions.name,
-            sorted == "ascending" ? "descending" : "ascending"
+            sorted == "ascending" ? "descending" : "ascending",
           );
           sorted = "ascending" ? "descending" : "ascending";
         }
@@ -188,7 +187,7 @@
       unlockWidth() {
         if (resizing) return;
         $lockWidth = 0;
-        if (!columnOptions.asComponent) this.lockWidth.debounce(50);
+        if (!columnOptions.asComponent) this.lockWidth.debounce(150);
       },
       startResizing(e) {
         e.stopPropagation();
@@ -244,6 +243,7 @@
         return "Idle";
       },
       clear() {
+        stbState.clearFilter(id);
         return "Idle";
       },
     },
@@ -259,7 +259,7 @@
     },
     EditingCell: {
       _enter() {
-        $lockWidth = viewport.clientWidth;
+        $lockWidth = Math.max(viewport.clientWidth, 160);
         stbState.edit.debounce(30);
       },
       patchRow(index, id, rev, field, change) {
@@ -395,7 +395,7 @@
   {/if}
 
   <SuperColumnBody
-    rows={$stbData?.rows}
+    rows={$data}
     rowHeight={$stbSettings.appearance.rowHeight}
     field={$columnOptionsStore.name}
     idField={$stbSettings.data.idColumn}

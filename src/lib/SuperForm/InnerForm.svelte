@@ -47,11 +47,18 @@
   export let disableSchemaValidation: boolean = false;
   export let editAutoColumns: boolean = false;
   export let provideContext: boolean = true;
+  export let provideContextScope: "local" | "global" = "global";
   export let currentStep: Writable<number>;
   export let formValue: Record<string, any> = {};
+  export let labelPosition: string | boolean = "above";
+  export let columns: number = 1;
 
-  const { Provider, ActionTypes, createValidatorFromConstraints } =
-    getContext("sdk");
+  const {
+    Provider,
+    ActionTypes,
+    createValidatorFromConstraints,
+    ContextScopes,
+  } = getContext("sdk");
 
   let fields: Writable<FieldInfo>[] = [];
   export const formState = writable({
@@ -76,7 +83,7 @@
       return !fieldsValue
         .filter((f) => f.step === currentStepValue)
         .some((f) => f.fieldState.error != null);
-    }
+    },
   );
 
   // Offer the form as a bindable property so it can be puppeteered by parent components
@@ -111,19 +118,19 @@
 
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
-    getProp: (_field: FieldInfo) => any
+    getProp: (_field: FieldInfo) => any,
   ) => {
     return derived(fieldStores, (fieldValues) => {
       return fieldValues.reduce(
         (map, field) => ({ ...map, [field.name]: getProp(field) }),
-        {}
+        {},
       );
     });
   };
 
   const deriveDirtyStatus = (
     fieldStores: Readable<FieldInfo>[],
-    initialValues: Record<string, any> | undefined
+    initialValues: Record<string, any> | undefined,
   ) => {
     return derived(fieldStores, (fieldValues) => {
       return fieldValues.some((field) => {
@@ -154,7 +161,7 @@
   const deriveFormValue = (
     initialValues: Record<string, any> | undefined,
     values: Record<string, any>,
-    enrichments: Record<string, string>
+    enrichments: Record<string, string>,
   ) => {
     let formValue = cloneDeep(initialValues || {});
     const sortedFields = Object.entries(values || {})
@@ -186,7 +193,7 @@
   const sanitiseValue = (
     value: any,
     schema: FieldSchema | undefined,
-    type: `${FieldType}`
+    type: `${FieldType}`,
   ) => {
     if (Array.isArray(value) && type === "array" && schema) {
       const options = schema?.constraints?.inclusion || [];
@@ -205,7 +212,7 @@
       fieldDisabled: boolean = false,
       fieldReadOnly: boolean = false,
       validationRules: UIFieldValidationRule[],
-      step: number = 1
+      step: number = 1,
     ) => {
       if (!field) {
         return;
@@ -217,7 +224,7 @@
         schemaConstraints,
         validationRules,
         field,
-        definition
+        definition,
       );
 
       defaultValue = sanitiseValue(defaultValue, schema?.[field], type);
@@ -272,7 +279,7 @@
     },
     validate: () => {
       const stepFields = fields.filter(
-        (field) => get(field).step === get(currentStep)
+        (field) => get(field).step === get(currentStep),
       );
 
       let valid = true;
@@ -418,6 +425,8 @@
   });
 
   setContext("form-step", writable(1));
+  $: setContext("field-group", labelPosition);
+  $: setContext("field-group-columns", columns);
 
   const handleUpdateFieldValue = ({
     type,
@@ -443,7 +452,7 @@
           // Special case: update multiple fields from the value object
           Object.keys(parsedValue).forEach((key) => {
             const fieldStore = fields.find(
-              (field) => get(field).name.toLowerCase() === key.toLowerCase()
+              (field) => get(field).name.toLowerCase() === key.toLowerCase(),
             );
             if (fieldStore) {
               const actualFieldName = get(fieldStore).name;
@@ -475,7 +484,7 @@
       fieldElement.focus({ preventScroll: true });
     }
     const label = document.querySelector<HTMLElement>(
-      `label[for="${fieldId}"]`
+      `label[for="${fieldId}"]`,
     );
     if (label) {
       label.style.scrollMargin = "100px";
@@ -571,10 +580,50 @@
   };
 </script>
 
-{#if provideContext}
-  <Provider {actions} data={dataContext}>
+{#key labelPosition}
+  {#if provideContext}
+    <Provider
+      {actions}
+      data={dataContext}
+      scope={provideContextScope === "local"
+        ? ContextScopes.Local
+        : ContextScopes.Global}
+    >
+      <div
+        class="super-form-inner-form"
+        class:labels-left={labelPosition === "left"}
+        class:no-labels={labelPosition === false || labelPosition === "none"}
+        class:field-group={columns > 1}
+        style:grid-template-columns={`repeat(${columns * 6}, 1fr)`}
+      >
+        <slot />
+      </div>
+    </Provider>
+  {:else}
     <slot />
-  </Provider>
-{:else}
-  <slot />
-{/if}
+  {/if}
+{/key}
+
+<style>
+  .super-form-inner-form {
+    flex: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .super-form-inner-form.field-group {
+    flex: auto;
+    display: grid;
+    column-gap: 0.5rem;
+  }
+
+  :global(.super-form-inner-form.field-group > .component > *) {
+    grid-column: span 6;
+  }
+
+  .super-form-inner-form.labels-left {
+    row-gap: 0.25rem;
+  }
+  .super-form-inner-form.no-labels {
+    row-gap: 0.25rem;
+  }
+</style>

@@ -76,7 +76,7 @@
   const unselectRow = (val) => {
     localValue.splice(
       localValue.findIndex((e) => e._id === val._id),
-      1
+      1,
     );
     localValue = localValue;
     dispatch("change", localValue);
@@ -132,7 +132,9 @@
   };
 
   const handleNavigation = (e) => {
-    if (e.key == "ArrowDown") {
+    if (e.key == "Escape") {
+      dispatch("close");
+    } else if (e.key == "ArrowDown") {
       e.preventDefault();
       focusIdx += 1;
       if (focusIdx > $fetch.rows.length - 1) focusIdx = 0;
@@ -191,6 +193,7 @@
         : "Search"}
       on:input={handleSearch}
       on:keydown={handleNavigation}
+      on:focusout
     />
   </div>
 
@@ -209,7 +212,7 @@
                       on:mouseenter={() => (focusIdx = idx)}
                       on:mouseleave={() => (focusIdx = -1)}
                       on:mousedown|preventDefault|stopPropagation={selectRow(
-                        row
+                        row,
                       )}
                     >
                       {row[primaryDisplay]}
@@ -243,7 +246,7 @@
                     transition:fly={{ x: -20, duration: 130 }}
                     class="option wide selected"
                     on:mousedown|stopPropagation|preventDefault={unselectRow(
-                      val
+                      val,
                     )}
                   >
                     {val.primaryDisplay}

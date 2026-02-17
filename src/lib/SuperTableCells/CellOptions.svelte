@@ -106,6 +106,7 @@
     View: {
       _enter() {
         searchTerm = null;
+        editorState.filterOptions();
       },
       focus(e) {
         if (!readonly && !disabled) {
@@ -115,23 +116,22 @@
     },
     Editing: {
       _enter() {
+        editorState.open();
         originalValue = JSON.stringify(
           Array.isArray(value) ? value : value ? [value] : [],
         );
         inputValue = multi ? "" : labels[localValue[0]] || localValue[0] || "";
-        // Open the popup if the focus in came from a TAB
-        editorState.open();
+
         dispatch("enteredit");
       },
       _exit() {
         editorState.close();
-        editorState.filterOptions();
         dispatch("exitedit");
       },
+      toggle(e) {
+        editorState.toggle();
+      },
       focusout(e) {
-        // If the focus is moving to the search input inside the popup, ignore
-        if (anchor.contains(e.relatedTarget)) return;
-
         dispatch("focusout");
 
         // For debounced inputs, dispatch the current value immediately on focusout
@@ -143,6 +143,12 @@
         }
 
         return "View";
+      },
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+          return "View";
+        }
       },
       submit() {
         if (isDirty && !cellOptions.debounce) {
@@ -344,11 +350,8 @@
         searchTerm = null;
         focusedOptionIdx = -1;
       },
-      toggle(e) {
-        if (inEdit) {
-          e.preventDefault();
-          return "Open";
-        }
+      toggle() {
+        return "Open";
       },
       open() {
         return "Open";
@@ -505,6 +508,8 @@
   $: isDirty = inEdit && originalValue !== JSON.stringify(localValue);
   $: inEdit = $cellState == "Editing";
   $: pills = optionsViewMode == "pills";
+  $: bullets = optionsViewMode == "bullets";
+
   $: multi =
     fieldSchema && fieldSchema.type ? fieldSchema.type == "array" : multi;
 
@@ -542,10 +547,12 @@
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
+  class:has-popup={controlType == "select"}
+  class:open-popup={open}
   on:focusin={cellState.focus}
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
-  on:mousedown={editorState.toggle}
+  on:mousedown={cellState.toggle}
 >
   {#if icon}
     <i class={icon + " field-icon"} class:active={searchTerm}></i>
@@ -592,7 +599,7 @@
       use:focus
       {placeholder}
     />
-    <div class="action-icon" on:click={editorState.toggle}>
+    <div class="control-icon" on:click={editorState.toggle}>
       <i class="ph ph-caret-down"></i>
     </div>
   {:else}
@@ -611,7 +618,7 @@
         <div
           class="items"
           class:pills
-          class:colorText={optionsViewMode == "colorText"}
+          class:bullets
           style:justify-content={cellOptions.align ?? "flex-start"}
         >
           {#each localValue as val, idx (val)}
@@ -620,7 +627,7 @@
               style:--option-color={$colors[val] ||
                 colorsArray[idx % colorsArray.length]}
             >
-              <i class={"ph-fill ph-square"}></i>
+              <div class="loope"></div>
               <span> {isObjects ? "JSON" : labels[val] || val} </span>
             </div>
           {/each}
@@ -628,7 +635,7 @@
       {/if}
     </div>
     {#if !readonly && (role == "formInput" || inEdit)}
-      <i class="ph ph-caret-down control-icon"></i>
+      <i class="ph ph-caret-down control-icon" on:mousedown></i>
     {/if}
   {/if}
 </div>
@@ -771,21 +778,6 @@
     font-style: italic;
   }
 
-  .action-icon {
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-left: 1px solid var(--spectrum-global-color-blue-500);
-    min-width: 2rem;
-    font-size: 16px;
-  }
-  .action-icon:hover {
-    cursor: pointer;
-    background-color: var(--spectrum-global-color-gray-75);
-    font-weight: 800;
-  }
-
   .search-icon {
     font-size: 16px;
     color: var(--spectrum-global-color-gray-500);
@@ -811,5 +803,16 @@
     max-height: 248px;
     width: 100%;
     overflow: hidden;
+  }
+
+  .loope {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: var(
+      --option-color,
+      var(--spectrum-global-color-gray-300)
+    );
+    flex-shrink: 0;
   }
 </style>

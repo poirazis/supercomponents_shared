@@ -183,7 +183,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   bind:this={anchor}
-  class="superCell"
+  class="superCell has-popup"
   tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
@@ -193,6 +193,7 @@
   class:disabled={cellOptions.disabled}
   class:readonly={cellOptions.readonly}
   class:error={cellOptions.error}
+  class:open-popup={open}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
@@ -201,13 +202,12 @@
   on:focusout={cellState.focusout}
 >
   {#if cellOptions.icon}
-    <i class={cellOptions.icon + " icon"}></i>
+    <i class={cellOptions.icon + " field-icon"}></i>
   {/if}
 
   {#if inEdit}
     <div
       class="editor"
-      class:with-icon={cellOptions.icon}
       class:placeholder={!formattedValue}
       on:click={() => (open = !open)}
     >
@@ -220,7 +220,6 @@
   {:else}
     <div
       class="value"
-      class:with-icon={cellOptions.icon}
       class:placeholder={!formattedValue}
       style:justify-content={cellOptions.align}
     >

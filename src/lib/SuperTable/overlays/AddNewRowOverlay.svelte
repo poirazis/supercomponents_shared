@@ -45,7 +45,7 @@
     class="overlay-button filter-row-overlay"
     class:highlighted
     class:footer
-    on:click={stbState.clear()}
+    on:click={stbState.clear}
   >
     <i class="ri-filter-off-line"></i>
   </div>
