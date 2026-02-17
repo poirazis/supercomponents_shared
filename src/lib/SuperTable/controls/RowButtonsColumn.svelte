@@ -12,6 +12,7 @@
   const stbMenuID = getContext("stbMenuID");
   const rowMetadata = getContext("stbRowMetadata");
   const stbVisibleRows = getContext("stbVisibleRows");
+  const data = getContext("data");
 
   const stbAPI = getContext("stbAPI");
 
@@ -79,7 +80,7 @@
         >
           {#if rowMenu && inlineButtons?.length}
             {#each inlineButtons as { conditions, disabledTemplate, onClick, disabled, ...rest }}
-              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($stbData?.rows?.[visibleRow]))}
+              {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($data[visibleRow]))}
                 <SuperButton
                   {...rest}
                   disabled={disabled ||
@@ -87,7 +88,7 @@
                     $rowMetadata[visibleRow].disabled ||
                     stbAPI.shouldDisableButton(
                       disabledTemplate,
-                      stbAPI.enrichContext($stbData?.rows?.[visibleRow]),
+                      stbAPI.enrichContext($data[visibleRow]),
                     )}
                   onClick={() => {
                     stbAPI.executeRowButtonAction(visibleRow, onClick);
