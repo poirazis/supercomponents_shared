@@ -82,7 +82,7 @@
           class:selected
           class:hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
           class:disabled={$stbRowMetadata[visibleRow]?.disabled}
-          style:min-height={$stbRowMetadata[visibleRow]?.height}
+          style:height={$stbRowMetadata[visibleRow]?.height}
           on:mouseenter={() => ($stbHovered = visibleRow)}
           on:mouseleave={() => ($stbHovered = null)}
         >

@@ -65,10 +65,10 @@
         class="super-row"
         on:mouseenter={() => ($stbHovered = visibleRow)}
         on:mouseleave={() => ($stbHovered = null)}
-        class:is-selected={$rowMetadata[visibleRow].selected}
-        class:is-hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
+        class:selected={$rowMetadata[visibleRow].selected}
+        class:hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
         class:is-editing={$stbEditing == visibleRow}
-        class:is-disabled={$rowMetadata[visibleRow].disabled}
+        class:disabled={$rowMetadata[visibleRow].disabled}
         style:min-height={$rowMetadata[visibleRow].height}
         style:padding-right={canScroll && right ? "1.5rem" : "0.5rem"}
       >
@@ -87,7 +87,7 @@
                     $rowMetadata[visibleRow].disabled ||
                     stbAPI.shouldDisableButton(
                       disabledTemplate,
-                      stbAPI.enrichContext($stbData?.rows?.[visibleRow])
+                      stbAPI.enrichContext($stbData?.rows?.[visibleRow]),
                     )}
                   onClick={() => {
                     stbAPI.executeRowButtonAction(visibleRow, onClick);
