@@ -27,13 +27,14 @@
   let picker;
   let inactive = true;
   let allSelected = false;
+  let fetch;
 
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
     if (cellOptions.optionsSource == "custom") return obj;
     $options.forEach(
       (option, index) =>
-        (obj[option] = optionColors[option] ?? colorsArray[index % 14])
+        (obj[option] = optionColors[option] ?? colorsArray[index % 14]),
     );
     return obj;
   });
@@ -57,7 +58,7 @@
   ];
 
   let originalValue = JSON.stringify(
-    Array.isArray(value) ? value : value ? [value] : []
+    Array.isArray(value) ? value : value ? [value] : [],
   );
 
   $: ({
@@ -79,10 +80,6 @@
   // Handle Options from Data Source
   const dataSourceStore = memo(cellOptions?.datasource ?? {});
   $: dataSourceStore.set(cellOptions.datasource);
-  $: fetch =
-    optionsSource == "data"
-      ? createFetch($dataSourceStore)
-      : memo({ loaded: true });
   $: fullSelection =
     filteredOptions.length == localValue.length && filteredOptions.length > 0;
 
@@ -94,7 +91,7 @@
     valueColumn,
     iconColumn,
     colorColumn,
-    $dataSourceStore
+    $dataSourceStore,
   );
 
   $: cellState.syncFetch($fetch);
@@ -106,6 +103,19 @@
   $: radios = controlType == "radio";
   $: isButtons = controlType == "buttons";
   $: allSelected = filteredOptions.length == localValue.length;
+
+  const createFetch = (datasource) => {
+    return fetchData({
+      API,
+      datasource,
+      options: {
+        query: QueryUtils.buildQuery(cellOptions.filter),
+        sortColumn: cellOptions.sortColumn,
+        sortOrder: cellOptions.sortOrder,
+        limit: cellOptions.limit || 1000,
+      },
+    });
+  };
 
   export let cellState = fsm("Loading", {
     "*": {
@@ -147,18 +157,23 @@
     },
     Loading: {
       _enter() {
-        if (cellOptions.optionsSource != "data" || $fetch?.loaded)
+        if (cellOptions.optionsSource != "data")
           this.goTo.debounce(10, cellOptions.initialState || "View");
+        else {
+          fetch = createFetch($dataSourceStore);
+        }
       },
       _exit() {
         if (optionsSource == "custom") this.loadCustomOptions();
-        else if (optionsSource == "data") this.loadDataOptions($fetch?.rows);
         else this.loadSchemaOptions();
 
         filteredOptions = $options;
       },
-      syncFetch() {
-        if ($fetch?.loaded) {
+      syncFetch(fetch) {
+        console.log("syncFetch", fetch.loaded);
+        if (fetch.loaded) {
+          this.loadDataOptions(fetch.rows);
+          console.log("loaded options from data", $options);
           return cellOptions.initialState || "View";
         }
       },
@@ -174,7 +189,7 @@
     Editing: {
       _enter() {
         originalValue = JSON.stringify(
-          Array.isArray(value) ? value : value ? [value] : []
+          Array.isArray(value) ? value : value ? [value] : [],
         );
 
         dispatch("enteredit");
@@ -284,7 +299,7 @@
       filterOptions(e) {
         if (e && e.target.value != "") {
           filteredOptions = $options.filter((x) =>
-            x?.startsWith(e.target.value)
+            x?.startsWith(e.target.value),
           );
         } else filteredOptions = $options;
       },
@@ -331,19 +346,6 @@
       },
     },
   });
-
-  const createFetch = (datasource) => {
-    return fetchData({
-      API,
-      datasource,
-      options: {
-        query: QueryUtils.buildQuery(cellOptions.filter),
-        sortColumn: cellOptions.sortColumn,
-        sortOrder: cellOptions.sortOrder,
-        limit: cellOptions.limit || 1000,
-      },
-    });
-  };
 
   onMount(() => {
     if (autofocus)
@@ -447,6 +449,8 @@
         {/each}
       </div>
     {/if}
+
+    View
   {:else if controlType == "switch"}
     <div
       class="radios"
@@ -498,6 +502,8 @@
       {/each}
     </div>
   {/if}
+
+  {$cellState}
 </div>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->

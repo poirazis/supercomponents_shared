@@ -70,7 +70,7 @@
         class:hovered={$stbHovered == visibleRow || $stbMenuID == visibleRow}
         class:is-editing={$stbEditing == visibleRow}
         class:disabled={$rowMetadata[visibleRow].disabled}
-        style:min-height={$rowMetadata[visibleRow].height}
+        style:min-height={$rowMetadata[visibleRow].height + "px"}
         style:padding-right={canScroll && right ? "1.5rem" : "0.5rem"}
       >
         <!-- svelte-ignore a11y-click-events-have-key-events -->

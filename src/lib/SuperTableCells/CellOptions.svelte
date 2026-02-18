@@ -1,6 +1,8 @@
 <script>
   import { getContext, createEventDispatcher, onMount, tick } from "svelte";
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
+  import "./CellCommon.css";
+
   import fsm from "svelte-fsm";
 
   const dispatch = createEventDispatcher();
@@ -82,8 +84,7 @@
     },
     Loading: {
       _enter() {
-        if (cellOptions.optionsSource != "data" || $fetch?.loaded)
-          this.goTo.debounce(15, cellOptions.initialState || "View");
+        if (cellOptions.optionsSource != "data") return "View";
       },
       _exit() {
         if (cellOptions.optionsSource == "custom") this.loadCustomOptions();
@@ -475,7 +476,7 @@
   $: query = QueryUtils.buildQuery(cellOptions.filter);
   $: inputSelect = controlType == "inputSelect";
 
-  $: if (cellOptions.optionsSource == "data")
+  $: if (optionsSource == "data")
     fetch?.update?.({
       query,
       sortColumn: cellOptions.sortColumn,

@@ -61,7 +61,7 @@
   class:left-label={labelPos == "left"}
   class:multirow
   class:tall
-  style:--height={height}
+  style:--field-height={height}
   style:--max-height={maxHeight}
 >
   {#if labelPos}
@@ -106,13 +106,14 @@
 
 <style>
   .super-field {
+    flex: 1;
     min-width: 80px;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     overflow: hidden;
-    min-height: var(--height);
+    min-height: var(--field-height, 2rem);
 
     &.multirow {
       max-height: var(--height);
@@ -141,7 +142,6 @@
   }
 
   .inline-cells {
-    flex: auto;
     display: flex;
     align-items: stretch;
     min-height: 2rem;

@@ -382,7 +382,7 @@
   {#if $columnOptionsStore.showHeader && $columnOptionsStore.canResize}
     <div
       class="grabber"
-      style:height={$columnOptionsStore.headerHeight - 16}
+      style:height={$columnOptionsStore.headerHeight - 16 + "px"}
       on:mousedown={columnState.startResizing}
       on:dblclick={columnState.resetSize}
       on:mouseenter={() => (considerResizing = true)}
