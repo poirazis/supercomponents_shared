@@ -135,7 +135,6 @@
 
   $: dataSourceStore.set(dataSource);
   $: filterStore.set(filter);
-  $: stbSchema.set($stbData?.definition?.schema);
 
   // Update columnsStore when columnList changes
   $: columnsStore.set(columnList || []);
@@ -1193,6 +1192,7 @@
         $stbSelected = [];
         $cachedRows = [];
         $stbVisibleRows = [];
+        $stbSchema = {};
 
         stbData = createFetch($dataSourceStore);
 
@@ -1214,6 +1214,7 @@
           }
 
           $cachedRows = [...fetchState.rows];
+          $stbSchema = fetchState.definition?.schema || {};
           return "Idle";
         }
       },
@@ -1594,6 +1595,8 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
+
+  $: console.log($stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

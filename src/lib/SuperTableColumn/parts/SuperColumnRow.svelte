@@ -25,7 +25,7 @@
 
   // Get Row overrides from metadata or fallback to column settings
   $: color = $rowMetadata[index]?.color;
-  $: height = $rowMetadata[index]?.height;
+  $: height = $rowMetadata[index]?.height + "px";
   $: bgcolor = $rowMetadata[index]?.bgcolor;
 
   $: id = row?.[idField] ?? index;
@@ -88,6 +88,8 @@
   const onContextMenu = (e) => {
     stbAPI.showContextMenu(index, e.__root);
   };
+
+  $: console.log(height);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -100,7 +102,7 @@
   class:isEditing
   class:disabled
   class:isLast
-  style:height
+  style:min-height={height}
   style:color
   style:background-color={bgcolor}
   style:justify-content={$columnSettings.align}
