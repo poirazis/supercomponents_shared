@@ -2,7 +2,6 @@
   import { getContext, createEventDispatcher, onMount, tick } from "svelte";
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import "./CellCommon.css";
-
   import fsm from "svelte-fsm";
 
   const dispatch = createEventDispatcher();
@@ -18,158 +17,61 @@
   let editor;
   let optionsList;
   let options = memo([]);
-  let labels = {};
+  let labels = memo({});
   let optionColors = {};
   let filteredOptions = [];
   let focusedOptionIdx = -1;
   let timer;
   let localValue = [];
 
-  let searchTerm = "";
-  let inputValue = "";
-  let isInitialLoad = false;
+  let searchTerm = null;
+  let inputValue = null;
   let initLimit = 15;
+  let fetch;
+  let loading = false;
+  let optionsSource = "schema";
+
+  // Handle Options from Data Source
+  const dataSourceStore = memo(cellOptions?.datasource);
+  $: dataSourceStore.set(cellOptions.datasource);
+
+  $: ({
+    controlType,
+    optionsSource,
+    limit,
+    sortColumn,
+    sortOrder,
+    valueColumn,
+    labelColumn,
+    iconColumn,
+    colorColumn,
+    customOptions,
+    optionsViewMode,
+    role,
+    readonly,
+    disabled,
+    error,
+    color,
+    background,
+    filter,
+    pickerWidth,
+  } = cellOptions);
 
   const createFetch = (datasource) => {
-    if (optionsSource != "data") return memo({});
+    defaultQuery = QueryUtils.buildQuery(cellOptions.filter || []);
+    initLimit = limit || 15;
+
     return fetchData({
       API,
       datasource,
       options: {
+        query: defaultQuery,
         sortColumn: cellOptions.sortColumn,
         sortOrder: cellOptions.sortOrder,
-        limit: initLimit,
+        limit,
       },
     });
   };
-
-  export const cellState = fsm("Loading", {
-    "*": {
-      goTo(state) {
-        return state;
-      },
-      refresh() {
-        $options = [];
-        return "Loading";
-      },
-      loadSchemaOptions() {
-        optionColors = fieldSchema?.optionColors || {};
-        $options = fieldSchema?.constraints?.inclusion || [];
-        labels = {};
-        filteredOptions = $options;
-      },
-      loadDataOptions(rows) {
-        $options = [];
-        labels = {};
-        if (rows && rows.length) {
-          rows.forEach((row) => {
-            $options.push(row[valueColumn]?.toString());
-            labels[row[valueColumn]] = row[labelColumn || valueColumn];
-            if (colorColumn) optionColors[row[valueColumn]] = row[colorColumn];
-          });
-        }
-        $options = $options;
-        filteredOptions = $options;
-        if (isInitialLoad) isInitialLoad = false;
-      },
-      loadCustomOptions() {
-        if (customOptions?.length) {
-          customOptions.forEach((row) => {
-            $options.push(row.value || row);
-            labels[row.value] = row.label || row;
-          });
-        }
-        $options = $options;
-      },
-    },
-    Loading: {
-      _enter() {
-        if (cellOptions.optionsSource != "data") return "View";
-      },
-      _exit() {
-        if (cellOptions.optionsSource == "custom") this.loadCustomOptions();
-        else if (optionsSource == "data") this.loadDataOptions($fetch?.rows);
-        else this.loadSchemaOptions();
-
-        filteredOptions = $options;
-      },
-      syncFetch(fetch) {
-        if (fetch?.loaded) {
-          return cellOptions.initialState || "View";
-        }
-      },
-      focus(e) {
-        if (!cellOptions.readonly && !cellOptions.disabled) {
-          return "Editing";
-        }
-      },
-    },
-    View: {
-      _enter() {
-        searchTerm = null;
-        editorState.filterOptions();
-      },
-      focus(e) {
-        if (!readonly && !disabled) {
-          return "Editing";
-        }
-      },
-    },
-    Editing: {
-      _enter() {
-        editorState.open();
-        originalValue = JSON.stringify(
-          Array.isArray(value) ? value : value ? [value] : [],
-        );
-        inputValue = multi ? "" : labels[localValue[0]] || localValue[0] || "";
-
-        dispatch("enteredit");
-      },
-      _exit() {
-        editorState.close();
-        dispatch("exitedit");
-      },
-      toggle(e) {
-        editorState.toggle();
-      },
-      focusout(e) {
-        dispatch("focusout");
-
-        // For debounced inputs, dispatch the current value immediately on focusout
-        if (cellOptions.debounce && isDirty) {
-          clearTimeout(timer);
-          dispatch("change", multi ? localValue : localValue[0]);
-        } else {
-          this.submit();
-        }
-
-        return "View";
-      },
-      popupfocusout(e) {
-        if (anchor != e?.relatedTarget) {
-          this.submit();
-          return "View";
-        }
-      },
-      submit() {
-        if (isDirty && !cellOptions.debounce) {
-          if (multi) dispatch("change", localValue);
-          else dispatch("change", localValue[0]);
-        }
-      },
-      clear() {
-        localValue = [];
-        anchor?.focus();
-        if (cellOptions.debounce) dispatch("change", null);
-      },
-      cancel() {
-        localValue = JSON.parse(originalValue);
-        searchTerm = null;
-        anchor?.blur();
-        return "View";
-      },
-    },
-  });
 
   const editorState = fsm("Closed", {
     "*": {
@@ -189,7 +91,9 @@
           if (localValue[0] == option) localValue.length = 0;
           else localValue[0] = option;
 
-          inputValue = labels[localValue[0]] || localValue[0] || "";
+          localValue = [...localValue];
+
+          inputValue = $labels[localValue[0]] || localValue[0] || "";
         }
 
         if (cellOptions.debounce) {
@@ -211,44 +115,77 @@
         }
       },
       filterOptions(term) {
-        if (cellOptions.optionsSource == "data") {
+        if (optionsSource == "data") {
           // For datasource, update the fetch with filter
-          let appliedFilter = [];
-          if (term) {
-            appliedFilter = [
-              ...(cellOptions.filter || []),
-              {
-                field: labelColumn || valueColumn,
-                type: "string",
-                operator: "fuzzy",
-                value: term,
-                valueType: "Value",
-              },
-            ];
+          let appliedFilter = {};
+
+          // Start with base filter or create new one
+          if (
+            filter &&
+            typeof filter === "object" &&
+            Object.keys(filter).length > 0
+          ) {
+            appliedFilter = JSON.parse(JSON.stringify(filter)); // Deep clone
           } else {
-            appliedFilter = cellOptions.filter || [];
+            // Create a base filter object
+            appliedFilter = {
+              logicalOperator: "all",
+              onEmptyFilter: "all",
+              groups: [],
+            };
           }
+
+          // Add search term as a new filter group if provided
+          if (term != null && term.trim() !== "") {
+            const searchFilterGroup = {
+              logicalOperator: "any",
+              filters: [
+                {
+                  valueType: "Value",
+                  field: labelColumn || valueColumn,
+                  type: "string",
+                  constraints: {
+                    type: "string",
+                    length: {},
+                    presence: false,
+                  },
+                  operator: "fuzzy",
+                  noValue: false,
+                  value: term,
+                },
+              ],
+            };
+
+            // Add the search filter group
+            if (!appliedFilter.groups) {
+              appliedFilter.groups = [];
+            }
+            appliedFilter.groups.push(searchFilterGroup);
+          }
+
+          const query = QueryUtils.buildQuery(appliedFilter);
           fetch?.update({
-            query: QueryUtils.buildQuery(appliedFilter),
+            query,
           });
-          // Keep filteredOptions in sync
-          filteredOptions = $options;
         } else {
           // Client-side filtering for non-datasource
           if (term) {
             filteredOptions = $options.filter((x) =>
-              x?.toLocaleLowerCase().startsWith(term.toLocaleLowerCase()),
+              x?.toLocaleLowerCase().includes(term.toLocaleLowerCase()),
             );
           } else {
             filteredOptions = $options;
           }
         }
       },
+      clearFilter() {
+        searchTerm = null;
+        this.filterOptions();
+      },
     },
     Open: {
       _enter() {
         searchTerm = "";
-        this.filterOptions();
         focusedOptionIdx = -1;
       },
       toggle() {
@@ -259,6 +196,7 @@
       },
       handleKeyboard(e) {
         if (e.key === "Backspace" || e.key === "Delete") {
+          console.log(searchTerm, "before deletion");
           searchTerm = searchTerm.slice(0, -1);
           this.filterOptions(searchTerm);
         } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
@@ -347,10 +285,7 @@
       },
     },
     Closed: {
-      _enter() {
-        searchTerm = null;
-        focusedOptionIdx = -1;
-      },
+      _enter() {},
       toggle() {
         return "Open";
       },
@@ -402,6 +337,170 @@
     },
   });
 
+  export const cellState = fsm("View", {
+    "*": {
+      goTo(state) {
+        return state;
+      },
+      refresh() {
+        $options = [];
+        optionColors = {};
+        $labels = {};
+        filteredOptions = [];
+        if (optionsSource != "data") {
+          this.loadOptions(optionsSource);
+        }
+        return optionsSource == "data" ? "Loading" : "View";
+      },
+      reload() {
+        this.loadOptions(optionsSource);
+      },
+      loadSchemaOptions() {
+        try {
+          optionColors = fieldSchema?.optionColors || {};
+          $options = fieldSchema?.constraints?.inclusion || [];
+          $labels = {};
+          filteredOptions = $options;
+        } catch (e) {}
+      },
+      loadDataOptions(rows) {
+        $options = [];
+        $labels = {};
+        let primaryDisplay = labelColumn || labelColumn;
+        if (rows && rows.length) {
+          rows.forEach((row) => {
+            $options.push(row[valueColumn]);
+            $labels[row[valueColumn]] = row[primaryDisplay];
+            if (colorColumn) optionColors[row[valueColumn]] = row[colorColumn];
+          });
+        }
+
+        $options = $options;
+        filteredOptions = $options;
+      },
+      loadCustomOptions() {
+        if (customOptions?.length) {
+          customOptions.forEach((row) => {
+            $options.push(row.value || row);
+            $labels[row.value] = row.label || row;
+          });
+        }
+        $options = $options;
+        filteredOptions = $options;
+      },
+      loadOptions(src) {
+        if (src == "data") {
+          this.loadDataOptions($fetch?.rows);
+        } else if (src == "custom") {
+          this.loadCustomOptions();
+        } else {
+          this.loadSchemaOptions();
+        }
+      },
+    },
+    Loading: {
+      _enter() {
+        fetch = createFetch($dataSourceStore);
+        loading = true;
+      },
+      _exit() {
+        loading = false;
+      },
+      refresh() {},
+      reload() {},
+      syncFetch(fetch) {
+        if (fetch?.loaded) {
+          return cellOptions.initialState || "View";
+        }
+      },
+      focus(e) {
+        if (!cellOptions.readonly && !cellOptions.disabled) {
+          return "Editing";
+        }
+      },
+    },
+    View: {
+      _enter() {
+        searchTerm = null;
+        editorState.filterOptions();
+      },
+      toggle(e) {
+        if (cellOptions.disabled || cellOptions.readonly) return;
+        return "Editing";
+      },
+      focus(e) {
+        if (!readonly && !disabled) {
+          return "Editing";
+        }
+      },
+    },
+    Editing: {
+      _enter() {
+        editorState.open();
+
+        setTimeout(() => {
+          editor?.focus();
+        }, 30);
+        originalValue = JSON.stringify(
+          Array.isArray(value) ? value : value ? [value] : [],
+        );
+        inputValue = multi ? "" : $labels[localValue[0]] || localValue[0] || "";
+
+        dispatch("enteredit");
+      },
+      _exit() {
+        searchTerm = null;
+        inputValue = null;
+        editorState.close();
+        dispatch("exitedit");
+      },
+      toggle(e) {
+        if (!inputSelect && searchTerm) {
+          return;
+        }
+        e.preventDefault();
+        editorState.toggle();
+      },
+      focusout(e) {
+        if (anchor.contains(e.relatedTarget)) {
+          return;
+        }
+
+        if (cellOptions.debounce && isDirty) {
+          clearTimeout(timer);
+          dispatch("change", multi ? localValue : localValue[0]);
+        } else {
+          this.submit();
+        }
+        dispatch("focusout");
+        return "View";
+      },
+      popupfocusout(e) {
+        if (anchor != e?.relatedTarget) {
+          this.submit();
+          return "View";
+        }
+      },
+      submit() {
+        if (isDirty && !cellOptions.debounce) {
+          if (multi) dispatch("change", localValue);
+          else dispatch("change", localValue[0]);
+        }
+      },
+      clear() {
+        localValue = [];
+        anchor?.focus();
+        if (cellOptions.debounce) dispatch("change", null);
+      },
+      cancel() {
+        localValue = JSON.parse(originalValue);
+        searchTerm = null;
+        anchor?.blur();
+        return "View";
+      },
+    },
+  });
+
   const colors = derivedMemo(options, ($options) => {
     let obj = {};
     $options.forEach(
@@ -448,54 +547,23 @@
     Array.isArray(value) ? value : value ? [value] : [],
   );
 
-  $: ({
-    controlType,
-    optionsSource,
-    valueColumn,
-    labelColumn,
-    iconColumn,
-    colorColumn,
-    customOptions,
-    optionsViewMode,
-    role,
-    readonly,
-    disabled,
-    error,
-    color,
-    background,
-  } = cellOptions);
-
-  // Handle Options from Data Source
-  const dataSourceStore = memo(cellOptions?.datasource ?? {});
-  $: dataSourceStore.set(cellOptions.datasource);
-  $: fetch = createFetch($dataSourceStore);
-  $: if (optionsSource == "data") {
-    initLimit = 15;
-    isInitialLoad = true;
-  }
-  $: query = QueryUtils.buildQuery(cellOptions.filter);
   $: inputSelect = controlType == "inputSelect";
 
-  $: if (optionsSource == "data")
-    fetch?.update?.({
-      query,
-      sortColumn: cellOptions.sortColumn,
-      sortOrder: cellOptions.sortOrder,
-      limit: initLimit,
-    });
+  $: defaultQuery = QueryUtils.buildQuery(filter || []);
+  $: fetch?.update?.({ query: defaultQuery });
 
   $: cellState.syncFetch($fetch);
   $: cellState.loadDataOptions($fetch?.rows);
 
   // React to property changes
-  $: cellState.refresh(
+  $: cellState.refresh($dataSourceStore, optionsSource);
+
+  $: cellState.reload(
     fieldSchema,
-    optionsSource,
     labelColumn,
     valueColumn,
     iconColumn,
     colorColumn,
-    $dataSourceStore,
     customOptions,
   );
 
@@ -510,17 +578,14 @@
   $: inEdit = $cellState == "Editing";
   $: pills = optionsViewMode == "pills";
   $: bullets = optionsViewMode == "bullets";
+  $: plaintext = optionsViewMode == "text";
 
   $: multi =
     fieldSchema && fieldSchema.type ? fieldSchema.type == "array" : multi;
 
-  $: placeholder = disabled || readonly ? "" : cellOptions.placeholder || "";
+  $: placeholder = cellOptions.placeholder || "";
   $: icon = searchTerm && isEmpty ? "ph ph-magnifying-glass" : cellOptions.icon;
   $: open = $editorState == "Open";
-
-  const focus = (node) => {
-    node?.focus();
-  };
 
   onMount(() => {
     if (autofocus)
@@ -543,15 +608,15 @@
   class:disabled
   class:readonly
   class:error
-  style:color
-  style:background
   class:inline={role == "inlineInput"}
   class:tableCell={role == "tableCell"}
   class:formInput={role == "formInput"}
   class:has-popup={controlType == "select"}
   class:open-popup={open}
+  style:color
+  style:background
   on:focusin={cellState.focus}
-  on:focusout={cellState.focusout}
+  on:focusout={controlType != "inputSelect" ? cellState.focusout : undefined}
   on:keydown={editorState.handleKeyboard}
   on:mousedown={cellState.toggle}
 >
@@ -581,7 +646,7 @@
                 {#if pills}
                   <div class="loope"></div>
                 {/if}
-                <span> {labels[val] || val} </span>
+                <span> {$labels[val] || val} </span>
               </div>
             {/each}
           </div>
@@ -597,24 +662,24 @@
         if (!multi) localValue[0] = e.target.value?.trim();
         editorState.filterOptions(e.target.value);
       }}
-      use:focus
+      on:focusout={cellState.focusout}
       {placeholder}
     />
-    <div class="control-icon" on:click={editorState.toggle}>
+    <div
+      class="control-icon"
+      style:border-left="1px solid var(--spectrum-global-color-blue-400)"
+      style:padding-left="0.75rem"
+    >
       <i class="ph ph-caret-down"></i>
     </div>
   {:else}
     <div class="value" class:placeholder={isEmpty && !searchTerm}>
-      {#if isEmpty && !open}
-        <span>{searchTerm || placeholder}</span>
-      {:else if isEmpty && open}
-        <span>{searchTerm || "Type to search..."}</span>
-      {:else if optionsViewMode == "text"}
-        <span>
-          {multi || localValue.length > 1
-            ? localValue.join(", ")
-            : labels[localValue[0]] || localValue[0]}
-        </span>
+      {#if isEmpty}
+        {#if open}
+          {searchTerm ? searchTerm : "Type to search..."}
+        {:else}
+          {loading ? "Loading..." : placeholder}
+        {/if}
       {:else}
         <div
           class="items"
@@ -622,21 +687,28 @@
           class:bullets
           style:justify-content={cellOptions.align ?? "flex-start"}
         >
-          {#each localValue as val, idx (val)}
-            <div
-              class="item"
-              style:--option-color={$colors[val] ||
-                colorsArray[idx % colorsArray.length]}
-            >
-              <div class="loope"></div>
-              <span> {isObjects ? "JSON" : labels[val] || val} </span>
-            </div>
-          {/each}
+          {#if plaintext}
+            {#each localValue as val, idx (val)}
+              {$labels[val] || val}
+              {idx < localValue.length - 1 ? ", " : ""}
+            {/each}
+          {:else}
+            {#each localValue as val, idx}
+              <div
+                class="item"
+                style:--option-color={$colors[val] ||
+                  colorsArray[idx % colorsArray.length]}
+              >
+                <div class="loope"></div>
+                <span> {isObjects ? "JSON" : $labels[val] || val} </span>
+              </div>
+            {/each}
+          {/if}
         </div>
       {/if}
     </div>
     {#if !readonly && (role == "formInput" || inEdit)}
-      <i class="ph ph-caret-down control-icon" on:mousedown></i>
+      <i class="ph ph-caret-down control-icon"></i>
     {/if}
   {/if}
 </div>
@@ -644,9 +716,16 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 {#if inEdit}
-  <SuperPopover {anchor} useAnchorWidth maxHeight={250} {open}>
+  <SuperPopover
+    {anchor}
+    useAnchorWidth
+    minWidth={pickerWidth}
+    align="left"
+    maxHeight={250}
+    {open}
+  >
     <div class="picker" on:mousedown|stopPropagation|preventDefault>
-      {#if searchTerm && !isEmpty}
+      {#if searchTerm && !inputSelect && !isEmpty}
         <div class="searchControl">
           <i
             class="search-icon ph ph-magnifying-glass"
@@ -662,12 +741,14 @@
         on:mouseleave={() => (focusedOptionIdx = -1)}
         on:scroll={optionsSource == "data" ? editorState.handleScroll : null}
       >
-        {#if optionsSource == "data" && $fetch?.loading && !$fetch?.rows?.length}
+        {#if $fetch?.loading && !$fetch?.loaded}
           <div class="option loading">
             <i class="ph ph-spinner spin"></i>
             Loading...
           </div>
-        {:else if filteredOptions?.length}
+        {/if}
+
+        {#if filteredOptions?.length}
           {#each filteredOptions as option, idx (idx)}
             <div
               class="option"
@@ -686,18 +767,20 @@
                     : "ph-fill ph-square"}
                   style:color={$colors[option]}
                 ></i>
-                {labels[option] || option}
+                {$labels[option] || option}
               </span>
               <i class="ph ph-check"></i>
             </div>
           {/each}
-          {#if optionsSource == "data" && $fetch?.loading}
+          {#if $fetch?.loading}
             <div class="option loading">
               <i class="ph ph-spinner spin"></i>
               Loading more...
             </div>
           {/if}
-        {:else}
+        {/if}
+
+        {#if filteredOptions?.length === 0 && $fetch.loaded}
           <div class="option">
             <span>
               <i class="ri-close-line"></i>
@@ -714,7 +797,7 @@
   .searchControl {
     display: flex;
     align-items: center;
-    height: 2rem;
+    min-height: 2rem;
     border-bottom: 1px solid var(--spectrum-global-color-gray-300);
   }
   .options {
@@ -727,13 +810,13 @@
   }
 
   .option {
-    min-height: 1.75rem;
+    min-height: 1.85rem;
     display: flex;
     gap: 0.5rem;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    padding: 0 0.5rem;
+    padding: 0rem 0.5rem;
 
     &.selected {
       color: var(--spectrum-global-color-gray-800);

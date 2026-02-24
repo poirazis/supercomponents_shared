@@ -35,7 +35,6 @@
   class:error={cellOptions.error}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
 >
   {#if cellOptions.icon}
     <i class={cellOptions.icon + " field-icon"}></i>
@@ -46,8 +45,6 @@
     class:placeholder={!value}
     style:justify-content={cellOptions.align}
   >
-    <span>
-      {formattedValue || value || placeholder}
-    </span>
+    <span>{formattedValue || value || placeholder}</span>
   </div>
 </div>

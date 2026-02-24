@@ -205,7 +205,14 @@
   <div class="value" class:placeholder={localValue?.length < 1}>
     {#if localValue?.length < 1}
       <span> {placeholder} </span>
-    {:else if pills || links}
+    {:else if simpleView}
+      <span>
+        {#if cellOptions.role == "formInput" && localValue.length > 1}
+          ({localValue.length})
+        {/if}
+        {localValue.map((v) => v.primaryDisplay).join(", ")}
+      </span>
+    {:else}
       <div
         class="items"
         class:pills
@@ -237,13 +244,6 @@
           </span>
         {/if}
       </div>
-    {:else}
-      <span>
-        {#if cellOptions.role == "formInput" && localValue.length > 1}
-          ({localValue.length})
-        {/if}
-        {localValue.map((v) => v.primaryDisplay).join(", ")}
-      </span>
     {/if}
   </div>
   {#if !readonly && (cellOptions.role == "formInput" || inEdit)}

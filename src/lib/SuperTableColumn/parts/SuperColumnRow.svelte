@@ -88,8 +88,6 @@
   const onContextMenu = (e) => {
     stbAPI.showContextMenu(index, e.__root);
   };
-
-  $: console.log(height);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -102,7 +100,7 @@
   class:isEditing
   class:disabled
   class:isLast
-  style:min-height={height}
+  style:height
   style:color
   style:background-color={bgcolor}
   style:justify-content={$columnSettings.align}

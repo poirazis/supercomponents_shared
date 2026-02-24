@@ -52,6 +52,8 @@
   export let formValue: Record<string, any> = {};
   export let labelPosition: string | boolean = "above";
   export let columns: number = 1;
+  export let rowGap: string = "0.5rem";
+  export let columnGap: string = "0.5rem";
 
   const {
     Provider,
@@ -593,8 +595,10 @@
         class="super-form-inner-form"
         class:labels-left={labelPosition === "left"}
         class:no-labels={labelPosition === false || labelPosition === "none"}
-        class:field-group={columns > 1}
+        class:field-group={true}
         style:grid-template-columns={`repeat(${columns * 6}, 1fr)`}
+        style:row-gap={rowGap}
+        style:column-gap={columnGap}
       >
         <slot />
       </div>
@@ -614,6 +618,8 @@
     flex: auto;
     display: grid;
     column-gap: 0.5rem;
+    row-gap: 0.5rem;
+    align-content: flex-start;
   }
 
   :global(.super-form-inner-form.field-group > .component > *) {
@@ -621,7 +627,8 @@
   }
 
   .super-form-inner-form.labels-left {
-    row-gap: 0.25rem;
+    row-gap: 0.5rem;
+    column-gap: 1rem;
   }
   .super-form-inner-form.no-labels {
     row-gap: 0.25rem;

@@ -52,7 +52,7 @@
     showTooltip = false;
   };
 
-  $: width = labelPos == "left" ? (labelWidth ? labelWidth : "5rem") : "auto";
+  $: width = labelPos == "left" ? (labelWidth ? labelWidth : "6rem") : "auto";
   $: isLabelTruncated = checkIfTruncated(labelElement);
 </script>
 
@@ -116,7 +116,7 @@
     min-height: var(--field-height, 2rem);
 
     &.multirow {
-      max-height: var(--height);
+      max-height: var(--field-height);
     }
 
     &.left-label {
@@ -133,39 +133,37 @@
       flex-direction: row;
       align-items: stretch;
     }
-
-    &:focus-within {
-      & > .superlabel {
-        color: var(--spectrum-global-golor-gray-700);
-      }
-    }
   }
 
   .inline-cells {
+    flex: 1;
     display: flex;
     align-items: stretch;
     min-height: 2rem;
     overflow: hidden;
 
     &.multirow {
+      flex: 1;
       flex-direction: column;
       align-items: stretch;
-      justify-content: flex;
     }
   }
 
   .superlabel {
-    flex: 0 0 auto;
     width: var(--label-width);
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-weight: 400;
+    font-weight: 300;
     line-height: 1.65rem;
+    letter-spacing: 0.35px;
     color: var(--spectrum-global-color-gray-700);
+    font-family: "inter", sans-serif;
     gap: 1rem;
     transition: 130ms;
+    padding-left: 2px;
+    opacity: 0.9;
 
     &.left {
       flex-direction: column;
@@ -173,6 +171,7 @@
       justify-content: center;
       line-height: 1rem;
       gap: 0px;
+      padding-left: unset;
 
       &.tall {
         justify-content: flex-start;

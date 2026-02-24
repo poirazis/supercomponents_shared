@@ -146,7 +146,7 @@
       ? processStringSync(cellOptions.template, { value })
       : value
         ? formatDate(innerDate, currentDateFormat)
-        : "";
+        : undefined;
 
   $: placeholder = cellOptions?.placeholder || "";
   $: inEdit = $cellState == "Editing";
@@ -196,7 +196,6 @@
   class:open-popup={open}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  style:font-weight={cellOptions.fontWeight}
   on:focus={cellState.focus}
   on:keypress={cellState.handleKeyboard}
   on:focusout={cellState.focusout}
@@ -211,7 +210,7 @@
       class:placeholder={!formattedValue}
       on:click={() => (open = !open)}
     >
-      {formattedValue || placeholder}
+      <span>{formattedValue || placeholder}</span>
       <i
         class="ri-calendar-line"
         style="font-size: 16px; justify-self: flex-end"

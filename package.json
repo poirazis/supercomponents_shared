@@ -1,6 +1,6 @@
 {
   "name": "@poirazis/supercomponents-shared",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "description": "Shared Svelte components library",
   "type": "module",
   "packageManager": "bun@1.0.0",
@@ -48,13 +48,13 @@
     "zod": "4.3.5"
   },
   "devDependencies": {
-    "@budibase/types": "^3.29.0",
+    "@budibase/types": "^3.30.1",
     "@sveltejs/package": "^2.5.7",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tsconfig/svelte": "^5.0.8",
     "postcss": "^8.5.6",
     "sass": "^1.97.3",
-    "svelte": "^5.51.3",
+    "svelte": "^5.53.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "vite-plugin-css-injected-by-js": "^3.5.2"

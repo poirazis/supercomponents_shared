@@ -3,7 +3,7 @@
   export let minHeight = "2rem";
 </script>
 
-{#if active}
+{#if active == true}
   <div class="skeleton" style:min-height={minHeight}>
     <div class="children"></div>
   </div>

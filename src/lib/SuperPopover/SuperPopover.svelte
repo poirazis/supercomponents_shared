@@ -110,7 +110,7 @@
       class:hide-popover={open && !showPopover}
       role="presentation"
       style="height: {customHeight}; --customZindex: {customZindex};"
-      transition:fly|local={{ y: -20, duration: animate ? 200 : 0 }}
+      transition:fly|local={{ y: -20, duration: animate ? 350 : 0 }}
     >
       <slot />
     </div>
