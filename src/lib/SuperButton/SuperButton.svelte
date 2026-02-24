@@ -175,13 +175,13 @@
 <style>
   .super-button {
     border: 1px solid var(--spectrum-global-color-gray-400);
-    background-color: var(--spectrum-global-color-gray-75);
+    background-color: var(--spectrum-global-color-gray-50);
     color: var(--spectrum-global-color-gray-800);
     display: flex;
     align-items: center;
-    font-weight: 600;
+    justify-content: center;
+    padding: 0rem 1rem;
     min-width: 5rem;
-    padding: 0rem 0.75rem;
     gap: 0.5rem;
     height: 2rem;
 
@@ -194,13 +194,9 @@
 
     &.small {
       min-width: 4rem;
-      padding: 0rem 0.5rem;
+      padding: 0rem 1rem;
       gap: 0.5rem;
       height: 1.85rem;
-
-      &.ink {
-        height: 1.5rem;
-      }
     }
 
     &.large {
@@ -209,6 +205,8 @@
 
     & > span {
       white-space: nowrap;
+      font-size: 14px;
+      font-weight: 600;
     }
 
     &.icon {
@@ -229,6 +227,7 @@
     & > i {
       display: none;
       opacity: 0.9;
+      font-weight: 400;
     }
   }
 
@@ -286,12 +285,9 @@
     }
   }
   .ink {
-    background-color: var(--spectrum-global-color-gray-700);
-    border: 1px solid var(--spectrum-global-color-gray-700);
+    background-color: var(--spectrum-global-color-gray-800);
+    border: 1px solid transparent;
     color: var(--spectrum-global-color-gray-50);
-    font-weight: 700;
-    opacity: 0.9;
-    max-height: 1.35rem;
 
     &.quiet {
       border-color: transparent !important;
@@ -300,12 +296,12 @@
       &:hover,
       &:focus {
         color: var(--spectrum-global-color-gray-50);
-        background-color: var(--spectrum-global-color-gray-800);
+        background-color: var(--spectrum-global-color-gray-900);
       }
     }
     &:hover,
     &:focus {
-      background-color: var(--spectrum-global-color-gray-800);
+      background-color: var(--spectrum-global-color-gray-900);
     }
 
     &:active {
@@ -315,8 +311,9 @@
   .primary {
     &:hover,
     &:focus {
-      border: 1px solid var(--spectrum-global-color-gray-500);
-      color: var(--spectrum-global-color-gray-900);
+      border: 1px solid var(--spectrum-global-color-gray-600);
+      background-color: var(--spectrum-global-color-gray-800);
+      color: var(--spectrum-global-color-gray-50);
     }
     &:active {
       background-color: var(--spectrum-global-color-gray-100);
@@ -327,7 +324,7 @@
       border-color: transparent;
       background-color: transparent;
       &:hover {
-        background-color: var(--spectrum-global-color-gray-200);
+        background-color: var(--spectrum-global-color-gray-400);
         color: var(--spectrum-global-color-gray-900);
       }
     }
@@ -340,12 +337,10 @@
     font-weight: 500;
 
     &.quiet {
-      border-color: transparent;
       background-color: transparent;
 
       &:hover {
-        background-color: transparent;
-        border-color: var(--spectrum-global-color-gray-400);
+        background-color: var(--spectrum-global-color-gray-200);
       }
     }
 

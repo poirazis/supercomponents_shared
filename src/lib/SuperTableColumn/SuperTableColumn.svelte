@@ -259,7 +259,7 @@
     },
     EditingCell: {
       _enter() {
-        $lockWidth = Math.max(viewport.clientWidth, 160);
+        $lockWidth = Math.max(viewport.clientWidth, 80);
         stbState.edit.debounce(30);
       },
       patchRow(index, id, rev, field, change) {

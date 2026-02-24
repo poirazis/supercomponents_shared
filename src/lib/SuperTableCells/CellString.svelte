@@ -25,7 +25,7 @@
 
   // Local state
   let timer;
-  let editor;
+
   let lastEdit;
   let localValue = value;
   let state =
@@ -90,25 +90,20 @@
     },
     Editing: {
       _enter() {
-        setTimeout(() => {
-          editor?.focus();
-        }, 50);
         dispatch("enteredit");
       },
       _exit() {
         lastEdit = undefined;
         dispatch("exitedit");
       },
-      focus() {
-        editor?.focus();
-      },
+      focus() {},
       clear() {
         if (debounceDelay) {
           dispatch("change", null);
         }
         lastEdit = new Date();
         localValue = null;
-        editor?.focus();
+
         dispatch("clear", null);
       },
       focusout(e) {
@@ -212,24 +207,17 @@
   {#if inEdit}
     {#if textarea}
       <textarea
-        bind:this={editor}
         tabindex="0"
-        class="editor textarea"
         class:placeholder={!value && !formattedValue && !localValue}
         placeholder={cellOptions?.placeholder ?? ""}
-        style:text-align={cellOptions.align == "center"
-          ? "center"
-          : cellOptions.align == "flex-end"
-            ? "right"
-            : "left"}
+        value={localValue ?? ""}
         on:input={cellState.debounce}
         on:focusout={cellState.focusout}
         on:keydown={cellState.handleKeyboard}
-        use:focus>{localValue ?? ""}</textarea
-      >
+        use:focus
+      ></textarea>
     {:else}
       <input
-        bind:this={editor}
         tabindex="0"
         class="editor"
         class:placeholder={!value && !formattedValue && !localValue}
@@ -251,39 +239,31 @@
         on:mousedown|self|preventDefault={cellState.clear}
       ></i>
     {/if}
-  {:else if textarea}
-    <div
-      class="value textarea"
-      class:placeholder={!value && !formattedValue}
-      style:justify-content={cellOptions.align}
-    >
-      {formattedValue || value || placeholder}
-    </div>
   {:else}
     <div
       class="value"
-      class:placeholder={!value}
+      class:textarea
+      class:placeholder={!value && !formattedValue}
       style:justify-content={cellOptions.align}
     >
-      <span>
-        {formattedValue || value || placeholder}
-      </span>
+      <span>{formattedValue || value || placeholder}</span>
     </div>
   {/if}
 </div>
 
 <style>
-  .value.textarea {
-    flex: 1 0 auto;
-    display: flex;
-    align-items: flex-start;
-    white-space: pre-wrap;
-    padding: 0.5rem 0rem;
+  textarea {
+    all: inherit;
+    flex: 1;
+    min-height: 100%;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background-color: transparent;
     overflow-y: auto;
   }
 
-  .textarea.placeholder {
-    color: var(--spectrum-global-color-gray-500);
-    font-style: italic;
+  textarea:focus {
+    outline: none;
+    border: none;
   }
 </style>

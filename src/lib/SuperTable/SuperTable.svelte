@@ -1595,8 +1595,6 @@
     // Unlock all columns to allow responsive re-rendering
     columnStates?.forEach(({ state }) => state.unlockWidth());
   }
-
-  $: console.log($stbSchema);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1613,8 +1611,8 @@
     style:font-size={sizingMap[size].rowFontSize}
     style:--super-table-devider-color={$tableStyles.color}
     style:--super-table-body-height={maxBodyHeight}
-    style:--super-table-header-height={$tableStyles.headerHeight}
-    style:--super-table-footer-height={$tableStyles.footerHeight}
+    style:--super-table-header-height={$tableStyles.headerHeight + "px"}
+    style:--super-table-footer-height={$tableStyles.footerHeight + "px"}
     style:--super-table-horizontal-dividers={$tableStyles.horizontal}
     style:--super-table-vertical-dividers={$tableStyles.vertical}
     style:--super-table-cell-padding={sizingMap[size].cellPadding}

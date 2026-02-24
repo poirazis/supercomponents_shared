@@ -30,6 +30,8 @@
   export let provideContext: boolean = true;
   export let provideContextScope: "local" | "global" = "global";
   export let labelPosition: "above" | "left" | false;
+  export let rowGap: string = "0.5rem";
+  export let columnGap: string = "0.5rem";
 
   // Export the full form API to be used by parents
   export let form;
@@ -67,11 +69,7 @@
     row,
   );
   $: resetKey = hashString(
-    schemaKey +
-      JSON.stringify(initialValues) +
-      actionType +
-      readonly +
-      disabled,
+    schemaKey + JSON.stringify(initialValues) + actionType,
   );
 
   const getInitialValues = (
@@ -152,6 +150,8 @@
       {provideContext}
       {provideContextScope}
       {labelPosition}
+      {rowGap}
+      {columnGap}
       on:change
       on:reset
     >
