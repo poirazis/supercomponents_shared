@@ -265,34 +265,38 @@
         <div class="list" bind:this={listElement} on:scroll={handleScroll}>
           <div class="options">
             {#key localValue}
-              {#if $fetch?.rows?.length || ($fetch?.loading && !$fetch?.loaded)}
-                {#each $fetch?.rows || [] as row, idx (idx)}
-                  <div
-                    class="option"
-                    class:selected={rowSelected(row)}
-                    class:highlighted={focusIdx == idx}
-                    on:mouseenter={() => (focusIdx = idx)}
-                    on:mouseleave={() => (focusIdx = -1)}
-                    on:mousedown|preventDefault|stopPropagation={selectRow(row)}
-                  >
-                    {row[primaryDisplay]}
-                    <i class="ri-check-line"></i>
-                  </div>
-                {/each}
-                {#if $fetch?.loading && $fetch.loaded}
+              {#key $fetch?.rows}
+                {#if $fetch?.rows?.length || ($fetch?.loading && !$fetch?.loaded)}
+                  {#each $fetch?.rows || [] as row, idx (idx)}
+                    <div
+                      class="option"
+                      class:selected={rowSelected(row)}
+                      class:highlighted={focusIdx == idx}
+                      on:mouseenter={() => (focusIdx = idx)}
+                      on:mouseleave={() => (focusIdx = -1)}
+                      on:mousedown|preventDefault|stopPropagation={selectRow(
+                        row,
+                      )}
+                    >
+                      {row[primaryDisplay]}
+                      <i class="ri-check-line"></i>
+                    </div>
+                  {/each}
+                  {#if $fetch?.loading && $fetch.loaded}
+                    <div class="option loading">
+                      <i class="ri-loader-2-line rotating"></i>
+                      Loading more...
+                    </div>
+                  {/if}
+                {:else if $fetch?.loading}
                   <div class="option loading">
                     <i class="ri-loader-2-line rotating"></i>
-                    Loading more...
+                    Loading...
                   </div>
+                {:else}
+                  <div class="option">No Results Found</div>
                 {/if}
-              {:else if $fetch?.loading}
-                <div class="option loading">
-                  <i class="ri-loader-2-line rotating"></i>
-                  Loading...
-                </div>
-              {:else}
-                <div class="option">No Results Found</div>
-              {/if}
+              {/key}
             {/key}
           </div>
         </div>

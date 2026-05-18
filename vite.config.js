@@ -14,7 +14,6 @@ export default defineConfig({
   plugins: [
     svelte({
       preprocess: vitePreprocess(),
-      compilerOptions: { dev: false },
       emitCss: true,
       onwarn: (warning, handler) => {
         if (warning.code !== "unused-export-let") {

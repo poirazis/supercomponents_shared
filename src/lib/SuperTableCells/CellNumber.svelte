@@ -311,61 +311,63 @@
   tabIndex={disabled ? -1 : (cellOptions.order ?? 0)}
   on:focusin={cellState.focus}
 >
-  {#if icon}
-    <i class={icon + " field-icon"} class:with-error={error}></i>
-  {/if}
+  {#key $cellState}
+    {#if icon}
+      <i class={icon + " field-icon"} class:with-error={error}></i>
+    {/if}
 
-  {#if $cellState == "Editing"}
-    <input
-      class="editor"
-      bind:this={editor}
-      class:placeholder={!localValue}
-      style:text-align={cellOptions.align == "flex-start"
-        ? "left"
-        : cellOptions.align == "center"
-          ? "center"
-          : "right "}
-      value={localValue || ""}
-      on:keydown={(e) => cellState.handleKeyboard(e)}
-      on:input={(e) => cellState.handleInput(e)}
-      on:focusout={(e) => cellState.focusout(e)}
-      on:wheel={(e) => cellState.handleWheel(e)}
-      use:focus
-    />
+    {#if $cellState == "Editing"}
+      <input
+        class="editor"
+        bind:this={editor}
+        class:placeholder={!localValue}
+        style:text-align={cellOptions.align == "flex-start"
+          ? "left"
+          : cellOptions.align == "center"
+            ? "center"
+            : "right "}
+        value={localValue || ""}
+        on:keydown={(e) => cellState.handleKeyboard(e)}
+        on:input={(e) => cellState.handleInput(e)}
+        on:focusout={(e) => cellState.focusout(e)}
+        on:wheel={(e) => cellState.handleWheel(e)}
+        use:focus
+      />
 
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <i
-      class="ri-close-line clear-icon"
-      class:visible={clearValue}
-      on:mousedown|preventDefault|stopPropagation={cellState.clear}
-    >
-    </i>
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <i
+        class="ri-close-line clear-icon"
+        class:visible={clearValue}
+        on:mousedown|preventDefault|stopPropagation={cellState.clear}
+      >
+      </i>
 
-    {#if showStepper}
-      <div class="controls">
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <i
-          class="ph ph-minus"
-          on:mousedown|preventDefault|stopPropagation={(e) =>
-            cellState.decrement(e)}
-        ></i>
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <i
-          class="ph ph-plus"
-          on:mousedown|preventDefault|stopPropagation={(e) =>
-            cellState.increment(e)}
-        ></i>
+      {#if showStepper}
+        <div class="controls">
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <i
+            class="ph ph-minus"
+            on:mousedown|preventDefault|stopPropagation={(e) =>
+              cellState.decrement(e)}
+          ></i>
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <i
+            class="ph ph-plus"
+            on:mousedown|preventDefault|stopPropagation={(e) =>
+              cellState.increment(e)}
+          ></i>
+        </div>
+      {/if}
+    {:else}
+      <div
+        class="value"
+        class:placeholder={!value && value !== 0}
+        style:justify-content={cellOptions.align ?? "flex-end"}
+      >
+        {value != null ? formattedValue : placeholder || ""}
       </div>
     {/if}
-  {:else}
-    <div
-      class="value"
-      class:placeholder={!value && value !== 0}
-      style:justify-content={cellOptions.align ?? "flex-end"}
-    >
-      {value != null ? formattedValue : placeholder || ""}
-    </div>
-  {/if}
+  {/key}
 </div>
 
 <style>

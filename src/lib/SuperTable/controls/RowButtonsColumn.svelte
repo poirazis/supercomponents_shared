@@ -5,7 +5,6 @@
 
   const stbSettings = getContext("stbSettings");
   const stbState = getContext("stbState");
-  const stbData = getContext("stbData");
   const stbHorizontalScrollPos = getContext("stbHorizontalScrollPos");
   const stbHovered = getContext("stbHovered");
   const stbEditing = getContext("stbEditing");
@@ -15,6 +14,8 @@
   const data = getContext("data");
 
   const stbAPI = getContext("stbAPI");
+
+  const allContext = getContext("context");
 
   export let right;
   export let rowMenu;
@@ -57,6 +58,12 @@
   <div
     class="super-column-body"
     style:margin-top={"var(--super-column-top-offset)"}
+    style:border-right={right
+      ? null
+      : "1px solid var(--super-table-devider-color, --spectrum-global-color-gray-200)"}
+    style:border-left={right
+      ? "1px solid var(--super-table-devider-color, --spectrum-global-color-gray-200)"
+      : null}
     class:quiet
     class:sticky
     class:zebra={$stbSettings.appearance.zebraColors}
@@ -76,7 +83,7 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <div
           class="row-buttons"
-          style:gap={inlineButtons.length > 1 ? "0.5rem" : "0rem"}
+          style:gap={inlineButtons.length > 1 ? "0.25rem" : "0rem"}
         >
           {#if rowMenu && inlineButtons?.length}
             {#each inlineButtons as { conditions, disabledTemplate, onClick, disabled, ...rest }}
@@ -89,6 +96,7 @@
                     stbAPI.shouldDisableButton(
                       disabledTemplate,
                       stbAPI.enrichContext($data[visibleRow]),
+                      $allContext,
                     )}
                   onClick={() => {
                     stbAPI.executeRowButtonAction(visibleRow, onClick);
@@ -99,7 +107,7 @@
           {/if}
           {#if rowMenu && menuItems?.length}
             <SuperButton
-              size="S"
+              size="XS"
               icon={menuIcon}
               text=""
               quiet="true"
@@ -134,20 +142,28 @@
     {#if menuItems?.length}
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="action-menu">
-        {#each menuItems as { text, icon, disabled, onClick, size }}
-          <SuperButton
-            {size}
-            {icon}
-            {text}
-            {disabled}
-            menuItem
-            menuAlign={right ? "right" : "left"}
-            onClick={() => {
-              stbAPI.executeRowButtonAction($stbMenuID, onClick);
-              openMenu = false;
-              $stbMenuID = undefined;
-            }}
-          />
+        {#each menuItems as { text, icon, disabled, onClick, size, conditions, disabledTemplate }}
+          {#if stbAPI.shouldShowButton(conditions || [], stbAPI.enrichContext($data[$stbMenuID]))}
+            <SuperButton
+              {size}
+              {icon}
+              {text}
+              disabled={disabled ||
+                $stbEditing == $stbMenuID ||
+                $rowMetadata[$stbMenuID].disabled ||
+                stbAPI.shouldDisableButton(
+                  disabledTemplate,
+                  stbAPI.enrichContext($data[$stbMenuID]),
+                )}
+              menuItem
+              menuAlign={right ? "right" : "left"}
+              onClick={() => {
+                stbAPI.executeRowButtonAction($stbMenuID, onClick);
+                openMenu = false;
+                $stbMenuID = undefined;
+              }}
+            />
+          {/if}
         {/each}
       </div>
     {/if}

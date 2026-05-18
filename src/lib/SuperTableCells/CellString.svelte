@@ -38,7 +38,6 @@
   $: ({
     controlType,
     role,
-    disabled,
     readonly,
     error: optionError,
     icon: optionIcon,
@@ -60,6 +59,7 @@
     : (value ?? undefined);
   $: placeholder = placeholderText ?? "";
   $: textarea = controlType === "textarea";
+  $: disabled = cellOptions?.disabled;
 
   // Reset when value changes externally
   $: cellState.reset(value);
@@ -201,54 +201,56 @@
   style:background
   on:focusin={cellState.focus}
 >
-  {#if icon && !textarea}
-    <i class={icon + " field-icon"} class:with-error={error}></i>
-  {/if}
-  {#if inEdit}
-    {#if textarea}
-      <textarea
-        tabindex="0"
-        class:placeholder={!value && !formattedValue && !localValue}
-        placeholder={cellOptions?.placeholder ?? ""}
-        value={localValue ?? ""}
-        on:input={cellState.debounce}
-        on:focusout={cellState.focusout}
-        on:keydown={cellState.handleKeyboard}
-        use:focus
-      ></textarea>
-    {:else}
-      <input
-        tabindex="0"
-        class="editor"
-        class:placeholder={!value && !formattedValue && !localValue}
-        value={localValue ?? ""}
-        placeholder={cellOptions?.placeholder ?? ""}
-        style:text-align={cellOptions.align == "center"
-          ? "center"
-          : cellOptions.align == "flex-end"
-            ? "right"
-            : "left"}
-        on:input={cellState.debounce}
-        on:focusout={cellState.focusout}
-        on:keydown={cellState.handleKeyboard}
-        use:focus
-      />
-      <i
-        class="ri-close-line clear-icon"
-        class:visible={localValue && cellOptions?.clearIcon !== false}
-        on:mousedown|self|preventDefault={cellState.clear}
-      ></i>
+  {#key inEdit}
+    {#if icon && !textarea}
+      <i class={icon + " field-icon"} class:with-error={error}></i>
     {/if}
-  {:else}
-    <div
-      class="value"
-      class:textarea
-      class:placeholder={!value && !formattedValue}
-      style:justify-content={cellOptions.align}
-    >
-      <span>{formattedValue || value || placeholder}</span>
-    </div>
-  {/if}
+    {#if inEdit}
+      {#if textarea}
+        <textarea
+          tabindex="0"
+          class:placeholder={!value && !formattedValue && !localValue}
+          placeholder={cellOptions?.placeholder ?? ""}
+          value={localValue ?? ""}
+          on:input={cellState.debounce}
+          on:focusout={cellState.focusout}
+          on:keydown={cellState.handleKeyboard}
+          use:focus
+        ></textarea>
+      {:else}
+        <input
+          tabindex="0"
+          class="editor"
+          class:placeholder={!value && !formattedValue && !localValue}
+          value={localValue ?? ""}
+          placeholder={cellOptions?.placeholder ?? ""}
+          style:text-align={cellOptions.align == "center"
+            ? "center"
+            : cellOptions.align == "flex-end"
+              ? "right"
+              : "left"}
+          on:input={cellState.debounce}
+          on:focusout={cellState.focusout}
+          on:keydown={cellState.handleKeyboard}
+          use:focus
+        />
+        <i
+          class="ri-close-line clear-icon"
+          class:visible={localValue && cellOptions?.clearIcon !== false}
+          on:mousedown|self|preventDefault={cellState.clear}
+        ></i>
+      {/if}
+    {:else}
+      <div
+        class="value"
+        class:textarea
+        class:placeholder={!value && !formattedValue}
+        style:justify-content={cellOptions.align}
+      >
+        <span>{formattedValue || value || placeholder}</span>
+      </div>
+    {/if}
+  {/key}
 </div>
 
 <style>

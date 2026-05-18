@@ -145,7 +145,13 @@
 
     if (singleSelect) {
       editorState.close();
-      anchor.focus();
+    }
+
+    if (cellOptions.debounced) {
+      dispatch(
+        "change",
+        returnSingle && localValue ? localValue[0] : localValue,
+      );
     }
   };
 
@@ -193,7 +199,7 @@
   class:open-popup={$editorState == "Open"}
   style:color={cellOptions.color}
   style:background={cellOptions.background}
-  on:focusin={cellState.focus}
+  on:focus={cellState.focus}
   on:keydown|self={handleKeyboard}
   on:focusout={cellState.focusout}
   on:mousedown={cellState.toggle}
@@ -203,14 +209,12 @@
   {/if}
 
   <div class="value" class:placeholder={localValue?.length < 1}>
-    {#if localValue?.length < 1}
-      <span> {placeholder} </span>
-    {:else if simpleView}
+    {#if simpleView}
       <span>
         {#if cellOptions.role == "formInput" && localValue.length > 1}
           ({localValue.length})
         {/if}
-        {localValue.map((v) => v.primaryDisplay).join(", ")}
+        {localValue.map((v) => v.primaryDisplay).join(", ") || placeholder}
       </span>
     {:else}
       <div
@@ -221,7 +225,7 @@
         class:withCount={localValue.length > 5}
         class:inEdit
       >
-        {#each localValue as val, idx}
+        {#each localValue as val, idx (val)}
           {#if idx < 5}
             <div
               class="item"
@@ -238,6 +242,11 @@
             </div>
           {/if}
         {/each}
+
+        {#if localValue.length == 0}
+          <span>{placeholder}</span>
+        {/if}
+
         {#if localValue.length > 5}
           <span class="count">
             (+ {localValue.length - 5})

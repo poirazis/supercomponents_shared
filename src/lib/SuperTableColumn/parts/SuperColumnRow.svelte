@@ -72,7 +72,7 @@
         }
       }
       return obj;
-    } else return obj[path] ?? undefined;
+    } else return obj[path];
   };
 
   const onClick = () => {

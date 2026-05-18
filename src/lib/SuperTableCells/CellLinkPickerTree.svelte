@@ -108,7 +108,7 @@
         $selectedNodes = [e.detail];
       } else {
         notificationStore.actions.warning(
-          "Cannot select more than " + maxNodeSelection + " items"
+          "Cannot select more than " + maxNodeSelection + " items",
         );
       }
     } else {
@@ -123,7 +123,7 @@
         "change",
         $selectedNodes.map((x) => {
           return { _id: x.id, primaryDisplay: x.label };
-        })
+        }),
       );
   };
 
@@ -183,24 +183,26 @@
     style="margin: unset;"
     class:spectrum-TreeView--quiet={quiet}
   >
-    {#if $fetch.loaded && $fetch.rows?.length}
-      {#each tree?.children as node, idx (idx)}
-        <SuperTree
-          tree={node}
-          nodeSelection
-          {selectedNodes}
-          on:nodeSelect={handleNodeSelect}
-        />
-      {/each}
-    {:else if $fetch.loading}
-      <li class="spectrum-TreeView-item" class:is-open={true}>
-        <div class="spectrum-TreeView-itemLink">Loading</div>
-      </li>
-    {:else}
-      <li class="spectrum-TreeView-item" class:is-open={true}>
-        <div class="spectrum-TreeView-itemLink">No Matches</div>
-      </li>
-    {/if}
+    {#key $fetch.rows}
+      {#if $fetch.loaded && $fetch.rows?.length}
+        {#each tree?.children as node, idx (idx)}
+          <SuperTree
+            tree={node}
+            nodeSelection
+            {selectedNodes}
+            on:nodeSelect={handleNodeSelect}
+          />
+        {/each}
+      {:else if $fetch.loading}
+        <li class="spectrum-TreeView-item" class:is-open={true}>
+          <div class="spectrum-TreeView-itemLink">Loading</div>
+        </li>
+      {:else}
+        <li class="spectrum-TreeView-item" class:is-open={true}>
+          <div class="spectrum-TreeView-itemLink">No Matches</div>
+        </li>
+      {/if}
+    {/key}
   </ul>
 </div>
 

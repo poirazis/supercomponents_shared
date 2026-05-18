@@ -100,6 +100,12 @@
           clearTimeout(timer);
           timer = setTimeout(() => {
             dispatch("change", multi ? localValue : localValue[0]);
+            dispatch(
+              "labelChange",
+              multi
+                ? localValue.map((val) => $labels[val] || val)
+                : $labels[localValue[0]] || localValue[0],
+            );
           }, cellOptions.debounce ?? 0);
         }
 
@@ -196,7 +202,6 @@
       },
       handleKeyboard(e) {
         if (e.key === "Backspace" || e.key === "Delete") {
-          console.log(searchTerm, "before deletion");
           searchTerm = searchTerm.slice(0, -1);
           this.filterOptions(searchTerm);
         } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
@@ -379,6 +384,8 @@
         filteredOptions = $options;
       },
       loadCustomOptions() {
+        $options = [];
+        $labels = {};
         if (customOptions?.length) {
           customOptions.forEach((row) => {
             $options.push(row.value || row);
@@ -469,6 +476,12 @@
         if (cellOptions.debounce && isDirty) {
           clearTimeout(timer);
           dispatch("change", multi ? localValue : localValue[0]);
+          dispatch(
+            "labelChange",
+            multi
+              ? localValue.map((val) => $labels[val] || val)
+              : $labels[localValue[0]] || localValue[0],
+          );
         } else {
           this.submit();
         }
@@ -485,12 +498,24 @@
         if (isDirty && !cellOptions.debounce) {
           if (multi) dispatch("change", localValue);
           else dispatch("change", localValue[0]);
+
+          if (multi) {
+            dispatch(
+              "labelChange",
+              localValue.map((val) => $labels[val] || val),
+            );
+          } else {
+            dispatch("labelChange", $labels[localValue[0]] || localValue[0]);
+          }
         }
       },
       clear() {
         localValue = [];
         anchor?.focus();
-        if (cellOptions.debounce) dispatch("change", null);
+        if (cellOptions.debounce) {
+          dispatch("change", null);
+          dispatch("labelChange", null);
+        }
       },
       cancel() {
         localValue = JSON.parse(originalValue);
@@ -674,38 +699,40 @@
     </div>
   {:else}
     <div class="value" class:placeholder={isEmpty && !searchTerm}>
-      {#if isEmpty}
-        {#if open}
-          {searchTerm ? searchTerm : "Type to search..."}
-        {:else}
-          {loading ? "Loading..." : placeholder}
-        {/if}
-      {:else}
-        <div
-          class="items"
-          class:pills
-          class:bullets
-          style:justify-content={cellOptions.align ?? "flex-start"}
-        >
-          {#if plaintext}
-            {#each localValue as val, idx (val)}
-              {$labels[val] || val}
-              {idx < localValue.length - 1 ? ", " : ""}
-            {/each}
+      {#key isEmpty}
+        {#if localValue?.length < 1}
+          {#if open}
+            {searchTerm ? searchTerm : "Type to search..."}
           {:else}
-            {#each localValue as val, idx}
-              <div
-                class="item"
-                style:--option-color={$colors[val] ||
-                  colorsArray[idx % colorsArray.length]}
-              >
-                <div class="loope"></div>
-                <span> {isObjects ? "JSON" : $labels[val] || val} </span>
-              </div>
-            {/each}
+            {loading ? "Loading..." : placeholder}
           {/if}
-        </div>
-      {/if}
+        {:else}
+          <div
+            class="items"
+            class:pills
+            class:bullets
+            style:justify-content={cellOptions.align ?? "flex-start"}
+          >
+            {#if plaintext}
+              {#each localValue as val, idx (val)}
+                {$labels[val] || val}
+                {idx < localValue.length - 1 ? ", " : ""}
+              {/each}
+            {:else}
+              {#each localValue as val, idx (val)}
+                <div
+                  class="item"
+                  style:--option-color={$colors[val] ||
+                    colorsArray[idx % colorsArray.length]}
+                >
+                  <div class="loope"></div>
+                  <span> {isObjects ? "JSON" : $labels[val] || val} </span>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      {/key}
     </div>
     {#if !readonly && (role == "formInput" || inEdit)}
       <i class="ph ph-caret-down control-icon"></i>

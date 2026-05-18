@@ -348,7 +348,7 @@
             </div>
           {/each}
 
-          {#if $optionsFetch && $optionsFetch.loaded}
+          {#if $optionsFetch}
             <!-- Unselected rows -->
             {#key localValue.length}
               {#each $optionsFetch.rows as row, idx (row[relatedField])}
@@ -370,14 +370,9 @@
             {#if $optionsFetch?.loading}
               <div class="option loading">
                 <i class="ri-loader-2-line rotating"></i>
-                Loading more...
+                Loading...
               </div>
             {/if}
-          {:else if $optionsFetch?.loading && !$optionsFetch.loaded}
-            <div class="option loading">
-              <i class="ri-loader-2-line rotating"></i>
-              Loading...
-            </div>
           {:else}
             <div class="option">No Results Found</div>
           {/if}

@@ -192,6 +192,7 @@
       startResizing(e) {
         e.stopPropagation();
         e.preventDefault();
+        stbAPI.startResize();
         resizing = true;
         startPoint = e.clientX;
         startWidth = viewport.clientWidth;
@@ -203,6 +204,7 @@
       stopResizing(e) {
         e.preventDefault();
         e.stopPropagation();
+        stbAPI.endResize();
         resizing = false;
         startPoint = undefined;
         width = $lockWidth;

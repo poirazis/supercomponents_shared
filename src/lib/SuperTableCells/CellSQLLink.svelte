@@ -108,9 +108,7 @@
   $: pills = cellOptions.relViewMode == "pills";
   $: ownId = ownId || cellOptions?.ownId;
 
-  $: if (!isLoading) {
-    localValue = enrichValue(value);
-  }
+  $: localValue = enrichValue(value);
 
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue != JSON.stringify(localValue);
@@ -246,36 +244,38 @@
     {/if}
 
     <div class="value" class:placeholder={localValue?.length < 1}>
-      {#if localValue?.length < 1}
-        <span> {placeholder} </span>
-      {:else if pills}
-        <div
-          class="items"
-          class:pills
-          class:withCount={localValue.length > 5}
-          class:inEdit
-        >
-          {#each localValue as val, idx}
-            {#if idx < 5}
-              <div class="item">
-                <span>{val.primaryDisplay}</span>
-              </div>
+      {#key localValue}
+        {#if localValue?.length < 1}
+          <span> {placeholder} </span>
+        {:else if pills}
+          <div
+            class="items"
+            class:pills
+            class:withCount={localValue.length > 5}
+            class:inEdit
+          >
+            {#each localValue as val, idx}
+              {#if idx < 5}
+                <div class="item">
+                  <span>{val.primaryDisplay}</span>
+                </div>
+              {/if}
+            {/each}
+            {#if localValue.length > 5}
+              <span class="count">
+                (+ {localValue.length - 5})
+              </span>
             {/if}
-          {/each}
-          {#if localValue.length > 5}
-            <span class="count">
-              (+ {localValue.length - 5})
-            </span>
-          {/if}
-        </div>
-      {:else}
-        <span>
-          {#if cellOptions.role == "formInput" && localValue.length > 1}
-            ({localValue.length})
-          {/if}
-          {localValue.map((v) => v.primaryDisplay).join(", ")}
-        </span>
-      {/if}
+          </div>
+        {:else}
+          <span>
+            {#if cellOptions.role == "formInput" && localValue.length > 1}
+              ({localValue.length})
+            {/if}
+            {localValue.map((v) => v.primaryDisplay).join(", ")}
+          </span>
+        {/if}
+      {/key}
     </div>
     {#if !readonly && (cellOptions.role == "formInput" || inEdit)}
       <i class="ph ph-caret-down control-icon"></i>
