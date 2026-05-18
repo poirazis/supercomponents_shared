@@ -73,7 +73,7 @@
       class:quiet
       class:sticky
       style:margin-top={"var(--super-column-top-offset)"}
-      style:border-right={"1px solid var(--spectrum-global-color-gray-200)"}
+      style:border-right={"1px solid var(--super-table-devider-color, --spectrum-global-color-gray-200)"}
     >
       {#each $stbVisibleRows as visibleRow (visibleRow)}
         {@const selected = $stbRowMetadata[visibleRow]?.selected}
@@ -95,7 +95,7 @@
           {#if $stbSettings.features.canSelect && !hideSelectionColumn}
             <Checkbox
               checked={selected}
-              disabled={$stbRowMetadata[visibleRow]?.disabled}
+              locked={$stbRowMetadata[visibleRow]?.disabled}
               hovered={$stbHovered == visibleRow}
               on:change={() => stbAPI.selectRow(visibleRow)}
             />

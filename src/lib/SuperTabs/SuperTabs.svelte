@@ -16,6 +16,7 @@
   export let list_icon;
   export let list_title;
   export let tabsWidth = "200px";
+  export let listBackground = "var(--spectrum-global-color-gray-50)";
 
   export let quietTabs;
 
@@ -44,11 +45,12 @@
       style:justify-content={buttonsAlignment}
       style:--tab-alignment={tabsAlignment}
       style:--tab-track-thickness="1px"
+      style:--list-background={listBackground}
     >
       {#if theme === "list" && list_title}
         <div class="tab list-title">
           {#if list_icon}
-            <i class={list_icon}></i>
+            <i class={"ph ph-" + list_icon}></i>
           {/if}
           {list_title}
         </div>
@@ -73,7 +75,7 @@
           {#if container.icon}
             <i
               class={container.icon}
-              style:font-size={tabsIconsOnly ? "20px" : "inherit"}
+              style:font-size={tabsIconsOnly ? "20px" : "12px"}
               style:color={container.color}
             ></i>
           {/if}
@@ -110,6 +112,14 @@
     margin-bottom: unset;
     --selected-tab: var(--spectrum-global-color-gray-200);
   }
+  .outer-tabs.vertical.list {
+    padding-left: unset;
+    padding-right: unset;
+    flex-direction: column;
+    align-items: stretch;
+    --selected-tab: var(--spectrum-global-color-gray-200);
+    border-right: 1px solid var(--spectrum-global-color-gray-300);
+  }
 
   .tabs {
     flex: auto;
@@ -125,20 +135,29 @@
 
   .tabs.list {
     gap: 0;
-    background-color: var(--spectrum-global-color-gray-50);
+    background-color: var(
+      --list-background,
+      var(--spectrum-global-color-gray-50)
+    );
     border: unset;
     padding: unset;
+    padding-bottom: 0.5rem;
   }
 
   .tabs.vertical {
     flex-direction: column;
     border-bottom: unset;
     border-top: unset;
+    border-right: 1px solid var(--spectrum-global-color-gray-300);
+    padding-right: 0.25rem;
     gap: 0.25rem;
   }
 
   .tabs.vertical.list {
     border-right: unset;
+    gap: 2px;
+    padding: 2px;
+    padding-top: 0rem;
   }
 
   .tab {
@@ -165,10 +184,9 @@
   .tab.button {
     border-radius: 0.25rem;
     padding: 0.5rem 1rem;
-    font-weight: 600;
     line-height: 14px;
     border: 1px solid transparent;
-    height: 1.85rem;
+    height: 1.75rem;
   }
 
   .tab.button.vertical {
@@ -184,51 +202,49 @@
 
   .tab.button.selected {
     color: var(--spectrum-global-color-gray-700);
-    border: 1px solid var(--spectrum-global-color-gray-300);
+    font-weight: 500;
+    border: 1px solid
+      rgb(from var(--spectrum-global-color-gray-400) r g b / 0.75);
     background-color: rgb(
       from var(--spectrum-global-color-gray-200) r g b / 0.85
     );
   }
 
   .tab.list {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.5rem;
+    border-radius: 0.25rem;
     max-width: 100%;
     color: var(--spectrum-global-color-gray-700);
-    font-weight: 400;
   }
 
   .tab.list.selected {
     color: var(--tab-selected-color);
     background-color: var(--selected-tab);
-    font-weight: 500;
   }
 
-  .tab.list:hover:not(.disabled):not(.list-section) {
-    background-color: var(--spectrum-global-color-gray-75);
+  .tab.list:hover:not(.disabled):not(.list-section):not(.selected) {
+    background-color: var(--spectrum-global-color-gray-100);
   }
 
   .tab.list-title {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.5rem;
     max-width: 100%;
     font-size: 12px;
     color: var(--spectrum-global-color-gray-800);
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    font-weight: 500;
     border-bottom: 1px solid var(--spectrum-global-color-gray-300);
-    height: 3rem;
   }
 
   .tab.list-section {
     text-transform: uppercase;
     font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 1.2px;
+    color: var(--spectrum-global-color-gray-600);
     background-color: transparent;
   }
 
   .tab.list-section.vertical {
-    margin-top: 12px;
+    margin-top: 4px;
   }
 
   .tab.list-section:hover {

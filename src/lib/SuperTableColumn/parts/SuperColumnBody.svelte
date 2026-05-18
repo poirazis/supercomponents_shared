@@ -21,6 +21,8 @@
     $columnState == "EditingCell" &&
     ($columnSettings.highlighters == "vertical" ||
       $columnSettings.highlighters == "both");
+
+  $: console.log(isLast);
 </script>
 
 <div
@@ -32,6 +34,7 @@
   class:inserting
   class:filtered={$columnState == "Filtered"}
   class:is-editing={editing}
+  class:is-last={isLast}
 >
   {#each $stbVisibleRows as index (index)}
     <SuperColumnRow

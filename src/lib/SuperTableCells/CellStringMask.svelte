@@ -354,49 +354,50 @@
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
 >
-  {#if icon}
-    <i class={icon + " field-icon"} class:with-error={error}></i>
-  {/if}
+  {#key $cellState}
+    {#if icon}
+      <i class={icon + " field-icon"} class:with-error={error}></i>
+    {/if}
 
-  {#if inEdit}
-    <input
-      bind:this={inputElement}
-      tabindex="0"
-      class="editor"
-      {placeholder}
-      style:color={!isComplete
-        ? "var(--spectrum-global-color-gray-700)"
-        : cellOptions.color}
-      style:text-align={cellOptions.align == "center"
-        ? "center"
-        : cellOptions.align == "flex-end"
-          ? "right"
-          : "left"}
-      style:padding-right={cellOptions.align != "flex-start"
-        ? "2rem"
-        : "0.75rem"}
-      on:focusout={cellState.focusout}
-      on:keydown={cellState.handleKeyboard}
-      use:focus
-      use:initIMask={mask}
-    />
-    {#if localValue && cellOptions?.clearIcon !== false}
+    {#if inEdit}
+      <input
+        bind:this={inputElement}
+        tabindex="0"
+        class="editor"
+        {placeholder}
+        style:color={!isComplete
+          ? "var(--spectrum-global-color-gray-700)"
+          : cellOptions.color}
+        style:text-align={cellOptions.align == "center"
+          ? "center"
+          : cellOptions.align == "flex-end"
+            ? "right"
+            : "left"}
+        style:padding-right={cellOptions.align != "flex-start"
+          ? "2rem"
+          : "0.75rem"}
+        on:focusout={cellState.focusout}
+        on:keydown={cellState.handleKeyboard}
+        use:focus
+        use:initIMask={mask}
+      />
       <i
-        class="ri-close-line clearIcon"
+        class="ri-close-line clear-icon"
+        class:visible={localValue && cellOptions?.clearIcon !== false}
         on:mousedown|self|preventDefault={cellState.clear}
       ></i>
+    {:else}
+      <div
+        class="value"
+        tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
+        class:placeholder={!value}
+        style:justify-content={cellOptions.align}
+        on:focusin={cellState.focus}
+      >
+        <span>
+          {displayValue || placeholder}
+        </span>
+      </div>
     {/if}
-  {:else}
-    <div
-      class="value"
-      tabindex={cellOptions.readonly || cellOptions.disabled ? "-1" : "0"}
-      class:placeholder={!value}
-      style:justify-content={cellOptions.align}
-      on:focusin={cellState.focus}
-    >
-      <span>
-        {displayValue || placeholder}
-      </span>
-    </div>
-  {/if}
+  {/key}
 </div>

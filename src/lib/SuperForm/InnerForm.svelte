@@ -118,6 +118,11 @@
     __editing: !readonly && !disabled,
   };
 
+  $: scope =
+    provideContextScope === "local"
+      ? ContextScopes.Local
+      : ContextScopes.Global;
+
   const deriveFieldProperty = (
     fieldStores: Readable<FieldInfo>[],
     getProp: (_field: FieldInfo) => any,
@@ -584,18 +589,12 @@
 
 {#key labelPosition}
   {#if provideContext}
-    <Provider
-      {actions}
-      data={dataContext}
-      scope={provideContextScope === "local"
-        ? ContextScopes.Local
-        : ContextScopes.Global}
-    >
+    <Provider {actions} data={dataContext} {scope}>
       <div
         class="super-form-inner-form"
         class:labels-left={labelPosition === "left"}
         class:no-labels={labelPosition === false || labelPosition === "none"}
-        class:field-group={true}
+        class:field-group={columns > 1}
         style:grid-template-columns={`repeat(${columns * 6}, 1fr)`}
         style:row-gap={rowGap}
         style:column-gap={columnGap}

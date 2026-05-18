@@ -1,6 +1,9 @@
 <script>
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, getContext } from "svelte";
   import Tooltip from "../UI/elements/Tooltip.svelte";
+
+  const { enrichButtonActions } = getContext("sdk");
+  const context = getContext("context");
 
   export let size = "M";
   export let menuItem = false;
@@ -8,11 +11,12 @@
   export let icon = undefined;
   export let iconAfterText = undefined;
   export let iconColor = undefined;
+  export let filledIcon = undefined;
   export let text = "";
   export let quiet = undefined;
   export let selected = undefined;
   export let disabled = undefined;
-  export let onClick = undefined;
+  export let onClick;
   export let buttonClass = "actionButton";
   export let type = "primary";
   export let tooltip;
@@ -38,13 +42,16 @@
   export let onFalseCondition = undefined;
 
   $: loop = safeParse(loopSource);
+  $: buttonText = text || (actionsMode == "timer" ? timerDuration : "");
   $: icon_class = working
     ? "ph ph-spinner-gap ph-spin"
     : icon && !icon.startsWith("ri-")
       ? "ph ph-" + icon
       : icon
         ? icon
-        : undefined;
+        : actionsMode == "timer"
+          ? "ph ph-timer"
+          : undefined;
 
   let working = false;
   let ui_timer = undefined;
@@ -55,24 +62,31 @@
   let tooltipTimer;
 
   const showTooltip = () => {
-    if (disabled) return;
+    if (disabled || tooltipShow || !tooltip) return;
     if (tooltipTimer) clearTimeout(tooltipTimer);
     tooltipTimer = setTimeout(() => {
       tooltipShow = true;
-    }, 750);
+    }, 500);
   };
 
-  const hideTooltip = () => {
+  const hideTooltip = (e) => {
     if (tooltipTimer) {
       clearTimeout(tooltipTimer);
-      tooltipTimer = null;
     }
     tooltipShow = false;
   };
 
   async function handleClick(e) {
+    let enrichedAction;
+    if (Array.isArray(onClick)) {
+      enrichedAction = enrichButtonActions(onClick, $context);
+    } else {
+      enrichedAction = onClick;
+    }
+
     if (disabled || working || actionsMode == "timer") return;
     working = true;
+    tooltipShow = false;
     if (actionsMode == "loop") {
       if (onLoopStart) await onLoopStart({ iterations: loopSource?.length });
       if (Array.isArray(loop) && loopEvent) {
@@ -85,8 +99,8 @@
     } else if (actionsMode == "conditional") {
       if (condition == true) await onTrueCondition?.();
       else await onFalseCondition?.();
-    } else if (onClick) {
-      await onClick?.(e);
+    } else if (enrichedAction) {
+      await enrichedAction?.(e);
     }
     working = false;
   }
@@ -161,11 +175,12 @@
 >
   <i
     class={icon_class}
+    class:ph-fill={filledIcon}
     style:order={iconAfterText ? 1 : 0}
     style:color={disabled ? "var(--spectrum-global-color-gray-400)" : iconColor}
   ></i>
 
-  <span>{actionsMode !== "timer" ? text : elapsed + "s"}</span>
+  <span>{buttonText}</span>
 </button>
 
 {#if tooltip}
@@ -181,31 +196,47 @@
     align-items: center;
     justify-content: center;
     padding: 0rem 1rem;
-    min-width: 5rem;
-    gap: 0.5rem;
+    min-width: 4rem;
+    gap: 0.75rem;
     height: 2rem;
 
+    &.spectrum-ActionButton {
+      padding: 0rem 0.75rem !important;
+      border-radius: 4px !important;
+    }
+    &.spectrum-ActionButton.xsmall {
+      padding: 0rem 0.5rem !important;
+      border-radius: 4px !important;
+    }
     &.xsmall {
       height: 1.5rem;
-      font-size: 10px;
-      padding: 0rem 0.5rem;
+      padding: 0rem 0.75rem;
       min-width: unset;
+      gap: 0.5rem;
+      font-size: 12px;
+      border-radius: 1rem;
     }
 
     &.small {
       min-width: 4rem;
-      padding: 0rem 1rem;
+      padding: 0rem 0.75rem;
       gap: 0.5rem;
-      height: 1.85rem;
+      height: 1.75rem;
+      font-size: 13px;
     }
 
     &.large {
       height: 2.25rem;
+      font-size: 16px;
+      padding: 0rem 1.25rem;
+
+      & > i {
+        font-size: 18px;
+      }
     }
 
     & > span {
       white-space: nowrap;
-      font-size: 14px;
       font-weight: 600;
     }
 
@@ -228,6 +259,7 @@
       display: none;
       opacity: 0.9;
       font-weight: 400;
+      font-size: 15px;
     }
   }
 
@@ -254,6 +286,7 @@
   i {
     color: var(--iconColor);
     transition: all 230ms ease-in-out;
+    font-size: 16px;
   }
 
   .cta {
@@ -311,13 +344,13 @@
   .primary {
     &:hover,
     &:focus {
-      border: 1px solid var(--spectrum-global-color-gray-600);
-      background-color: var(--spectrum-global-color-gray-800);
-      color: var(--spectrum-global-color-gray-50);
+      border: 1px solid var(--spectrum-global-color-gray-500);
+      background-color: var(--spectrum-global-color-gray-200);
+      color: var(--spectrum-global-color-gray-900);
     }
     &:active {
       background-color: var(--spectrum-global-color-gray-100);
-      border: 1px solid var(--spectrum-global-color-gray-600);
+      border: 1px solid var(--spectrum-global-color-gray-500);
     }
 
     &.quiet {
@@ -340,7 +373,7 @@
       background-color: transparent;
 
       &:hover {
-        background-color: var(--spectrum-global-color-gray-200);
+        background-color: var(--spectrum-global-color-gray-300);
       }
     }
 
@@ -365,6 +398,8 @@
 
       &:hover {
         border-color: var(--spectrum-global-color-red-400);
+        background-color: var(--spectrum-global-color-red-400);
+        color: white;
         font-weight: bolder;
       }
 

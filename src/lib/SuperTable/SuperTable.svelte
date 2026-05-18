@@ -29,6 +29,7 @@
   import ControlSection from "./controls/ControlSection.svelte";
   import ColumnsSection from "./controls/ColumnsSection.svelte";
   import PaginationLimitOffset from "./controls/PaginationLimitOffset.svelte";
+  import { ta } from "zod/v4/locales";
 
   const {
     API,
@@ -132,6 +133,7 @@
   const filterStore = memo(filter);
   const cachedRows = writable([]);
   const loading = writable(false);
+  const resizing = writable(false);
 
   $: dataSourceStore.set(dataSource);
   $: filterStore.set(filter);
@@ -659,11 +661,12 @@
           // Clear errors on success
           $new_row.errors = {};
           $new_row = $new_row;
-          stbState.refresh();
+
           let richContext = { ...$context, [comp_id]: { row: saved_row } };
           let cmd_after = enrichButtonActions(afterInsert, richContext);
           await cmd_after?.({ row: saved_row });
           stbState.endSave(); // Only on success
+          stbState.refresh();
           return saved_row;
         } catch (e) {
           // Auto-clear errors after 2 seconds
@@ -691,6 +694,13 @@
           } else {
             // Fallback for generic errors
             $new_row.errors = { general: e.message || "Save failed" };
+            stbState.endSave(); // End save state on generic errors as well
+            notificationStore.actions.error(
+              "Failed to insert " +
+                (entitySingular || "Row") +
+                ": " +
+                (e.message || "Unknown error"),
+            );
           }
         }
       }
@@ -895,6 +905,15 @@
           : ids
             ? [ids]
             : [];
+    },
+    refreshColumns: () => {
+      columnStates?.forEach(({ state }) => state.unlockWidth());
+    },
+    startResize: () => {
+      resizing.set(true);
+    },
+    endResize: () => {
+      resizing.set(false);
     },
   };
 
@@ -1496,6 +1515,9 @@
     limit,
   });
 
+  // Allow Columns to resize
+  $: tableAPI.refreshColumns(tableWidth, $stbData.loaded);
+
   // Virtual List Capabilities reacting to viewport change
   $: stbState.calculateBoundaries(
     clientHeight,
@@ -1584,17 +1606,6 @@
     if (timer) clearInterval(timer);
     if (scrollLockTimeout) clearTimeout(scrollLockTimeout);
   });
-
-  // Unlock columns when table width changes to allow responsive re-rendering
-  let previousTableWidth = 0;
-  $: if (
-    (tableWidth > 0 && tableWidth !== previousTableWidth) ||
-    $columnsStore
-  ) {
-    previousTableWidth = tableWidth;
-    // Unlock all columns to allow responsive re-rendering
-    columnStates?.forEach(({ state }) => state.unlockWidth());
-  }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1604,7 +1615,7 @@
   <div
     class="super-table"
     class:quiet
-    class:initializing
+    class:initializing={initializing || $stbData.loading}
     bind:this={viewport}
     bind:clientWidth={tableWidth}
     bind:clientHeight
@@ -1635,7 +1646,7 @@
         hideSelectionColumn={hideSelectionColumn || $superColumns.length === 0}
       />
 
-      {#if showButtonColumnLeft}
+      {#if showButtonColumnLeft && $superColumns.length > 0 && $stbData.loaded}
         <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
       {/if}
 
@@ -1690,7 +1701,7 @@
     />
 
     <EmptyResultSetOverlay
-      {isEmpty}
+      isEmpty={isEmpty && !$stbData.loading}
       message={$stbSettings.data.emptyMessage}
       top={$superColumns?.length
         ? $stbSettings.appearance.headerHeight + 16

@@ -1,6 +1,8 @@
 <script>
-  import { createEventDispatcher, getContext } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import fsm from "svelte-fsm";
+  import Switch from "../UI/elements/Switch.svelte";
+  import Checkbox from "../UI/elements/Checkbox.svelte";
   import "./CellCommon.css";
 
   export let value;
@@ -21,20 +23,20 @@
     View: {
       focus() {
         if (!cellOptions.readonly && !cellOptions.disabled) return "Editing";
-        editor?.focus();
       },
     },
     Editing: {
       _enter() {
         originalValue = value;
-        editor?.focus();
         dispatch("enteredit");
       },
       _exit() {
         dispatch("exitedit");
       },
-      focus() {
-        editor?.focus();
+      focus() {},
+      toggle() {
+        value = !value;
+        dispatch("change", value);
       },
       change(e) {
         if (cellOptions.debounce) dispatch("change", value);
@@ -56,15 +58,10 @@
   $: inline = cellOptions.role == "inlineInput";
   $: inEdit = $cellState == "Editing";
   $: isDirty = inEdit && originalValue !== value;
-  $: checkbox = cellOptions?.controlType == "checkbox";
   $: tableCell = cellOptions.role == "tableCell";
   $: inlineLabel = cellOptions.inlineLabel;
   $: icon = cellOptions.error ? "ri-error-warning-line" : cellOptions.icon;
   $: error = cellOptions.error;
-
-  const focus = (node) => {
-    if (cellOptions.role == "tableCell") node.focus();
-  };
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -72,6 +69,7 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
   class="superCell"
+  tabindex={cellOptions.disabled || cellOptions.readonly ? undefined : "1"}
   class:inEdit
   class:isDirty={isDirty && cellOptions.showDirty}
   class:inline
@@ -84,6 +82,11 @@
     ? "var(--spectrum-global-color-gray-50)"
     : cellOptions.background}
   style:font-weight={cellOptions.fontWeight}
+  on:keydown={(e) => {
+    if (e.code == "Space") cellState.toggle();
+  }}
+  on:focusin={cellState.focus}
+  on:focusout={cellState.submit}
 >
   {#if icon}
     <i class={icon + " field-icon"} class:with-error={error}></i>
@@ -95,48 +98,40 @@
       class:naked-field={!tableCell}
       style:justify-content={cellOptions.align ?? "center"}
     >
-      {#if !checkbox}
-        <div class="spectrum-Switch spectrum-Switch--emphasized">
-          <input
-            class="spectrum-Switch-input"
-            bind:checked={value}
-            bind:this={editor}
-            type="checkbox"
+      {#if cellOptions.controlType == "switch"}
+        <div class="switch-wrapper">
+          <Switch
+            checked={value}
             disabled={cellOptions.disabled || cellOptions.readonly}
-            on:focusin={cellState.focus}
-            on:focusout={cellState.submit}
-            on:change={cellState.change}
-            use:focus
+            size="medium"
+            on:change={(e) => {
+              value = e.detail.checked;
+              cellState.change();
+            }}
           />
-          <span class="spectrum-Switch-switch"></span>
           {#if inlineLabel}
-            <span class="spectrum-Switch-label">{inlineLabel}</span>
+            <span class="switch-label">{inlineLabel}</span>
           {/if}
         </div>
       {:else}
-        <input
-          class="checkbox"
-          bind:checked={value}
-          bind:this={editor}
-          type="checkbox"
-          disabled={cellOptions.disabled || cellOptions.readonly}
-          on:focusin={cellState.focus}
-          on:focusout={cellState.submit}
-          on:change={cellState.change}
-          use:focus
-        />
-        {#if inlineLabel}
-          <span class="checkbox-label">{inlineLabel}</span>
-        {/if}
+        <div class="checkbox-wrapper">
+          <Checkbox
+            checked={value}
+            size="medium"
+            disabled={cellOptions.disabled || cellOptions.readonly}
+            on:change={(e) => {
+              value = e.detail.checked;
+              cellState.change();
+            }}
+          />
+          {#if inlineLabel}
+            <span class="checkbox-label">{inlineLabel}</span>
+          {/if}
+        </div>
       {/if}
     </div>
   {:else}
-    <div
-      class="value"
-      tabIndex="0"
-      style:justify-content={cellOptions.align ?? "center"}
-      on:focusin={cellState.focus}
-    >
+    <div class="value" style:justify-content={cellOptions.align ?? "center"}>
       {#if value}
         <i class="ri-check-line valueicon"></i>
       {:else if cellOptions.showFalse}
@@ -147,8 +142,20 @@
 </div>
 
 <style>
-  .spectrum-Switch {
-    margin-left: 0.25rem !important;
+  .switch-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .switch-label {
+    margin-left: 0.25rem;
   }
 
   .checkbox-label {

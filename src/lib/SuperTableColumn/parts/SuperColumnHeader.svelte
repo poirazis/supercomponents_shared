@@ -108,51 +108,53 @@
   on:mouseenter={() => (hovered = true)}
   on:mouseleave={() => (hovered = false)}
 >
-  {#if $columnState == "Entering" || $columnState == "Filtered"}
-    {#if $columnOptions.canFilter == "advanced"}
-      <i
-        class="ri-filter-3-line"
-        tabindex="0"
-        style="align-self: center; font-size: 14px;"
-        on:click|preventDefault={() =>
-          (showFilteringOptions = !showFilteringOptions)}
-      ></i>
-    {/if}
-    <svelte:component
-      this={$columnOptions.headerComponent}
-      cellOptions={{
-        ...$cellOptions,
-        placeholder: filterOperator,
-        disabled: filterOperator == "empty" || filterOperator == "notEmpty",
-      }}
-      value={filterValue}
-      fieldSchema={$columnOptions.schema}
-      multi={filterOperator == "containsAny" || filterOperator == "oneOf"}
-      on:change={handleValueChange}
-      on:focusout={handleBlur}
-    />
-  {:else}
-    <div
-      class="headerLabel"
-      style:justify-content={$columnOptions?.headerAlign}
-      on:click={columnState.headerClicked}
-    >
-      <div class="innerText" class:sortable={$columnOptions.canSort}>
-        {$columnOptions.displayName ?? $columnOptions.name}
-      </div>
-    </div>
-  {/if}
-
-  {#if $columnOptions.canSort && $columnState == "Idle"}
-    <span class="placeholder" on:click={columnState.sort}>
-      {#if hovered || sorted}
+  {#key $columnState}
+    {#if $columnState == "Entering" || $columnState == "Filtered"}
+      {#if $columnOptions.canFilter == "advanced"}
         <i
-          class={sorted == "ascending" ? "ri-sort-asc" : "ri-sort-desc"}
-          class:sorted
+          class="ri-filter-3-line"
+          tabindex="0"
+          style="align-self: center; font-size: 14px;"
+          on:click|preventDefault={() =>
+            (showFilteringOptions = !showFilteringOptions)}
         ></i>
       {/if}
-    </span>
-  {/if}
+      <svelte:component
+        this={$columnOptions.headerComponent}
+        cellOptions={{
+          ...$cellOptions,
+          placeholder: filterOperator,
+          disabled: filterOperator == "empty" || filterOperator == "notEmpty",
+        }}
+        value={filterValue}
+        fieldSchema={$columnOptions.schema}
+        multi={filterOperator == "containsAny" || filterOperator == "oneOf"}
+        on:change={handleValueChange}
+        on:focusout={handleBlur}
+      />
+    {:else}
+      <div
+        class="headerLabel"
+        style:justify-content={$columnOptions?.headerAlign}
+        on:click={columnState.headerClicked}
+      >
+        <div class="innerText" class:sortable={$columnOptions.canSort}>
+          {$columnOptions.displayName ?? $columnOptions.name}
+        </div>
+      </div>
+    {/if}
+
+    {#if $columnOptions.canSort && $columnState == "Idle"}
+      <span class="placeholder" on:click={columnState.sort}>
+        {#if hovered || sorted}
+          <i
+            class={sorted == "ascending" ? "ri-sort-asc" : "ri-sort-desc"}
+            class:sorted
+          ></i>
+        {/if}
+      </span>
+    {/if}
+  {/key}
 </div>
 
 {#if $columnOptions.canFilter == "advanced" && $columnState != "Idle"}

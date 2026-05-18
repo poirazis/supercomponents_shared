@@ -13,7 +13,7 @@ export const sizingMap = {
     rowFontSize: 13,
     rowHeight: 36,
     headerFontSize: 11,
-    headerHeight: 38,
+    headerHeight: 40,
     checkboxSize: 14,
   },
   L: {

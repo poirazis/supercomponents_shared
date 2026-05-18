@@ -8,12 +8,14 @@
   border-radius: 0.25rem;
   overflow: hidden;
   height: 360px;
-  --row-selection-color: rgba(75, 117, 255, 0.15);
-  --row-hover-color: rgba(75, 117, 255, 0.05);
+  --row-selection-color: rgb(from var(--primaryColor) r g b / 0.25);
+  --row-hover-color: rgb(from var(--primaryColor) r g b / 0.05);
 
   &.quiet {
-    background: transparent;
+    background: rgb(from var(--spectrum-global-color-gray-50) r g b / 0.75);
+    color: var(--spectrum-global-color-gray-700);
     --row-selection-color: var(--spectrum-global-color-gray-200);
+    --row-hover-color: var(--spectrum-global-color-gray-100);
     border-color: var(--spectrum-global-color-gray-200);
   }
 
@@ -86,7 +88,7 @@
   flex: auto;
   position: relative;
   flex-direction: column;
-  border-right: var(--super-table-vertical-dividers);
+
   overflow: hidden;
   scrollbar-width: none;
 
@@ -133,6 +135,10 @@
       background: var(--spectrum-global-color-gray-600);
       cursor: col-resize;
     }
+  }
+
+  &:last-child .super-column-body {
+    border-right: unset;
   }
 }
 
@@ -193,6 +199,7 @@
   flex: auto;
   overflow: hidden;
   max-height: var(--super-table-body-height);
+  border-right: var(--super-table-vertical-dividers);
   height: 100%;
 
   &.zebra:not(.sticky) > .super-row:nth-child(even) {
@@ -251,8 +258,8 @@
   }
 
   &.disabled {
-    color: var(--spectrum-global-color-gray-500) !important;
-    font-style: italic;
+    color: var(--spectrum-global-color-gray-600) !important;
+    font-style: italic !important;
   }
 
   &.isLast {

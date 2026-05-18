@@ -4,6 +4,7 @@
   import SuperPopover from "../SuperPopover/SuperPopover.svelte";
   import SuperList from "../SuperList/SuperList.svelte";
   import CellSkeleton from "./CellSkeleton.svelte";
+  import Switch from "../UI/elements/Switch.svelte";
   import "./CellCommon.css";
   const dispatch = createEventDispatcher();
   const { API, QueryUtils, fetchData, memo, derivedMemo, builderStore } =
@@ -14,7 +15,6 @@
   export let fieldSchema;
   export let multi = true;
   export let autofocus;
-  export let label;
 
   let anchor;
   let editor;
@@ -386,128 +386,126 @@
   on:focusout={cellState.focusout}
   on:keydown={editorState.handleKeyboard}
 >
-  {#if loading}
-    <CellSkeleton />
-  {:else}
-    {#key controlType}
-      {#if controlType == "list"}
-        <SuperList
-          items={localValue}
-          itemsColors={$colors}
-          itemsLabels={labels}
-          showColors={cellOptions.optionsViewMode != "text"}
-          reorderOnly={cellOptions.reorderOnly}
-          placeholder={cellOptions.placeholder}
-          readonly={cellOptions.readonly || cellOptions.disabled}
-          {editorState}
-          {cellState}
-          {fullSelection}
-          bind:inactive
-          on:togglePicker={editorState.toggle}
-          on:clear={() => {
-            localValue = [];
-            editorState.close();
-            anchor.focus();
-          }}
-          on:change={(e) => {
-            localValue = [...e.detail];
-            anchor.focus();
-          }}
-        />
-      {:else if radios == true}
-        <div
-          class="radios"
-          class:inline={role == "inlineInput"}
-          class:column={direction == "column"}
-          on:mouseleave={() => (focusedOptionIdx = -1)}
-        >
-          {#each $options as option, idx}
-            <div
-              class="radio"
-              class:selected={localValue?.includes(option)}
-              class:focused={focusedOptionIdx === idx}
-              on:mousedown={(e) => editorState.toggleOption(idx)}
-              on:mouseenter={() => (focusedOptionIdx = idx)}
-            >
-              <i
-                style:color={$colors[option]}
-                class={radios && localValue.includes(option)
-                  ? "ph-fill ph-radio-button"
-                  : radios
-                    ? "ph ph-circle"
-                    : localValue.includes(option)
-                      ? "ph-fill ph-check-square"
-                      : "ph ph-square"}
-              ></i>
-              {labels[option] || option}
-            </div>
-          {/each}
-        </div>
-      {:else if isButtons == true}
-        <div class="buttons">
-          {#each $options as option, idx}
-            <div
-              class="button"
-              class:selected={localValue?.includes(option)}
-              style:--option-color={$colors[option]}
-              on:click={() => editorState.toggleOption(idx)}
-            >
-              {labels[option] || option}
-            </div>
-          {/each}
-        </div>
-      {:else if controlType == "switch"}
-        <div
-          class="switches"
-          class:inline={role == "inlineInput"}
-          class:column={cellOptions.direction == "column"}
-          on:mouseleave={() => (focusedOptionIdx = -1)}
-        >
-          {#if cellOptions.toggleAll}
-            <div
-              class="switch toggle-all"
-              on:click={editorState.toggleAll}
-              on:mouseenter={() => (focusedOptionIdx = -1)}
-            >
-              <div class="text">All</div>
-              {#if !(readonly || disabled)}
-                <div class="spectrum-Switch spectrum-Switch--emphasized">
-                  <input
-                    checked={allSelected}
-                    type="checkbox"
-                    class="spectrum-Switch-input"
-                  />
-                  <span class="spectrum-Switch-switch"></span>
-                </div>
-              {/if}
-            </div>
-          {/if}
-          {#each $options as option, idx (idx)}
-            <div
-              class="switch"
-              class:selected={localValue.includes(option)}
-              class:focused={focusedOptionIdx === idx}
-              style:--option-color={$colors[option]}
-              on:click={(e) => editorState.toggleOption(idx)}
-              on:mouseenter={() => (focusedOptionIdx = idx)}
-            >
-              <i class={optionIcons[option] || "no-icon"}></i>
-              <div class="text">{labels[option] || option}</div>
-              <div class="spectrum-Switch spectrum-Switch--emphasized">
-                <input
-                  checked={localValue.includes(option)}
-                  type="checkbox"
-                  class="spectrum-Switch-input"
-                  id={idx}
-                />
-                <span class="spectrum-Switch-switch small"> </span>
+  {#key loading}
+    {#if loading}
+      <CellSkeleton />
+    {:else}
+      {#key controlType}
+        {#if controlType == "list"}
+          <SuperList
+            items={localValue}
+            itemsColors={$colors}
+            itemsLabels={labels}
+            showColors={cellOptions.optionsViewMode != "text"}
+            reorderOnly={cellOptions.reorderOnly}
+            placeholder={cellOptions.placeholder}
+            readonly={cellOptions.readonly || cellOptions.disabled}
+            {editorState}
+            {cellState}
+            {fullSelection}
+            bind:inactive
+            on:togglePicker={editorState.toggle}
+            on:clear={() => {
+              localValue = [];
+              editorState.close();
+              anchor.focus();
+            }}
+            on:change={(e) => {
+              localValue = [...e.detail];
+              anchor.focus();
+            }}
+          />
+        {:else if radios == true}
+          <div
+            class="radios"
+            class:inline={role == "inlineInput"}
+            class:column={direction == "column"}
+            on:mouseleave={() => (focusedOptionIdx = -1)}
+          >
+            {#each $options as option, idx}
+              <div
+                class="radio"
+                class:selected={localValue?.includes(option)}
+                class:focused={focusedOptionIdx === idx}
+                on:mousedown={(e) => editorState.toggleOption(idx)}
+                on:mouseenter={() => (focusedOptionIdx = idx)}
+              >
+                <i
+                  style:color={$colors[option]}
+                  class={radios && localValue.includes(option)
+                    ? "ph-fill ph-radio-button"
+                    : radios
+                      ? "ph ph-circle"
+                      : localValue.includes(option)
+                        ? "ph-fill ph-check-square"
+                        : "ph ph-square"}
+                ></i>
+                {labels[option] || option}
               </div>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    {/key}
-  {/if}
+            {/each}
+          </div>
+        {:else if isButtons == true}
+          <div class="buttons">
+            {#each $options as option, idx}
+              <div
+                class="button"
+                class:selected={localValue?.includes(option)}
+                style:--option-color={$colors[option]}
+                on:click={() => editorState.toggleOption(idx)}
+              >
+                {labels[option] || option}
+              </div>
+            {/each}
+          </div>
+        {:else if controlType == "switch"}
+          <div
+            class="switches"
+            class:inline={role == "inlineInput"}
+            class:column={cellOptions.direction == "column"}
+            on:mouseleave={() => (focusedOptionIdx = -1)}
+          >
+            {#if cellOptions.toggleAll}
+              <div
+                class="switch toggle-all"
+                on:mouseenter={() => (focusedOptionIdx = -1)}
+              >
+                <div class="text">All</div>
+                {#if !(readonly || disabled)}
+                  <Switch
+                    checked={allSelected}
+                    disabled={readonly || disabled}
+                    size="small"
+                    on:change={() => editorState.toggleAll()}
+                  />
+                {/if}
+              </div>
+            {/if}
+            {#each $options as option, idx (idx)}
+              <div
+                class="switch"
+                class:selected={localValue.includes(option)}
+                class:focused={focusedOptionIdx === idx}
+                style:--option-color={$colors[option]}
+                on:mouseenter={() => (focusedOptionIdx = idx)}
+                on:click|stopPropagation={() => editorState.toggleOption(idx)}
+              >
+                <i class={optionIcons[option] || "no-icon"}></i>
+                <div class="text">
+                  {labels[option] || option}
+                </div>
+                <Switch
+                  checked={localValue.includes(option)}
+                  disabled={readonly || disabled}
+                  size="small"
+                  on:change={() => editorState.toggleOption(idx)}
+                />
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {/key}
+    {/if}
+  {/key}
 </div>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -604,7 +602,7 @@
     flex: auto;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.25rem;
     justify-items: flex-start;
   }
 
@@ -612,34 +610,40 @@
     flex-direction: column;
     gap: 0.25rem;
   }
-  .buttons .button {
+  .buttons > .button {
     flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    border-radius: 4px;
-    background-color: var(--spectrum-global-color-gray-75);
+    border: 1px solid var(--spectrum-global-color-gray-400);
+    border-radius: 0.5rem;
+    background-color: var(--spectrum-global-color-gray-100);
     color: var(--spectrum-global-color-gray-600);
     cursor: pointer;
     user-select: none;
-    font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     transition: all 0.15s ease-in-out;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     max-width: 100%;
     gap: 0.35rem;
+    max-height: 1.75rem;
   }
 
   .button:hover {
-    background-color: var(--spectrum-global-color-gray-100);
+    background-color: var(--spectrum-global-color-gray-300);
     border-color: var(--spectrum-global-color-gray-300);
-    color: var(--spectrum-global-color-gray-700);
+    color: var(--spectrum-global-color-gray-800);
     cursor: pointer;
   }
+
+  .button:active {
+    border-color: var(--spectrum-global-color-gray-500);
+    color: var(--spectrum-global-color-gray-800);
+  }
+
   .button.selected {
     background-color: var(
       --option-color,
@@ -703,9 +707,7 @@
   }
 
   .switches.inline {
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    border-radius: 4px;
-    padding: 0.25rem 0.25rem;
+    padding: 0rem;
   }
 
   .switches.inline > .switch {
