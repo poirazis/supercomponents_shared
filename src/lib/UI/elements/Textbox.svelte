@@ -83,8 +83,8 @@
   role="button"
   tabindex={disabled ? -1 : 0}
   title={justCopied ? "" : (title ?? (stringValue ? copyLabel : ""))}
-  onclick={copyToClipboard}
-  onkeydown={handleKeydown}
+  on:click={copyToClipboard}
+  on:keydown={handleKeydown}
 >
   <span class="textbox-text" class:wrap>
     {displayValue}
