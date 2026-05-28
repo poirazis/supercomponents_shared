@@ -75,6 +75,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore event_directive_deprecated -->
 <span
   class="textbox value copyable"
   class:copied={justCopied}
@@ -90,25 +91,13 @@
     {displayValue}
   </span>
 
-  {#if !justCopied && stringValue}
-    <span class="copy-icon">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.25"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-        ></path>
-      </svg>
-    </span>
-  {/if}
+  {#key justCopied}
+    {#if justCopied}
+      <i class="ph ph-check copy-icon" aria-hidden="true"></i>
+    {:else}
+      <i class="ph ph-copy copy-icon" aria-hidden="true"></i>
+    {/if}
+  {/key}
 </span>
 
 <style>
@@ -165,6 +154,10 @@
     cursor: not-allowed;
     opacity: 0.6;
     pointer-events: none;
+  }
+
+  .copy-icon {
+    font-size: 16px;
   }
 
   .textbox.value .copy-icon {
