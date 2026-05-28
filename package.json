@@ -3,7 +3,7 @@
   "version": "1.2.19",
   "description": "Shared Svelte components library",
   "type": "module",
-  "packageManager": "bun@1.0.0",
+  "packageManager": "bun@1.3.11",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "svelte": "src/index.js",
