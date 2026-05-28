@@ -28,9 +28,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Verify npm authentication
-        run: npm whoami
-
       - name: Publish to npm (if version not published)
         run: |
           PKG_NAME=$(node -p "require('./package.json').name")
