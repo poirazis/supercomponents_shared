@@ -128,11 +128,12 @@
 <style>
   .selection {
     flex: auto;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-    gap: 1rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    gap: 0.5rem;
     font-size: 13px;
     font-weight: 500;
     align-items: center;
+    justify-content: center;
   }
 </style>

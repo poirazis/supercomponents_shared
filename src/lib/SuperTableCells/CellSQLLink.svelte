@@ -313,7 +313,9 @@
         bind:api={pickerApi}
         on:change={handleChange}
         on:focusout={cellState.popupfocusout}
-      />
+      >
+        <slot />
+      </CellSQLLinkPicker>
     {/if}
   </SuperPopover>
 {/if}

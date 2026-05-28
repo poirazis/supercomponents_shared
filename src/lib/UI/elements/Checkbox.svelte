@@ -27,7 +27,7 @@
   on:click={toggle}
 >
   {#if checked}
-    <i class="ph ph-check"></i>
+    <i class="ph ph-bold ph-check"></i>
   {:else if partial}
     <i class="ph ph-minus"></i>
   {:else if locked}

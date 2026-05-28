@@ -21,8 +21,6 @@
     $columnState == "EditingCell" &&
     ($columnSettings.highlighters == "vertical" ||
       $columnSettings.highlighters == "both");
-
-  $: console.log(isLast);
 </script>
 
 <div
