@@ -21,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/poirazis/supercomponents-shared.git"
+    "url": "https://github.com/poirazis/supercomponents_shared.git"
   },
   "keywords": [
     "svelte",
