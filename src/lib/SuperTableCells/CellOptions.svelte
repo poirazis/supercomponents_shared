@@ -807,7 +807,7 @@
           {/if}
         {/if}
 
-        {#if filteredOptions?.length === 0 && $fetch.loaded}
+        {#if filteredOptions?.length === 0}
           <div class="option">
             <span>
               <i class="ri-close-line"></i>

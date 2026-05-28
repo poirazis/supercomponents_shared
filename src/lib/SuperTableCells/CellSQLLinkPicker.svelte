@@ -343,6 +343,7 @@
               on:mouseleave={() => (focusIdx = -1)}
               on:mousedown|preventDefault|stopPropagation={() => selectRow(row)}
             >
+              <slot />
               <span>{row.primaryDisplay || row[primaryDisplay]}</span>
               <i class="ri-check-line"></i>
             </div>
@@ -361,6 +362,7 @@
                     on:mouseleave={() => (focusIdx = -1)}
                     on:mousedown|preventDefault={() => selectRow(row)}
                   >
+                    <slot />
                     <span>{row.primaryDisplay || row[primaryDisplay]}</span>
                     <i class="ri-check-line"></i>
                   </div>

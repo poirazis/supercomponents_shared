@@ -362,11 +362,6 @@
 .superCell.formInput.has-popup {
   background-color: var(--spectrum-global-color-gray-50);
 
-  &:hover:not(.disabled):not(.readonly):not(.inEdit) {
-    border-color: var(--spectrum-global-color-gray-100) !important;
-    cursor: pointer;
-  }
-
   &.inEdit {
     border: 1px solid var(--spectrum-global-color-gray-200) !important;
     background-color: var(--spectrum-global-color-gray-200) !important;

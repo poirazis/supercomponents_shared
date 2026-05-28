@@ -16,6 +16,7 @@ export { default as SuperPopover } from "./lib/SuperPopover/SuperPopover.svelte"
 // UI Elements
 export { default as Tooltip } from "./lib/UI/elements/Tooltip.svelte";
 export { default as IconButton } from "./lib/UI/elements/IconButton.svelte";
+export { default as Textbox } from "./lib/UI/elements/Textbox.svelte";
 
 // Table components
 export { default as SuperTable } from "./lib/SuperTable/SuperTable.svelte";

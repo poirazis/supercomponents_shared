@@ -29,7 +29,6 @@
   import ControlSection from "./controls/ControlSection.svelte";
   import ColumnsSection from "./controls/ColumnsSection.svelte";
   import PaginationLimitOffset from "./controls/PaginationLimitOffset.svelte";
-  import { ta } from "zod/v4/locales";
 
   const {
     API,
@@ -1641,30 +1640,35 @@
   >
     <Provider {actions} data={dataContext} />
 
-    <ControlSection>
-      <SelectionColumn
-        hideSelectionColumn={hideSelectionColumn || $superColumns.length === 0}
-      />
-
-      {#if showButtonColumnLeft && $superColumns.length > 0 && $stbData.loaded}
-        <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
-      {/if}
-
-      {#if stickFirstColumn && $superColumns.length > 1}
-        <SuperTableColumn
-          sticky={true}
-          scrollPos={$stbHorizontalScrollPos}
-          columnOptions={{
-            ...$superColumns[0],
-            ...$commonColumnOptions,
-            overflow,
-            isFirst: true,
-            isLast:
-              $superColumns?.length == 1 && !showButtonColumnRight && canScroll,
-          }}
+    {#if !isEmpty}
+      <ControlSection>
+        <SelectionColumn
+          hideSelectionColumn={hideSelectionColumn ||
+            $superColumns.length === 0}
         />
-      {/if}
-    </ControlSection>
+
+        {#if showButtonColumnLeft && $superColumns.length > 0 && $stbData.loaded}
+          <RowButtonsColumn {rowMenuItems} {menuItemsVisible} {rowMenu} />
+        {/if}
+
+        {#if stickFirstColumn && $superColumns.length > 1}
+          <SuperTableColumn
+            sticky={true}
+            scrollPos={$stbHorizontalScrollPos}
+            columnOptions={{
+              ...$superColumns[0],
+              ...$commonColumnOptions,
+              overflow,
+              isFirst: true,
+              isLast:
+                $superColumns?.length == 1 &&
+                !showButtonColumnRight &&
+                canScroll,
+            }}
+          />
+        {/if}
+      </ControlSection>
+    {/if}
 
     <ColumnsSection
       {stbSettings}
@@ -1678,7 +1682,7 @@
       {/key}
     </ColumnsSection>
 
-    {#if showButtonColumnRight && $superColumns.length > 0}
+    {#if showButtonColumnRight && $superColumns.length > 0 && !isEmpty}
       <ControlSection>
         <RowButtonsColumn
           {rowMenuItems}

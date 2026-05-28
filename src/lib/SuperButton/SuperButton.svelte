@@ -20,12 +20,12 @@
   export let buttonClass = "actionButton";
   export let type = "primary";
   export let tooltip;
-
+  export let confirm = false;
+  export let condition = undefined;
   // Visibility Conditions
   export const conditions = []; // Array of condition objects {field, operator, value}
 
   export let actionsMode = "normal";
-  export let condition = undefined; // For backward compatibility
   export let loopSource = undefined;
   export let loopDelay = 0;
   export let loopEvent = undefined;
@@ -40,22 +40,31 @@
   export let onLoopEnd = undefined;
   export let onTrueCondition = undefined;
   export let onFalseCondition = undefined;
+  export let workingState;
+
+  $: enrichedAction = Array.isArray(onClick)
+    ? enrichButtonActions(onClick, $context)
+    : onClick;
 
   $: loop = safeParse(loopSource);
-  $: buttonText = text || (actionsMode == "timer" ? timerDuration : "");
-  $: icon_class = working
-    ? "ph ph-spinner-gap ph-spin"
-    : icon && !icon.startsWith("ri-")
-      ? "ph ph-" + icon
-      : icon
-        ? icon
-        : actionsMode == "timer"
-          ? "ph ph-timer"
-          : undefined;
+  $: buttonText = confirmMode
+    ? "Confirm"
+    : text || (actionsMode == "timer" ? timerDuration : "");
+  $: icon_class =
+    working || workingState
+      ? "ph ph-spinner-gap ph-spin"
+      : icon && !icon.startsWith("ri-")
+        ? "ph ph-" + icon
+        : icon
+          ? icon
+          : actionsMode == "timer"
+            ? "ph ph-timer"
+            : undefined;
 
   let working = false;
   let ui_timer = undefined;
   let elapsed = 0;
+  let confirmMode = false;
 
   let buttonElement;
   let tooltipShow = false;
@@ -74,17 +83,20 @@
       clearTimeout(tooltipTimer);
     }
     tooltipShow = false;
+    confirmMode = false;
   };
 
   async function handleClick(e) {
-    let enrichedAction;
-    if (Array.isArray(onClick)) {
-      enrichedAction = enrichButtonActions(onClick, $context);
-    } else {
-      enrichedAction = onClick;
+    if (disabled || actionsMode == "timer") return;
+
+    // Handle confirmation flow
+    if (confirm && !confirmMode) {
+      confirmMode = true;
+      return;
     }
 
-    if (disabled || working || actionsMode == "timer") return;
+    // Reset confirm mode after executing action
+    confirmMode = false;
     working = true;
     tooltipShow = false;
     if (actionsMode == "loop") {
@@ -145,9 +157,14 @@
 
 <button
   bind:this={buttonElement}
-  on:click={handleClick}
+  on:click={(e) => {
+    handleClick(e);
+  }}
   on:mouseenter={showTooltip}
   on:mouseleave={hideTooltip}
+  on:blur={() => {
+    confirmMode = false;
+  }}
   tabindex={disabled ? -1 : 0}
   class:super-button={true}
   class:xsmall={size == "XS"}
@@ -171,10 +188,10 @@
     ? "spectrum-ActionButton spectrum-ActionButton--size" + size
     : "spectrum-Button spectrum-Button--size" + size}
   class:disabled
-  class:working
+  class:working={working || workingState}
 >
   <i
-    class={icon_class}
+    class={confirmMode ? "ph ph-check" : icon_class}
     class:ph-fill={filledIcon}
     style:order={iconAfterText ? 1 : 0}
     style:color={disabled ? "var(--spectrum-global-color-gray-400)" : iconColor}
@@ -199,6 +216,7 @@
     min-width: 4rem;
     gap: 0.75rem;
     height: 2rem;
+    transition: all 150ms ease-in-out;
 
     &.spectrum-ActionButton {
       padding: 0rem 0.75rem !important;
@@ -258,8 +276,6 @@
     & > i {
       display: none;
       opacity: 0.9;
-      font-weight: 400;
-      font-size: 15px;
     }
   }
 
@@ -286,7 +302,6 @@
   i {
     color: var(--iconColor);
     transition: all 230ms ease-in-out;
-    font-size: 16px;
   }
 
   .cta {
@@ -333,12 +348,8 @@
       }
     }
     &:hover,
-    &:focus {
+    &:focus:not(.working) {
       background-color: var(--spectrum-global-color-gray-900);
-    }
-
-    &:active {
-      border: 1px solid var(--spectrum-global-color-blue-700);
     }
   }
   .primary {
@@ -446,14 +457,15 @@
 
   .working {
     cursor: progress;
-    border: 1px solid var(--spectrum-global-color-gray-300) !important;
+    border: 1px solid var(--spectrum-global-color-gray-400) !important;
+    background-color: var(--spectrum-global-color-gray-300) !important;
     & > span {
-      color: var(--spectrum-global-color-gray-600);
+      color: var(--spectrum-global-color-gray-600) !important;
     }
     & > i {
       display: block;
       animation: spin 1s linear infinite;
-      color: var(--spectrum-global-color-blue-700);
+      color: var(--spectrum-global-color-gray-700) !important;
     }
   }
 </style>

@@ -198,7 +198,8 @@
 
     & > .error-message {
       color: var(--spectrum-global-color-red-400);
-      font-size: 11px;
+      font-size: 10px;
+      white-space: nowrap;
     }
   }
 </style>
