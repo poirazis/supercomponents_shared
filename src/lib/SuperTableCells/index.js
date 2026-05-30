@@ -21,6 +21,7 @@ export { default as CellStringSimple } from "./CellStringSimple.svelte";
 export { default as CellTags } from "./CellTags.svelte";
 export { default as CellAttachmentExpanded } from "./CellAttachmentExpanded.svelte";
 export { default as CellAttachmentSlider } from "./CellAttachmentSlider.svelte";
+export { default as BaseCell } from "./BaseCell.svelte";
 
 // Export types for TypeScript consumers
 export * from "./types";

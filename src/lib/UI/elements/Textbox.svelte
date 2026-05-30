@@ -1,14 +1,12 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-
-  const dispatch = createEventDispatcher();
-
   interface TextboxProps {
     value?: string | number;
+    icon?: string;
+    align?: "left" | "center" | "right";
     disabled?: boolean;
+    copyIcon?: "onhover" | "always";
     copyLabel?: string;
     copiedLabel?: string;
-    title?: string;
     wrap?: boolean;
     monospace?: boolean;
     oncopy?: (detail: { value: string }) => void;
@@ -16,12 +14,14 @@
 
   let {
     value = "",
+    icon,
+    align = "left",
     disabled = false,
+    copyIcon = "always",
     copyLabel = "Copy to clipboard",
     copiedLabel = "Copied !",
-    title,
     wrap = false,
-    monospace = true,
+    monospace = false,
     oncopy,
   }: TextboxProps = $props();
 
@@ -29,32 +29,32 @@
   let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 
   let stringValue = $derived(String(value ?? "").trim());
+  let effectiveIcon = $derived(icon ? `ph ph-${icon}` : null);
+  let actionIcon = $derived(justCopied ? "ph ph-check" : "ph ph-copy");
 
-  let displayValue = $derived(
-    justCopied && copiedLabel?.trim() ? copiedLabel : stringValue || "",
-  );
-
-  function copyToClipboard() {
+  function copyToClipboard(e: MouseEvent) {
     if (disabled || !stringValue || justCopied) return;
 
-    navigator.clipboard
-      .writeText(stringValue)
-      .then(() => {
-        justCopied = true;
-        const detail = { value: stringValue };
+    let selectedText = window.getSelection()?.toString() || "";
 
-        dispatch("copy", detail);
-        oncopy?.(detail);
+    if (!oncopy) {
+      navigator.clipboard
+        .writeText(selectedText || stringValue)
+        .then(() => {
+          justCopied = true;
 
-        if (copyTimeout) clearTimeout(copyTimeout);
-        copyTimeout = setTimeout(() => {
-          justCopied = false;
-          copyTimeout = undefined;
-        }, 800);
-      })
-      .catch((err) => {
-        console.error("Failed to copy to clipboard:", err);
-      });
+          if (copyTimeout) clearTimeout(copyTimeout);
+          copyTimeout = setTimeout(() => {
+            justCopied = false;
+            copyTimeout = undefined;
+          }, 400);
+        })
+        .catch((err) => {
+          console.error("Failed to copy to clipboard:", err);
+        });
+    } else {
+      oncopy({ value: stringValue });
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -81,47 +81,51 @@
   class:copied={justCopied}
   class:disabled
   class:monospace
+  class:icon-on-hover={copyIcon === "onhover"}
+  class:wrap
   role="button"
   tabindex={disabled ? -1 : 0}
-  title={justCopied ? "" : (title ?? (stringValue ? copyLabel : ""))}
+  title={copyLabel}
   on:click={copyToClipboard}
   on:keydown={handleKeydown}
 >
-  <span class="textbox-text" class:wrap>
-    {displayValue}
+  {#if effectiveIcon}
+    <i class={effectiveIcon + " textbox-icon"} aria-hidden="true"></i>
+  {/if}
+
+  <span class="textbox-text" class:wrap style="text-align: {align}">
+    {stringValue}
   </span>
 
-  {#key justCopied}
-    {#if justCopied}
-      <i class="ph ph-check copy-icon" aria-hidden="true"></i>
-    {:else}
-      <i class="ph ph-copy copy-icon" aria-hidden="true"></i>
-    {/if}
-  {/key}
+  <i
+    class={actionIcon}
+    class:copied={justCopied}
+    class:copy-icon={true}
+    aria-hidden="true"
+  ></i>
 </span>
 
 <style>
   .textbox.value {
-    color: var(--spectrum-global-color-gray-700);
-    border: 1px solid var(--spectrum-global-color-gray-300);
+    flex: 1 0 100%;
+    color: var(--spectrum-global-color-gray-800);
+    border: 1px solid var(--spectrum-global-color-gray-200);
     border-radius: 0.25rem;
-    padding: 0.5rem 0.75rem;
-    background: rgb(from var(--spectrum-global-color-gray-50) r g b / 0.5);
-    font-family: monospace;
-    font-size: 12px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    background: rgb(from var(--spectrum-global-color-gray-50) r g b / 0.75);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    height: 2rem;
   }
 
-  .textbox.value:not(.monospace) {
-    font-family: var(
-      --spectrum-global-font-family,
-      system-ui,
-      -apple-system,
-      sans-serif
-    );
-    font-size: 13px;
+  .textbox-icon {
+    margin-left: -0.25rem;
+    color: var(--spectrum-global-color-gray-600);
+  }
+  .textbox.value.monospace {
+    font-family: var(--spectrum-global-font-family-monospace);
   }
 
   .textbox.value.copyable {
@@ -133,21 +137,20 @@
     justify-content: space-between;
   }
 
-  .textbox.value.copyable:hover:not(.disabled) {
+  .textbox.value.copyable:hover:not(.disabled):not(.copied) {
     background-color: var(--spectrum-global-color-gray-100);
+    border-color: var(--spectrum-global-color-gray-300);
   }
 
-  .textbox.value.copyable:focus:not(.disabled) {
-    outline: 1px solid var(--spectrum-global-color-gray-500);
+  .textbox:focus:not(.disabled) {
+    outline: none;
     background-color: var(--spectrum-global-color-gray-100);
-    outline-offset: 1px;
   }
 
   .textbox.value.copyable.copied {
-    border-color: var(--spectrum-global-color-gray-500);
-    background-color: var(--spectrum-global-color-gray-100);
-    color: var(--spectrum-global-color-gray-600);
-    font-weight: 600;
+    border-color: var(--spectrum-global-color-gray-400) !important;
+    background-color: var(--spectrum-global-color-gray-75) !important;
+    color: var(--spectrum-global-color-gray-600) !important;
   }
 
   .textbox.value.copyable.disabled {
@@ -157,24 +160,34 @@
   }
 
   .copy-icon {
-    font-size: 16px;
+    opacity: 0;
+    font-size: 15px;
+    transition: color 0.15s ease;
+  }
+
+  .copy-icon.copied {
+    color: var(--spectrum-global-color-green-700) !important;
   }
 
   .textbox.value .copy-icon {
-    opacity: 0;
+    opacity: 0.45;
     transition: opacity 0.15s ease;
     flex-shrink: 0;
     color: var(--spectrum-global-color-gray-600);
     display: flex;
     align-items: center;
+    margin-left: 0.5rem;
+  }
+  .textbox.value.icon-on-hover .copy-icon {
+    opacity: 0;
   }
 
   .textbox.value.copyable:hover:not(.disabled) .copy-icon {
-    opacity: 0.65;
+    opacity: 0.85;
   }
 
   .textbox.value.copyable:focus:not(.disabled) .copy-icon {
-    opacity: 0.65;
+    opacity: 0.85;
   }
 
   .textbox.value.copyable:hover:not(.disabled) .copy-icon:hover {

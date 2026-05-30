@@ -47,6 +47,7 @@
     template,
     placeholder: placeholderText,
     debounce: debounceDelay,
+    copyable,
   } = cellOptions ?? {});
 
   // Reactive declarations
@@ -57,6 +58,7 @@
   $: formattedValue = template
     ? processStringSync(template, { value })
     : (value ?? undefined);
+
   $: placeholder = placeholderText ?? "";
   $: textarea = controlType === "textarea";
   $: disabled = cellOptions?.disabled;
